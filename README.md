@@ -1,6 +1,6 @@
-# NuclearEvaluation
+# Nuclear Evaluation
 
-Welcome to the NuclearEvaluation repository! This project showcases the capabilities of Blazor Server, focusing on dynamic filtering and sorting through the use of data grids and a powerful query builder. These features collectively enhance the interactivity and flexibility of data management within the application. The component library used in this project is Radzen, which provides a rich set of UI components for building Blazor applications.
+Welcome to the Nuclear Evaluation repository! This project showcases the capabilities of Blazor Server, focusing on dynamic filtering and sorting through the use of data grids and a powerful query builder. These features collectively enhance the interactivity and flexibility of data management within the application. The component library used in this project is Radzen, which provides a rich set of UI components for building Blazor applications.
 The application can be accessed via [https://nuclearevaluation.com/](https://nuclearevaluation.com/)
 
 ## Features

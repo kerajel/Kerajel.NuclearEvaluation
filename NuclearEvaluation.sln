@@ -6,7 +6,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuclearEvaluation.Library",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuclearEvaluation.Server", "NuclearEvaluation.Server\NuclearEvaluation.Server.csproj", "{300B1237-C459-4746-B0FF-4BA89964DA72}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuclearEvaluationServer.Tests", "NuclearEvaluationServerTests\NuclearEvaluationServer.Tests.csproj", "{A7F35140-737B-42DE-8A47-9DDCBFA29270}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.Tests", "NuclearEvaluation.Tests\NuclearEvaluation.Tests.csproj", "{560FB291-9DD4-4B26-8AF9-98B70E305825}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -22,10 +22,10 @@ Global
 		{300B1237-C459-4746-B0FF-4BA89964DA72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{300B1237-C459-4746-B0FF-4BA89964DA72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{300B1237-C459-4746-B0FF-4BA89964DA72}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A7F35140-737B-42DE-8A47-9DDCBFA29270}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A7F35140-737B-42DE-8A47-9DDCBFA29270}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A7F35140-737B-42DE-8A47-9DDCBFA29270}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A7F35140-737B-42DE-8A47-9DDCBFA29270}.Release|Any CPU.Build.0 = Release|Any CPU
+		{560FB291-9DD4-4B26-8AF9-98B70E305825}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{560FB291-9DD4-4B26-8AF9-98B70E305825}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{560FB291-9DD4-4B26-8AF9-98B70E305825}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{560FB291-9DD4-4B26-8AF9-98B70E305825}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

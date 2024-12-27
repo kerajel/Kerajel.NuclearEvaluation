@@ -1,0 +1,23 @@
+@typeparam T where T : struct, Enum
+@typeparam K where K : class, IIdentifiable
+
+<div class="rz-grid-filter">
+    @if (_isLoading)
+    {
+        <RadzenProgressBarCircular ProgressBarStyle="ProgressBarStyle.Dark" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        <RadzenListBox ValueChanged="@((IEnumerable<T> value) => _selectedItems = value)"
+                       Value="_selectedItems"
+                       AllowClear="true"
+                       Multiple="true"
+                       AllowSelectAll="true"
+                       Style="width:100%; height:200px;"
+                       Data="_availableItems" />
+        <div class="rz-grid-filter-buttons">
+            <RadzenButton ButtonStyle="ButtonStyle.Primary" Text="Apply" Click="@OnApply" />
+            <RadzenButton ButtonStyle="ButtonStyle.Secondary" Text="Clear" Click="@OnClear" />
+        </div>
+    }
+</div>

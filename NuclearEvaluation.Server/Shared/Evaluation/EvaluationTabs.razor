@@ -1,0 +1,12 @@
+@using NuclearEvaluation.Server.Shared.Evaluation.QueryBuilder
+
+<RadzenTabs @bind-SelectedIndex="tabManager.SelectedTabIndex" Change="OnTabChanged" Style="min-height: 600px;">
+    <Tabs>
+        <RadzenTabsItem Text="Projects">
+            <ProjectGrid />
+        </RadzenTabsItem>
+        <RadzenTabsItem Text="Query Builder">
+            <QueryBuilderCard />
+        </RadzenTabsItem>
+    </Tabs>
+</RadzenTabs>

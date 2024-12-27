@@ -1,0 +1,20 @@
+﻿@implements IPresetFilterComponent
+@inherits BaseQueryBuilderFilter<SampleViewPresetFilter>
+
+
+<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="false" Style="width: 65%;" TItem="SampleViewPresetFilter">
+    <Properties>
+        <RadzenDataFilterProperty Property="Sample.Sequence" Title="Sequence" />
+        <RadzenDataFilterProperty Property="Sample.SeriesId" Title="Series Id" />
+        <RadzenDataFilterProperty Property="Sample.SampleClass" Title="Sample Class" />
+        <RadzenDataFilterProperty Property="Sample.SampleType" Title="Sample Type" />
+        <RadzenDataFilterProperty Property="Sample.SamplingDate" Title="Sampling Date" FormatString="{0:yyyy-MM-dd}" />
+        <RadzenDataFilterProperty Property="Sample.SubSampleCount" Title="SubSample Count" />
+        <RadzenDataFilterProperty Property="Sample.Latitude" Title="Latitude" />
+        <RadzenDataFilterProperty Property="Sample.Longitude" Title="Longitude" />
+    </Properties>
+</RadzenDataFilter>
+
+@code {
+    public override PresetFilterEntryType EntryType => PresetFilterEntryType.Sample;
+}

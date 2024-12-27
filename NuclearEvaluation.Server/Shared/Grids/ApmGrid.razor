@@ -1,0 +1,76 @@
+@inherits BaseGrid
+
+<div style="display:@(Visible ? "block" : "none");">
+
+    <GridButtonRibbon>
+        <ResetGridButton Click="@(() => Reset())" />
+    </GridButtonRibbon>
+
+    <RadzenDataGrid @bind-Settings="@GridSettings"
+                    @ref="grid"
+                    AllowAlternatingRows="false"
+                    AllowColumnResize="true"
+                    AllowFiltering="true"
+                    AllowPaging="true"
+                    AllowSorting="true"
+                    ColumnWidth="150px"
+                    Count="@totalCount"
+                    Data="@entries"
+                    KeyProperty="@nameof(ApmView.Id)"
+                    LoadData="@((args) => LoadData(args))"
+                    IsLoading="@isLoading"
+                    LogicalFilterOperator="LogicalFilterOperator.And"
+                    PagerHorizontalAlign="HorizontalAlign.Left"
+                    ShowPagingSummary="true"
+                    TItem="ApmView"
+                    FilterPopupRenderMode="PopupRenderMode.OnDemand"
+                    PagingSummaryFormat="@("Displaying page {0:N0} of {1:N0} <b>(total {2:N0} records)</b>")"
+                    FilterMode="FilterMode.Advanced">
+
+        <Columns>
+
+            <RadzenDataGridColumn Property="@nameof(ApmView.Id)"
+                                  Title="ID"
+                                  TextAlign="TextAlign.Center" />
+
+            <RadzenDataGridColumn Property="@nameof(ApmView.Comment)"
+                                  Title="Comment"
+                                  TextAlign="TextAlign.Left">
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Property="@nameof(ApmView.U234)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="@(nameof(ApmView.U234))" />
+
+            <RadzenDataGridColumn Property="@nameof(ApmView.ErU234)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="@(nameof(ApmView.ErU234))" />
+
+            <RadzenDataGridColumn Property="@nameof(ApmView.U235)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="@(nameof(ApmView.U235))" />
+
+            <RadzenDataGridColumn Property="@nameof(ApmView.ErU235)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="@(nameof(ApmView.ErU235))" />
+
+            <RadzenDataGridColumn Property="@nameof(ApmView.U236)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="@(nameof(ApmView.U236))" />
+
+            <RadzenDataGridColumn Property="@nameof(ApmView.ErU236)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="@(nameof(ApmView.ErU236))" />
+
+            <RadzenDataGridColumn Property="@nameof(ApmView.U238)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="@(nameof(ApmView.U238))" />
+
+            <RadzenDataGridColumn Property="@nameof(ApmView.ErU238)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="@(nameof(ApmView.ErU238))" />
+
+        </Columns>
+    </RadzenDataGrid>
+
+</div>

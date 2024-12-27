@@ -1,0 +1,54 @@
+﻿using NuclearEvaluation.Library.Enums;
+using NuclearEvaluation.Library.Extensions;
+using NuclearEvaluation.Library.Models.Filters;
+using Microsoft.AspNetCore.Components;
+using Radzen;
+using Radzen.Blazor;
+using NuclearEvaluation.Library.Interfaces;
+
+namespace NuclearEvaluation.Server.Shared.Evaluation.QueryBuilder;
+
+public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilterComponent where TItem : class, new()
+{
+    [Parameter]
+    public bool Visible { get; set; }
+
+    public PresetFilterEntry PresetFilterEntry
+    {
+        get
+        {
+            presetFilterEntry ??= PresetFilterEntry.Create(EntryType, [], true);
+            presetFilterEntry.Descriptors = filter.Filters;
+            presetFilterEntry.LogicalFilterOperator = filter.LogicalFilterOperator;
+            return presetFilterEntry;
+        }
+        set
+        {
+            presetFilterEntry = value;
+            filter.Filters = value.Descriptors;
+            logicalFilterOperator = value.LogicalFilterOperator;
+            StateHasChanged();
+        }
+    }
+
+    public abstract PresetFilterEntryType EntryType { get; }
+
+    public string? FilterString
+    {
+        get
+        {
+            return filter.Filters.IsNullOrEmpty() ? null : filter.ToFilterString();
+        }
+    }
+
+    protected RadzenDataFilter<TItem> filter = null!;
+    protected PresetFilterEntry? presetFilterEntry;
+    protected LogicalFilterOperator logicalFilterOperator = LogicalFilterOperator.And;
+
+    public void Reset()
+    {
+        presetFilterEntry = PresetFilterEntry.Create(EntryType, [], true);
+        logicalFilterOperator = LogicalFilterOperator.And;
+        filter.Filters = [];
+    }
+}

@@ -1,0 +1,25 @@
+﻿@typeparam TModel
+
+@inherits ValidatedControlBase<TModel>
+
+<div class="validated-textarea-container" style="position: relative;">
+    <RadzenTextArea id="@Id"
+                    @ref="_textInputRef"
+                    @bind-Value="_boundValue"
+                    Style="@ComputedStyle"
+                    Placeholder="@Placeholder"
+                    @oninput="OnTextBoxInput"
+                    Visible="@Visible"
+                    Rows="Rows"
+                    @onblur="HandleOnBlur"
+                    Name="@Name" />
+
+    @if (_hasValidationErrors && !string.IsNullOrEmpty(_validationMessage))
+    {
+        <div class="validation-tooltip"
+             style="--tooltip-offset-x:@TooltipOffsetXpx; --tooltip-offset-y:@TooltipOffsetYpx;">
+            @(_validationMessage)
+        </div>
+    }
+</div>
+

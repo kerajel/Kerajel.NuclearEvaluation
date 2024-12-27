@@ -1,0 +1,21 @@
+@using NuclearEvaluation.Library.Commands
+
+<RadzenTabs @bind-SelectedIndex=@_currentTabIndex Style="min-height: 1000px;">
+    <Tabs>
+        <RadzenTabsItem Text="Series">
+            <div style="padding: 10px; margin-bottom: 10px;">
+                <SeriesCountsGrid @ref="_seriesCountsGrid" />
+            </div>
+            <SeriesGrid ComponentId="27ECF3B0-2BA4-40D0-BF22-EEB4CFE9A2C2"
+                        OnSeriesSetChanged="OnSeriesSetChange"
+                        AllowEdit="true" />
+        </RadzenTabsItem>
+
+        <RadzenTabsItem Text="Data Upload">
+            <RadzenLabel Text="Page Under Development" Style="font-size: 20px; font-weight: bold;" />
+            <p />
+            <RadzenLabel Text="This page is currently under development. Please check back later for updates." Style="font-size: 16px; padding-top: 10px;" />
+        </RadzenTabsItem>
+
+    </Tabs>
+</RadzenTabs>

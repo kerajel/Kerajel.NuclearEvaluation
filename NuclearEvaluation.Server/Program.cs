@@ -109,8 +109,8 @@ internal class Program
         using (IServiceScope scope = app.Services.CreateScope())
         {
             IServiceProvider serviceProvider = scope.ServiceProvider;
-            await serviceProvider.GetRequiredService<ApplicationIdentityContext>().Database.MigrateAsync();
-            await serviceProvider.GetRequiredService<NuclearEvaluationServerDbContext>().Database.MigrateAsync();
+            //await serviceProvider.GetRequiredService<ApplicationIdentityContext>().Database.MigrateAsync();
+            //await serviceProvider.GetRequiredService<NuclearEvaluationServerDbContext>().Database.MigrateAsync();
         }
 
         app.Run();

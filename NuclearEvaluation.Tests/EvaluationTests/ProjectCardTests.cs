@@ -1,10 +1,11 @@
 using AngleSharp.Dom;
 using Bunit;
-using FluentAssertions;
 using NuclearEvaluation.Library.Models.Domain;
 using NuclearEvaluation.Server.Pages;
+using NuclearEvaluation.Tests;
+using Shouldly;
 
-namespace NuclearEvaluationServer.Tests.EvaluationTests;
+namespace NuclearEvaluation.Tests.EvaluationTests;
 
 public class EvaluationTests : TestBase
 {
@@ -27,7 +28,7 @@ public class EvaluationTests : TestBase
 
         // Assert
         string renderedProjectName = component.Find("#projectNameHeading").TextContent;
-        renderedProjectName.Should().Be(project.Name);
+        renderedProjectName.ShouldBe(project.Name);
     }
 
     [Fact]
@@ -61,10 +62,10 @@ public class EvaluationTests : TestBase
 
         // Assert
         string renderedProjectName = component.Find("#projectNameHeading").TextContent;
-        renderedProjectName.Should().Be(newProjectName);
+        renderedProjectName.ShouldBe(newProjectName);
 
         await DbContext.Entry(project).ReloadAsync();
-        project.Name.Should().Be(newProjectName);
+        project.Name.ShouldBe(newProjectName);
     }
 
     [Fact]
@@ -102,10 +103,10 @@ public class EvaluationTests : TestBase
         {
             await Task.Yield();
             IElement saveButton = component.Find("#saveProjectNameButton");
-            saveButton.IsDisabled().Should().BeTrue();
+            saveButton.IsDisabled().ShouldBeTrue();
 
             IElement validationLabel = component.Find("#validationTooltip");
-            validationLabel.TextContent.Should().Be("Name is already in use");
+            validationLabel.TextContent.ShouldBe("Name is already in use");
 
         }, timeout: TimeSpan.FromSeconds(10));
     }

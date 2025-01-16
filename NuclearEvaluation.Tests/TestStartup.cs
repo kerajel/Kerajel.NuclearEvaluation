@@ -9,7 +9,7 @@ using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Server.Validators;
 using Radzen;
 
-namespace NuclearEvaluationServer.Tests;
+namespace NuclearEvaluation.Tests;
 
 public static class TestStartup
 {

@@ -8,7 +8,7 @@ using NuclearEvaluation.Server.Data;
 using NuclearEvaluation.Server.Services;
 using System.Transactions;
 
-namespace NuclearEvaluationServer.Tests;
+namespace NuclearEvaluation.Tests;
 
 public abstract class TestBase : IDisposable
 {
@@ -40,6 +40,7 @@ public abstract class TestBase : IDisposable
         TestContext.Services.AddTransient<ISampleService, SampleService>();
         TestContext.Services.AddTransient<ISeriesService, SeriesService>();
         TestContext.Services.AddTransient<IGenericService, GenericService>();
+        TestContext.Services.AddTransient<IChartService, ChartService>();
 
         DbContext = TestContext.Services.GetRequiredService<NuclearEvaluationServerDbContext>();
     }

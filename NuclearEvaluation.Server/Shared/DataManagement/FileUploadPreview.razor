@@ -1,0 +1,53 @@
+﻿<h3>Single File Upload with Progress Bar</h3>
+
+<RadzenCard Variant="Variant.Outlined" style="padding: 1rem;">
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Single File Upload</RadzenText>
+    
+    <RadzenUpload 
+        Url="upload/single"
+        Progress="OnProgress"
+        Complete="OnComplete"
+        Style="width: 100%"
+        InputAttributes="@(new Dictionary<string, object>() { { "aria-label", "Select a file to upload" } })">
+    </RadzenUpload>
+    
+    <RadzenProgressBar 
+        Value="@progress" 
+        Style="margin-top: 10px;" 
+        Visible="@showProgress" />
+    
+    <RadzenLabel 
+        Visible="@showComplete" 
+        Text="@completionMessage" 
+        Style="margin-top: 10px; display: block;" />
+</RadzenCard>
+
+
+@code {
+    private int progress = 0;
+    private bool showProgress = false;
+    private bool showComplete = false;
+    private string completionMessage = string.Empty;
+
+    private void OnProgress(UploadProgressArgs args)
+    {
+        progress = args.Progress;
+        showProgress = true;
+        showComplete = false;
+    }
+
+    private void OnComplete(UploadCompleteEventArgs args)
+    {
+        if (!args.Cancelled)
+        {
+            completionMessage = "Upload Complete!";
+        }
+        else
+        {
+            completionMessage = "Upload Cancelled!";
+        }
+
+        showProgress = false;
+        showComplete = true;
+    }
+}

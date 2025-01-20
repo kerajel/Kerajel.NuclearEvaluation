@@ -9,6 +9,8 @@ using NuclearEvaluation.Server.Models;
 using NuclearEvaluation.Server.Validators;
 using NuclearEvaluation.Server.Data;
 using NuclearEvaluation.Library.Interfaces;
+using NuclearEvaluation.Library.Models.Domain;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 /*
 cd "NuclearEvaluation.Server"
@@ -23,6 +25,11 @@ internal class Program
     private static async Task Main(string[] args)
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+        builder.Services.Configure<KestrelServerOptions>(options =>
+        {
+            options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100 MB
+        });
 
         builder.Services.AddRazorPages();
         builder.Services.AddServerSideBlazor().AddHubOptions(o =>

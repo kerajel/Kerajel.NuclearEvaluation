@@ -1,53 +1,96 @@
-﻿<h3>Single File Upload with Progress Bar</h3>
+﻿<h3>Upload your STEM-compatible analysis files for preview</h3>
+<h3>This preview tool is highly capable and can handle files with hundreds of thousands of rows</h3>
+<p>You can download a populated sample file <a href="URL_PLACEHOLDER">here</a></p>
+<p>Or a blank sample file <a href="URL_PLACEHOLDER">here</a></p>
 
 <RadzenCard Variant="Variant.Outlined" style="padding: 1rem;">
-    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Single File Upload</RadzenText>
-    
-    <RadzenUpload 
-        Url="upload/single"
-        Progress="OnProgress"
-        Complete="OnComplete"
-        Style="width: 100%"
-        InputAttributes="@(new Dictionary<string, object>() { { "aria-label", "Select a file to upload" } })">
-    </RadzenUpload>
-    
-    <RadzenProgressBar 
-        Value="@progress" 
-        Style="margin-top: 10px;" 
-        Visible="@showProgress" />
-    
-    <RadzenLabel 
-        Visible="@showComplete" 
-        Text="@completionMessage" 
-        Style="margin-top: 10px; display: block;" />
-</RadzenCard>
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Multiple Files Upload</RadzenText>
+    <InputFile OnChange="OnInputFileChange" Multiple @key="inputFileKey" />
 
-
-@code {
-    private int progress = 0;
-    private bool showProgress = false;
-    private bool showComplete = false;
-    private string completionMessage = string.Empty;
-
-    private void OnProgress(UploadProgressArgs args)
+    @if (selectedFiles.Any())
     {
-        progress = args.Progress;
-        showProgress = true;
-        showComplete = false;
+        <RadzenDataGrid Data="@selectedFiles" AllowAlternatingRows="false" TItem="IBrowserFile" Style="width: 100%; margin-top: 10px;" ColumnWidth="auto">
+            <Columns>
+                <RadzenDataGridColumn TItem="IBrowserFile" Property="Name" Title="File Name" Width="50%" />
+                <RadzenDataGridColumn TItem="IBrowserFile" Property="Size" Title="File Size (MB)" Width="100px" TextAlign="TextAlign.Center">
+                    <Template Context="file">
+                        <span>@((file.Size / 1048576.0).ToString("F2")) MB</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="IBrowserFile" Width="100px" TextAlign="TextAlign.Center" Title="Upload Status">
+                    <Template Context="file">
+                        @if (completionMessages.Contains(file.Name))
+                        {
+                            <RadzenIcon Icon="check" Color="green" />
+                            <span>Uploaded</span>
+                        }
+                        else
+                        {
+                            <span>Not uploaded</span>
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="IBrowserFile" Width="100px" TextAlign="TextAlign.Center" Title="Remove">
+                    <Template Context="file">
+                        <RadzenButton Icon="delete" Click="() => RemoveFile(file)" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
     }
 
-    private void OnComplete(UploadCompleteEventArgs args)
+    @if (selectedFiles.Any() && selectedFiles.Any(f => !completionMessages.Contains(f.Name)))
     {
-        if (!args.Cancelled)
-        {
-            completionMessage = "Upload Complete!";
-        }
-        else
-        {
-            completionMessage = "Upload Cancelled!";
-        }
+        <RadzenButton Text="Upload Files" Click="ProcessUpload" Style="margin-top: 10px;" />
+    }
 
-        showProgress = false;
-        showComplete = true;
+    @if (progressVisible)
+    {
+        <RadzenProgressBar Value="@uploadProgress" Style="margin-top: 10px;" />
+    }
+</RadzenCard>
+
+@code {
+    private bool progressVisible = false;
+    private int uploadProgress = 0;
+    private int inputFileKey = 0;
+    private List<string> completionMessages = new List<string>();
+    private List<IBrowserFile> selectedFiles = new List<IBrowserFile>();
+    private const long maxAllowedSize = 1024L * 1024L * 50L; // example: 50MB
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFiles = e.GetMultipleFiles().ToList();
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+    }
+
+    private async Task ProcessUpload()
+    {
+        progressVisible = true;
+        uploadProgress = 0; // Reset progress on new upload start
+        foreach (var file in selectedFiles)
+        {
+            if (!completionMessages.Contains(file.Name))
+            {
+                // Simulate file upload process
+                await Task.Delay(500); // Simulate upload delay
+                completionMessages.Add(file.Name);
+                uploadProgress += 100 / selectedFiles.Count; // Incremental progress update
+                await InvokeAsync(StateHasChanged);
+                await Task.Yield();
+            }
+        }
+        progressVisible = false;
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+    }
+
+    private async Task RemoveFile(IBrowserFile file)
+    {
+        selectedFiles.Remove(file);
+        completionMessages.Remove(file.Name);
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
     }
 }

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
-using NuclearEvaluation.Server.Models;
+using NuclearEvaluation.Server.Models.Identity;
 
 namespace NuclearEvaluation.Server.Controllers;
 

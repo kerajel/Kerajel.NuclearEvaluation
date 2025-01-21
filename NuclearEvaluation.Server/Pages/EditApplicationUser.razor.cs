@@ -1,8 +1,9 @@
 using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
 using Radzen;
-using NuclearEvaluation.Server.Models;
 using NuclearEvaluation.Server.Services;
+using NuclearEvaluation.Server.Models.Identity;
+using NuclearEvaluation.Server.Models;
 
 namespace NuclearEvaluation.Server.Pages
 {

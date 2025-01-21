@@ -1,4 +1,6 @@
-﻿<h3>Upload your STEM-compatible analysis files for preview</h3>
+﻿@using NuclearEvaluation.Server.Models.Upload
+
+<h3>Upload your STEM-compatible analysis files for preview</h3>
 <h3>This preview tool is highly capable and can handle files with hundreds of thousands of rows</h3>
 <p>You can download a populated sample file <a href="URL_PLACEHOLDER">here</a></p>
 <p>Or a blank sample file <a href="URL_PLACEHOLDER">here</a></p>
@@ -9,20 +11,28 @@
 
     @if (selectedFiles.Any())
     {
-        <RadzenDataGrid Data="@selectedFiles" AllowAlternatingRows="false" TItem="IBrowserFile" Style="width: 100%; margin-top: 10px;" ColumnWidth="auto">
+        <RadzenDataGrid Data="@selectedFiles" TItem="UploadedFile" Style="width: 100%; margin-top: 10px;" ColumnWidth="auto">
             <Columns>
-                <RadzenDataGridColumn TItem="IBrowserFile" Property="Name" Title="File Name" Width="50%" />
-                <RadzenDataGridColumn TItem="IBrowserFile" Property="Size" Title="File Size (MB)" Width="100px" TextAlign="TextAlign.Center">
+                <RadzenDataGridColumn TItem="UploadedFile" Property="BrowserFile.Name" Title="File Name" Width="50%" />
+                <RadzenDataGridColumn TItem="UploadedFile" Title="File Size (MB)" Width="100px" TextAlign="TextAlign.Center">
                     <Template Context="file">
-                        <span>@((file.Size / 1048576.0).ToString("F2")) MB</span>
+                        <span>@((file.BrowserFile.Size / 1048576.0).ToString("F2")) MB</span>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="IBrowserFile" Width="100px" TextAlign="TextAlign.Center" Title="Upload Status">
+                <RadzenDataGridColumn TItem="UploadedFile" Width="100px" TextAlign="TextAlign.Center" Title="Upload Status">
                     <Template Context="file">
-                        @if (completionMessages.Contains(file.Name))
+                        @if (file.Status == UploadStatus.Uploaded)
                         {
                             <RadzenIcon Icon="check" Color="green" />
                             <span>Uploaded</span>
+                        }
+                        else if (file.Status == UploadStatus.Uploading)
+                        {
+                            <span>Uploading</span>
+                        }
+                        else if (file.Status == UploadStatus.UploadError)
+                        {
+                            <span>Exceeds file size</span>
                         }
                         else
                         {
@@ -30,7 +40,7 @@
                         }
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="IBrowserFile" Width="100px" TextAlign="TextAlign.Center" Title="Remove">
+                <RadzenDataGridColumn TItem="UploadedFile" Width="100px" TextAlign="TextAlign.Center" Title="Remove">
                     <Template Context="file">
                         <RadzenButton Icon="delete" Click="() => RemoveFile(file)" />
                     </Template>
@@ -39,7 +49,7 @@
         </RadzenDataGrid>
     }
 
-    @if (selectedFiles.Any() && selectedFiles.Any(f => !completionMessages.Contains(f.Name)))
+    @if (selectedFiles.Any() && selectedFiles.Any(f => f.Status == UploadStatus.Pending))
     {
         <RadzenButton Text="Upload Files" Click="ProcessUpload" Style="margin-top: 10px;" />
     }
@@ -54,13 +64,39 @@
     private bool progressVisible = false;
     private int uploadProgress = 0;
     private int inputFileKey = 0;
-    private List<string> completionMessages = new List<string>();
-    private List<IBrowserFile> selectedFiles = new List<IBrowserFile>();
-    private const long maxAllowedSize = 1024L * 1024L * 50L; // example: 50MB
+
+    // 50 MB limit
+    private const long maxAllowedSize = 1024L * 1024L * 50L;
+
+    private List<UploadedFile> selectedFiles = new List<UploadedFile>();
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
-        selectedFiles = e.GetMultipleFiles().ToList();
+        List<IBrowserFile> newlySelectedFiles = e.GetMultipleFiles().ToList();
+
+        foreach (IBrowserFile file in newlySelectedFiles)
+        {
+            // If the file exceeds maxAllowedSize, give it an Error status
+            if (file.Size <= maxAllowedSize)
+            {
+                UploadedFile newFile = new UploadedFile
+                    {
+                        BrowserFile = file,
+                        Status = UploadStatus.Pending,
+                    };
+                selectedFiles.Add(newFile);
+            }
+            else
+            {
+                UploadedFile newFile = new UploadedFile
+                    {
+                        BrowserFile = file,
+                        Status = UploadStatus.UploadError,
+                    };
+                selectedFiles.Add(newFile);
+            }
+        }
+
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }
@@ -68,28 +104,36 @@
     private async Task ProcessUpload()
     {
         progressVisible = true;
-        uploadProgress = 0; // Reset progress on new upload start
-        foreach (var file in selectedFiles)
+        uploadProgress = 0;
+
+        List<UploadedFile> pendingFiles = selectedFiles
+            .Where(f => f.Status == UploadStatus.Pending)
+            .ToList();
+
+        foreach (UploadedFile file in pendingFiles)
         {
-            if (!completionMessages.Contains(file.Name))
-            {
-                // Simulate file upload process
-                await Task.Delay(500); // Simulate upload delay
-                completionMessages.Add(file.Name);
-                uploadProgress += 100 / selectedFiles.Count; // Incremental progress update
-                await InvokeAsync(StateHasChanged);
-                await Task.Yield();
-            }
+            file.Status = UploadStatus.Uploading;
+
+            // Simulate upload
+            await Task.Delay(500);
+
+            file.Status = UploadStatus.Uploaded;
+            uploadProgress += 100 / pendingFiles.Count;
+
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
         }
+
         progressVisible = false;
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }
 
-    private async Task RemoveFile(IBrowserFile file)
+    private async Task RemoveFile(UploadedFile file)
     {
         selectedFiles.Remove(file);
-        completionMessages.Remove(file.Name);
+        selectedFiles = selectedFiles.ToList();
+
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }

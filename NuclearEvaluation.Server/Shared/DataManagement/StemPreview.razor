@@ -19,7 +19,7 @@
                         <span>@((file.BrowserFile.Size / 1048576.0).ToString("F2")) MB</span>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="UploadedFile" Width="100px" TextAlign="TextAlign.Center" Title="Upload Status">
+                <RadzenDataGridColumn TItem="UploadedFile" Width="150px" TextAlign="TextAlign.Center" Title="Upload Status">
                     <Template Context="file">
                         @if (file.Status == UploadStatus.Uploaded)
                         {
@@ -28,7 +28,9 @@
                         }
                         else if (file.Status == UploadStatus.Uploading)
                         {
-                            <span>Uploading</span>
+                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="height: 100%;">
+                                <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+                            </RadzenStack>
                         }
                         else if (file.Status == UploadStatus.UploadError)
                         {
@@ -53,17 +55,11 @@
     {
         <RadzenButton Text="Upload Files" Click="ProcessUpload" Style="margin-top: 10px;" />
     }
-
-    @if (progressVisible)
-    {
-        <RadzenProgressBar Value="@uploadProgress" Style="margin-top: 10px;" />
-    }
 </RadzenCard>
 
 @code {
-    private bool progressVisible = false;
-    private int uploadProgress = 0;
     private int inputFileKey = 0;
+    private InputFile filePicker;
 
     // 50 MB limit
     private const long maxAllowedSize = 1024L * 1024L * 50L;
@@ -103,9 +99,6 @@
 
     private async Task ProcessUpload()
     {
-        progressVisible = true;
-        uploadProgress = 0;
-
         List<UploadedFile> pendingFiles = selectedFiles
             .Where(f => f.Status == UploadStatus.Pending)
             .ToList();
@@ -114,17 +107,17 @@
         {
             file.Status = UploadStatus.Uploading;
 
+            await InvokeAsync(StateHasChanged);
+
             // Simulate upload
             await Task.Delay(500);
 
             file.Status = UploadStatus.Uploaded;
-            uploadProgress += 100 / pendingFiles.Count;
 
             await InvokeAsync(StateHasChanged);
             await Task.Yield();
         }
 
-        progressVisible = false;
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }
@@ -133,6 +126,7 @@
     {
         selectedFiles.Remove(file);
         selectedFiles = selectedFiles.ToList();
+        inputFileKey++; // Reset the InputFile component
 
         await InvokeAsync(StateHasChanged);
         await Task.Yield();

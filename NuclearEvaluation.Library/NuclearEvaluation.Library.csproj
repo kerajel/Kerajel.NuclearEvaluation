@@ -15,4 +15,8 @@
 		<PackageReference Include="Radzen.Blazor" Version="5.7.6" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\..\..\..\Desktop\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives.csproj" />
+	</ItemGroup>
+
 </Project>

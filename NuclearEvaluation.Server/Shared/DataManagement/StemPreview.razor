@@ -2,12 +2,19 @@
 
 <h3>Upload your STEM-compatible analysis files for preview</h3>
 <h3>This preview tool is highly capable and can handle files with hundreds of thousands of rows</h3>
+
 <p>You can download a populated sample file <a href="URL_PLACEHOLDER">here</a></p>
 <p>Or a blank sample file <a href="URL_PLACEHOLDER">here</a></p>
 
 <RadzenCard Variant="Variant.Outlined" style="padding: 1rem;">
     <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Multiple Files Upload</RadzenText>
-    <InputFile OnChange="OnInputFileChange" Multiple @key="inputFileKey" />
+
+    <InputFile @ref="fileInput"
+               OnChange="OnInputFileChange"
+               Multiple
+               style="display:none" />
+
+    <RadzenButton Text="Select files..." Icon="folder_open" Click="TriggerFileInputClick" Style="margin-bottom:10px;" />
 
     @if (selectedFiles.Any())
     {
@@ -34,6 +41,7 @@
                         }
                         else if (file.Status == UploadStatus.UploadError)
                         {
+                            //TODO display dynamic error
                             <span>Exceeds file size</span>
                         }
                         else
@@ -51,84 +59,8 @@
         </RadzenDataGrid>
     }
 
-    @if (selectedFiles.Any() && selectedFiles.Any(f => f.Status == UploadStatus.Pending))
+    @if (selectedFiles.Any(f => f.Status == UploadStatus.Pending))
     {
         <RadzenButton Text="Upload Files" Click="ProcessUpload" Style="margin-top: 10px;" />
     }
 </RadzenCard>
-
-@code {
-    private int inputFileKey = 0;
-    private InputFile filePicker;
-
-    // 50 MB limit
-    private const long maxAllowedSize = 1024L * 1024L * 50L;
-
-    private List<UploadedFile> selectedFiles = new List<UploadedFile>();
-
-    private async Task OnInputFileChange(InputFileChangeEventArgs e)
-    {
-        List<IBrowserFile> newlySelectedFiles = e.GetMultipleFiles().ToList();
-
-        foreach (IBrowserFile file in newlySelectedFiles)
-        {
-            // If the file exceeds maxAllowedSize, give it an Error status
-            if (file.Size <= maxAllowedSize)
-            {
-                UploadedFile newFile = new UploadedFile
-                    {
-                        BrowserFile = file,
-                        Status = UploadStatus.Pending,
-                    };
-                selectedFiles.Add(newFile);
-            }
-            else
-            {
-                UploadedFile newFile = new UploadedFile
-                    {
-                        BrowserFile = file,
-                        Status = UploadStatus.UploadError,
-                    };
-                selectedFiles.Add(newFile);
-            }
-        }
-
-        await InvokeAsync(StateHasChanged);
-        await Task.Yield();
-    }
-
-    private async Task ProcessUpload()
-    {
-        List<UploadedFile> pendingFiles = selectedFiles
-            .Where(f => f.Status == UploadStatus.Pending)
-            .ToList();
-
-        foreach (UploadedFile file in pendingFiles)
-        {
-            file.Status = UploadStatus.Uploading;
-
-            await InvokeAsync(StateHasChanged);
-
-            // Simulate upload
-            await Task.Delay(500);
-
-            file.Status = UploadStatus.Uploaded;
-
-            await InvokeAsync(StateHasChanged);
-            await Task.Yield();
-        }
-
-        await InvokeAsync(StateHasChanged);
-        await Task.Yield();
-    }
-
-    private async Task RemoveFile(UploadedFile file)
-    {
-        selectedFiles.Remove(file);
-        selectedFiles = selectedFiles.ToList();
-        inputFileKey++; // Reset the InputFile component
-
-        await InvokeAsync(StateHasChanged);
-        await Task.Yield();
-    }
-}

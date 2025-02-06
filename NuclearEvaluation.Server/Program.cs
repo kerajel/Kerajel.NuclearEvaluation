@@ -8,7 +8,6 @@ using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Server.Validators;
 using NuclearEvaluation.Server.Data;
 using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.Domain;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using NuclearEvaluation.Server.Models.Identity;
 
@@ -46,6 +45,7 @@ internal class Program
 
         builder.Services.AddScoped<ISessionCache, SessionCache>();
 
+        //TODO why Transient?
         builder.Services.AddTransient<IProjectService, ProjectService>();
         builder.Services.AddTransient<IApmService, ApmService>();
         builder.Services.AddTransient<IParticleService, ParticleService>();
@@ -54,6 +54,7 @@ internal class Program
         builder.Services.AddTransient<ISeriesService, SeriesService>();
         builder.Services.AddTransient<IChartService, ChartService>();
         builder.Services.AddTransient<IGenericService, GenericService>();
+        builder.Services.AddTransient<IStemPreviewService, StemPreviewService>();
 
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();

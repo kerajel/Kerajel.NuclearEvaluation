@@ -7,4 +7,5 @@ public class UploadedFile
 {
     public IBrowserFile BrowserFile { get; set; } = null!;
     public UploadStatus Status { get; set; }
+    public string? ErrorMessage { get; set; }
 }

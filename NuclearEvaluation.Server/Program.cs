@@ -10,6 +10,8 @@ using NuclearEvaluation.Server.Data;
 using NuclearEvaluation.Library.Interfaces;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using NuclearEvaluation.Server.Models.Identity;
+using Serilog;
+using Serilog.Sinks.SystemConsole.Themes;
 
 /*
 cd "NuclearEvaluation.Server"
@@ -43,9 +45,17 @@ internal class Program
             options.Duration = TimeSpan.FromDays(365);
         });
 
+        builder.Services.AddSerilog();
+
+        Log.Logger = new LoggerConfiguration()
+            .Enrich.FromLogContext()
+            .WriteTo.Console(
+                theme: AnsiConsoleTheme.Grayscale,
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}")
+            .CreateLogger();
+
         builder.Services.AddScoped<ISessionCache, SessionCache>();
 
-        //TODO why Transient?
         builder.Services.AddTransient<IProjectService, ProjectService>();
         builder.Services.AddTransient<IApmService, ApmService>();
         builder.Services.AddTransient<IParticleService, ParticleService>();
@@ -54,7 +64,8 @@ internal class Program
         builder.Services.AddTransient<ISeriesService, SeriesService>();
         builder.Services.AddTransient<IChartService, ChartService>();
         builder.Services.AddTransient<IGenericService, GenericService>();
-        builder.Services.AddTransient<IStemPreviewService, StemPreviewService>();
+
+        builder.Services.AddSingleton<IStemPreviewService, StemPreviewService>();
 
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();

@@ -1,10 +1,14 @@
-﻿using Kerajel.Primitives.Models;
+﻿using Kerajel.Primitives.Enums;
+using Kerajel.Primitives.Models;
+using Kerajel.TabularDataReader.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
 using NuclearEvaluation.Library.Enums;
+using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Server.Models.Upload;
+using System.Diagnostics;
 
 namespace NuclearEvaluation.Server.Shared.DataManagement;
 
@@ -30,6 +34,8 @@ public partial class StemPreview
     {
         List<IBrowserFile> newlySelectedFiles = [.. e.GetMultipleFiles()];
 
+        selectedFiles = selectedFiles.Where(x => x.Status != UploadStatus.Pending).ToList();
+
         foreach (IBrowserFile file in newlySelectedFiles)
         {
             if (file.Size <= fileSizeLimit)
@@ -47,13 +53,13 @@ public partial class StemPreview
                 {
                     BrowserFile = file,
                     Status = UploadStatus.UploadError,
-                    //TODO incapsulate
-                    ErrorMessage = $"Size exceeds {fileSizeLimit / 1048576.0:F2} mb",
+                    ErrorMessage = $"Size exceeds {fileSizeLimit.AsMegabytes():F2} mb",
                 };
                 selectedFiles.Add(newFile);
             }
         }
 
+        selectedFiles = [.. selectedFiles];
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }
@@ -63,6 +69,8 @@ public partial class StemPreview
         UploadedFile[] pendingFiles = selectedFiles
             .Where((UploadedFile f) => f.Status == UploadStatus.Pending)
             .ToArray();
+
+        Stopwatch sw = Stopwatch.StartNew();
 
         foreach (UploadedFile file in pendingFiles)
         {
@@ -82,6 +90,7 @@ public partial class StemPreview
             await Task.Yield();
 
             using Stream stream = browserFile.OpenReadStream(browserFile.Size);
+
             OperationResult result = await StemPreviewService.UploadStemPreviewFile(stream, browserFile.Name);
 
             if (result.Succeeded)
@@ -99,6 +108,8 @@ public partial class StemPreview
 
             Logger.LogInformation("Upload completed for STEM preview file");
         }
+
+        Logger.LogInformation("{swElapsed}", sw.Elapsed.TotalSeconds);
     }
 
     private async Task RemoveFile(UploadedFile file)

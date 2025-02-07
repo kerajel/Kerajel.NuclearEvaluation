@@ -16,9 +16,9 @@
 
     <RadzenButton Text="Select files..." Icon="folder_open" Click="TriggerFileInputClick" Style="margin-bottom:10px;" />
 
-    @if (selectedFiles.Any())
+    @if (Files.Any())
     {
-        <RadzenDataGrid Data="@selectedFiles" TItem="UploadedFile" Style="width: 100%; margin-top: 10px;" ColumnWidth="auto">
+        <RadzenDataGrid Data="@Files" TItem="UploadedFile" Style="width: 100%; margin-top: 10px;" ColumnWidth="auto">
             <Columns>
                 <RadzenDataGridColumn TItem="UploadedFile" Property="BrowserFile.Name" Title="File Name" Width="50%" />
                 <RadzenDataGridColumn TItem="UploadedFile" Title="File Size (MB)" Width="100px" TextAlign="TextAlign.Center">
@@ -58,7 +58,7 @@
         </RadzenDataGrid>
     }
 
-    @if (selectedFiles.Any(f => f.Status == UploadStatus.Pending))
+    @if (Files.Any(f => f.Status == UploadStatus.Pending))
     {
         <RadzenButton Text="Upload Files" Click="ProcessUpload" Style="margin-top: 10px;" />
     }

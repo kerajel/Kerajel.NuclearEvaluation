@@ -1,6 +1,4 @@
-﻿using Kerajel.Primitives.Enums;
-using Kerajel.Primitives.Models;
-using Kerajel.TabularDataReader.Services;
+﻿using Kerajel.Primitives.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
@@ -8,12 +6,21 @@ using NuclearEvaluation.Library.Enums;
 using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Server.Models.Upload;
+using NuclearEvaluation.Server.Services;
+using NuclearEvaluation.Server.Shared.Grids;
+using Radzen;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace NuclearEvaluation.Server.Shared.DataManagement;
 
 public partial class StemPreview
 {
+
+    [Parameter]
+    public string ComponentId { get; set; } = Guid.NewGuid().ToString();
+
+
     [Inject]
     protected IJSRuntime JsRuntime { get; set; } = null!;
 
@@ -23,18 +30,44 @@ public partial class StemPreview
     [Inject]
     protected ILogger<StemPreview> Logger { get; set; } = null!;
 
+    [Inject]
+    protected ISessionCache SessionCache { get; set; } = null!;
+
+    protected string FilesCacheKey => $"{ComponentId}_{nameof(Files)}";
+
+    protected List<UploadedFile>? files;
+
+    protected List<UploadedFile> Files
+    {
+        get
+        {
+            if (files != null)
+            {
+                return files;
+            }
+            bool hasFiles = SessionCache.TryGetValue(FilesCacheKey, out List<UploadedFile>? cachedFiles);
+            return hasFiles ? cachedFiles : [];
+        }
+        set
+        {
+            files = value;
+            var cachedFiles = value!.Where(x => x.Status == UploadStatus.Uploaded).ToList();
+            SessionCache.Add(FilesCacheKey, cachedFiles);
+        }
+    }
+
     //TODO options
     const long fileSizeLimit = 1024L * 1024L * 50L; // 50 MB limit
 
     InputFile fileInput = null!;
 
-    List<UploadedFile> selectedFiles = [];
+
 
     async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
         List<IBrowserFile> newlySelectedFiles = [.. e.GetMultipleFiles()];
 
-        selectedFiles = selectedFiles.Where(x => x.Status != UploadStatus.Pending).ToList();
+        Files = Files.Where(x => x.Status != UploadStatus.Pending).ToList();
 
         foreach (IBrowserFile file in newlySelectedFiles)
         {
@@ -45,7 +78,7 @@ public partial class StemPreview
                     BrowserFile = file,
                     Status = UploadStatus.Pending,
                 };
-                selectedFiles.Add(newFile);
+                Files.Add(newFile);
             }
             else
             {
@@ -55,18 +88,18 @@ public partial class StemPreview
                     Status = UploadStatus.UploadError,
                     ErrorMessage = $"Size exceeds {fileSizeLimit.AsMegabytes():F2} mb",
                 };
-                selectedFiles.Add(newFile);
+                Files.Add(newFile);
             }
         }
 
-        selectedFiles = [.. selectedFiles];
+        Files = [.. Files];
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }
 
     private async Task ProcessUpload()
     {
-        UploadedFile[] pendingFiles = selectedFiles
+        UploadedFile[] pendingFiles = Files
             .Where((UploadedFile f) => f.Status == UploadStatus.Pending)
             .ToArray();
 
@@ -109,13 +142,14 @@ public partial class StemPreview
             Logger.LogInformation("Upload completed for STEM preview file");
         }
 
+        Files = [.. Files];
         Logger.LogInformation("{swElapsed}", sw.Elapsed.TotalSeconds);
     }
 
     private async Task RemoveFile(UploadedFile file)
     {
-        selectedFiles.Remove(file);
-        selectedFiles = [.. selectedFiles];
+        Files.Remove(file);
+        Files = [.. Files];
 
         await InvokeAsync(StateHasChanged);
         await Task.Yield();

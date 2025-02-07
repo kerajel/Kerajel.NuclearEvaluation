@@ -1,61 +1,138 @@
-﻿using Kerajel.Primitives.Enums;
+﻿using CsvHelper.Configuration;
+using CsvHelper;
+using Kerajel.Primitives.Enums;
 using Kerajel.Primitives.Models;
 using Kerajel.TabularDataReader.Services;
 using NuclearEvaluation.Library.Interfaces;
+using NuclearEvaluation.Library.Models.DataManagement;
+using NuclearEvaluation.Server.Shared.DataManagement;
 using Polly;
 using Polly.Bulkhead;
+using System.Globalization;
+using CsvHelper.TypeConversion;
 
-namespace NuclearEvaluation.Server.Services
+namespace NuclearEvaluation.Server.Services;
+
+public class StemPreviewService : IStemPreviewService
 {
-    public class StemPreviewService : IStemPreviewService
-    {
-        private static readonly AsyncBulkheadPolicy<OperationResult> bulkheadPolicy = Policy
-            .BulkheadAsync<OperationResult>(
-                maxParallelization: 4,
-                maxQueuingActions: 128,
-                onBulkheadRejectedAsync: async context =>
-                {
-                    await Task.CompletedTask;
-                });
+    private static readonly AsyncBulkheadPolicy<OperationResult> bulkheadPolicy = Policy
+        .BulkheadAsync<OperationResult>(
+            maxParallelization: 4,
+            maxQueuingActions: 128,
+            onBulkheadRejectedAsync: async context =>
+            {
+                await Task.CompletedTask;
+            });
 
-        public StemPreviewService()
+    public StemPreviewService()
+    {
+    }
+
+    // TODO: Optimize memory usage by implementing file streaming.
+    // The ideal approach involves streaming the input file to a physical temporary file,
+    // then having RUST process this file and output to another temporary file.
+    // Subsequently, CSVHelper should read this output file in chunks, streaming parsed entries directly to the database.
+    // This method conserves memory by avoiding in-memory processing of the entire file at once.
+    // For simplicity, the current implementation handles everything in memory.
+    public async Task<OperationResult> UploadStemPreviewFile(Stream stream, string fileName)
+    {
+        CancellationTokenSource cts = new(TimeSpan.FromMinutes(1));
+
+        try
         {
+            OperationResult result = await bulkheadPolicy.ExecuteAsync(
+                async (CancellationToken ct) =>
+                {
+                    try
+                    {
+                        OperationResult<string> operationResult = await TabularDataReader.Read(stream, fileName);
+                        if (!operationResult.Succeeded)
+                        {
+                            return new OperationResult(OperationStatus.Faulted, "Error reading the file");
+                        }
+
+                        using TextReader reader = new StringReader(operationResult.Content!);
+                        CsvConfiguration csvConfig = new(CultureInfo.InvariantCulture)
+                        {
+                            HasHeaderRecord = true,
+                        };
+
+                        using CsvReader csvReader = new(reader, csvConfig);
+                        csvReader.Context.RegisterClassMap<StemPreviewEntryMap>();
+                        StemPreviewEntry[] entries = csvReader.GetRecords<StemPreviewEntry>()
+                            .ToArray();
+
+                        return new OperationResult(OperationStatus.Succeeded);
+                    }
+                    catch (Exception)
+                    {
+                        return new OperationResult(OperationStatus.Faulted, "Error processing the file");
+                    }
+                },
+                cts.Token);
+            return result;
+        }
+        catch (BulkheadRejectedException)
+        {
+            return new OperationResult(OperationStatus.Faulted, "Too many concurrent uploads. Please try again later.");
+        }
+        catch (OperationCanceledException)
+        {
+            return new OperationResult(OperationStatus.Faulted, "Upload timed out waiting for a slot.");
+        }
+    }
+}
+
+public sealed class StemPreviewEntryMap : ClassMap<StemPreviewEntry>
+{
+    public StemPreviewEntryMap()
+    {
+        Map(m => m.Id).Name("Identifier");
+        Map(m => m.LabCode).Name("LaboratoryCode");
+        Map(m => m.AnalysisDate).Name("AnalysisDate")
+                .TypeConverter<StemDateConverter>();
+        Map(m => m.IsNu).Name("IsNu");
+        Map(m => m.U234).Name("U234").Optional();
+        Map(m => m.ErU234).Name("ErU234").Optional();
+        Map(m => m.U235).Name("U235").Optional();
+        Map(m => m.ErU235).Name("ErU235").Optional();
+    }
+}
+
+public class StemDateConverter : ITypeConverter
+{
+    public object? ConvertFromString(string? text, IReaderRow row, MemberMapData memberMapData)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
         }
 
-        public async Task<OperationResult> UploadStemPreviewFile(Stream stream, string fileName)
+        if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
         {
-            CancellationTokenSource cts = new(TimeSpan.FromMinutes(1));
-
+            return DateOnly.FromDateTime(date);
+        }
+        else if (double.TryParse(text, out double oaDate))
+        {
             try
             {
-                OperationResult result = await bulkheadPolicy.ExecuteAsync(
-                    async (CancellationToken ct) =>
-                    {
-                        try
-                        {
-                            OperationResult<string> operationResult = await TabularDataReader.Read(stream, fileName);
-                            if (!operationResult.Succeeded)
-                            {
-                                return new OperationResult(OperationStatus.Faulted, "Error reading the file");
-                            }
-                            return new OperationResult(OperationStatus.Succeeded);
-                        }
-                        catch (Exception)
-                        {
-                            return new OperationResult(OperationStatus.Faulted, "Error processing the file");
-                        }
-                    },
-                    cts.Token);
-                return result;
+                DateTime validDate = DateTime.FromOADate(oaDate);
+                return DateOnly.FromDateTime(validDate);
             }
-            catch (BulkheadRejectedException)
+            catch
             {
-                return new OperationResult(OperationStatus.Faulted, "Too many concurrent uploads. Please try again later.");
-            }
-            catch (OperationCanceledException)
-            {
-                return new OperationResult(OperationStatus.Faulted, "Upload timed out waiting for a slot.");
+                throw new FormatException($"Invalid OADate value: {text}");
             }
         }
+        throw new FormatException($"Invalid date format: {text}");
+    }
+
+    public string ConvertToString(object? value, IWriterRow row, MemberMapData memberMapData)
+    {
+        if (value is DateOnly dateOnly)
+        {
+            return dateOnly.ToString("yyyy-MM-dd");
+        }
+        return string.Empty;
     }
 }

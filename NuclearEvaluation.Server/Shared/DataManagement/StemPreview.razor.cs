@@ -1,25 +1,20 @@
 ﻿using Kerajel.Primitives.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.JSInterop;
 using NuclearEvaluation.Library.Enums;
 using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Server.Models.Upload;
-using NuclearEvaluation.Server.Services;
-using NuclearEvaluation.Server.Shared.Grids;
 using Radzen;
-using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace NuclearEvaluation.Server.Shared.DataManagement;
 
-public partial class StemPreview
+public partial class StemPreview : IDisposable
 {
-
     [Parameter]
     public string ComponentId { get; set; } = Guid.NewGuid().ToString();
-
 
     [Inject]
     protected IJSRuntime JsRuntime { get; set; } = null!;
@@ -33,41 +28,49 @@ public partial class StemPreview
     [Inject]
     protected ISessionCache SessionCache { get; set; } = null!;
 
-    protected string FilesCacheKey => $"{ComponentId}_{nameof(Files)}";
+    [Inject]
+    protected DialogService DialogService { get; set; } = null!;
 
-    protected List<UploadedFile>? files;
+    private List<UploadedFile> files = [];
 
-    protected List<UploadedFile> Files
+    private readonly CancellationTokenSource cts = new();
+
+    // 50 MB limit
+    private const long fileSizeLimit = 1024L * 1024L * 50L;
+
+    private InputFile fileInput = null!;
+
+    private async Task HandleBeforeInternalNavigation(LocationChangingContext context)
     {
-        get
+        bool hasInProgressOrUploaded = files.Any(
+            x => x.Status == UploadStatus.Uploading
+                || x.Status == UploadStatus.Uploaded
+        );
+
+        if (hasInProgressOrUploaded)
         {
-            if (files != null)
+            bool? userConfirm = await DialogService.Confirm(
+                "You have a current STEM preview that would be lost if you leave. Are you sure?",
+                  "Confirm navigation",
+                  new ConfirmOptions()
+                  {
+                      OkButtonText = "Yes",
+                      CancelButtonText = "No",
+                  }
+            );
+
+            if (userConfirm == false)
             {
-                return files;
+                context.PreventNavigation();
             }
-            bool hasFiles = SessionCache.TryGetValue(FilesCacheKey, out List<UploadedFile>? cachedFiles);
-            return hasFiles ? cachedFiles : [];
-        }
-        set
-        {
-            files = value;
-            var cachedFiles = value!.Where(x => x.Status == UploadStatus.Uploaded).ToList();
-            SessionCache.Add(FilesCacheKey, cachedFiles);
         }
     }
 
-    //TODO options
-    const long fileSizeLimit = 1024L * 1024L * 50L; // 50 MB limit
-
-    InputFile fileInput = null!;
-
-
-
-    async Task OnInputFileChange(InputFileChangeEventArgs e)
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
-        List<IBrowserFile> newlySelectedFiles = [.. e.GetMultipleFiles()];
+        List<IBrowserFile> newlySelectedFiles = new(e.GetMultipleFiles());
 
-        Files = Files.Where(x => x.Status != UploadStatus.Pending).ToList();
+        files = files.Where(x => x.Status != UploadStatus.Pending).ToList();
 
         foreach (IBrowserFile file in newlySelectedFiles)
         {
@@ -78,7 +81,7 @@ public partial class StemPreview
                     BrowserFile = file,
                     Status = UploadStatus.Pending,
                 };
-                Files.Add(newFile);
+                files.Add(newFile);
             }
             else
             {
@@ -88,33 +91,31 @@ public partial class StemPreview
                     Status = UploadStatus.UploadError,
                     ErrorMessage = $"Size exceeds {fileSizeLimit.AsMegabytes():F2} mb",
                 };
-                Files.Add(newFile);
+                files.Add(newFile);
             }
         }
 
-        Files = [.. Files];
+        files = new List<UploadedFile>(files);
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }
 
     private async Task ProcessUpload()
     {
-        UploadedFile[] pendingFiles = Files
+        UploadedFile[] pendingFiles = files
             .Where((UploadedFile f) => f.Status == UploadStatus.Pending)
             .ToArray();
-
-        Stopwatch sw = Stopwatch.StartNew();
 
         foreach (UploadedFile file in pendingFiles)
         {
             IBrowserFile browserFile = file.BrowserFile;
             file.Status = UploadStatus.Uploading;
 
-            Dictionary<string, object> fileLoggingParameters = new()
-             {
+            Dictionary<string, object> fileLoggingParameters = new Dictionary<string, object>()
+            {
                   { "FileName", browserFile.Name },
-                  { "FileSize", browserFile.Size }
-             };
+                  { "FileSize", browserFile.Size },
+            };
 
             using IDisposable? fileScope = Logger.BeginScope(fileLoggingParameters);
             Logger.LogInformation("Uploading STEM preview file");
@@ -124,7 +125,11 @@ public partial class StemPreview
 
             using Stream stream = browserFile.OpenReadStream(browserFile.Size);
 
-            OperationResult result = await StemPreviewService.UploadStemPreviewFile(stream, browserFile.Name);
+            OperationResult result = await StemPreviewService.UploadStemPreviewFile(
+                  stream,
+                  browserFile.Name,
+                  cts.Token
+            );
 
             if (result.Succeeded)
             {
@@ -142,14 +147,13 @@ public partial class StemPreview
             Logger.LogInformation("Upload completed for STEM preview file");
         }
 
-        Files = [.. Files];
-        Logger.LogInformation("{swElapsed}", sw.Elapsed.TotalSeconds);
+        files = [.. files];
     }
 
     private async Task RemoveFile(UploadedFile file)
     {
-        Files.Remove(file);
-        Files = [.. Files];
+        files.Remove(file);
+        files = new List<UploadedFile>(files);
 
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
@@ -158,5 +162,12 @@ public partial class StemPreview
     private async Task TriggerFileInputClick()
     {
         await JsRuntime.InvokeVoidAsync("clickElement", fileInput.Element);
+    }
+
+    public void Dispose()
+    {
+        cts.Cancel();
+        cts.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

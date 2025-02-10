@@ -5,7 +5,6 @@ using Kerajel.Primitives.Models;
 using Kerajel.TabularDataReader.Services;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Library.Models.DataManagement;
-using NuclearEvaluation.Server.Shared.DataManagement;
 using Polly;
 using Polly.Bulkhead;
 using System.Globalization;
@@ -34,9 +33,14 @@ public class StemPreviewService : IStemPreviewService
     // Subsequently, CSVHelper should read this output file in chunks, streaming parsed entries directly to the database.
     // This method conserves memory by avoiding in-memory processing of the entire file at once.
     // For simplicity, the current implementation handles everything in memory.
-    public async Task<OperationResult> UploadStemPreviewFile(Stream stream, string fileName)
+    public async Task<OperationResult> UploadStemPreviewFile(Stream stream, string fileName, CancellationToken? externalCt = default)
     {
-        CancellationTokenSource cts = new(TimeSpan.FromMinutes(1));
+        //TODO options
+        using CancellationTokenSource internalCts = new(TimeSpan.FromMinutes(1));
+
+        using CancellationTokenSource linkedCts = externalCt.HasValue ?
+            CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value) :
+            internalCts;
 
         try
         {
@@ -69,7 +73,7 @@ public class StemPreviewService : IStemPreviewService
                         return new OperationResult(OperationStatus.Faulted, "Error processing the file");
                     }
                 },
-                cts.Token);
+                linkedCts.Token); // Use the linked CancellationToken here
             return result;
         }
         catch (BulkheadRejectedException)
@@ -78,61 +82,62 @@ public class StemPreviewService : IStemPreviewService
         }
         catch (OperationCanceledException)
         {
-            return new OperationResult(OperationStatus.Faulted, "Upload timed out waiting for a slot.");
+            return new OperationResult(OperationStatus.Faulted, "The upload was canceled or timed out.");
         }
     }
-}
 
-public sealed class StemPreviewEntryMap : ClassMap<StemPreviewEntry>
-{
-    public StemPreviewEntryMap()
+
+    public sealed class StemPreviewEntryMap : ClassMap<StemPreviewEntry>
     {
-        Map(m => m.Id).Name("Identifier");
-        Map(m => m.LabCode).Name("LaboratoryCode");
-        Map(m => m.AnalysisDate).Name("AnalysisDate")
-                .TypeConverter<StemDateConverter>();
-        Map(m => m.IsNu).Name("IsNu");
-        Map(m => m.U234).Name("U234").Optional();
-        Map(m => m.ErU234).Name("ErU234").Optional();
-        Map(m => m.U235).Name("U235").Optional();
-        Map(m => m.ErU235).Name("ErU235").Optional();
+        public StemPreviewEntryMap()
+        {
+            Map(m => m.Id).Name("Identifier");
+            Map(m => m.LabCode).Name("LaboratoryCode");
+            Map(m => m.AnalysisDate).Name("AnalysisDate")
+                    .TypeConverter<StemDateConverter>();
+            Map(m => m.IsNu).Name("IsNu");
+            Map(m => m.U234).Name("U234").Optional();
+            Map(m => m.ErU234).Name("ErU234").Optional();
+            Map(m => m.U235).Name("U235").Optional();
+            Map(m => m.ErU235).Name("ErU235").Optional();
+        }
     }
-}
 
-public class StemDateConverter : ITypeConverter
-{
-    public object? ConvertFromString(string? text, IReaderRow row, MemberMapData memberMapData)
+    public class StemDateConverter : ITypeConverter
     {
-        if (string.IsNullOrWhiteSpace(text))
+        public object? ConvertFromString(string? text, IReaderRow row, MemberMapData memberMapData)
         {
-            return null;
-        }
-
-        if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
-        {
-            return DateOnly.FromDateTime(date);
-        }
-        else if (double.TryParse(text, out double oaDate))
-        {
-            try
+            if (string.IsNullOrWhiteSpace(text))
             {
-                DateTime validDate = DateTime.FromOADate(oaDate);
-                return DateOnly.FromDateTime(validDate);
+                return null;
             }
-            catch
-            {
-                throw new FormatException($"Invalid OADate value: {text}");
-            }
-        }
-        throw new FormatException($"Invalid date format: {text}");
-    }
 
-    public string ConvertToString(object? value, IWriterRow row, MemberMapData memberMapData)
-    {
-        if (value is DateOnly dateOnly)
-        {
-            return dateOnly.ToString("yyyy-MM-dd");
+            if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
+            {
+                return DateOnly.FromDateTime(date);
+            }
+            else if (double.TryParse(text, out double oaDate))
+            {
+                try
+                {
+                    DateTime validDate = DateTime.FromOADate(oaDate);
+                    return DateOnly.FromDateTime(validDate);
+                }
+                catch
+                {
+                    throw new FormatException($"Invalid OADate value: {text}");
+                }
+            }
+            throw new FormatException($"Invalid date format: {text}");
         }
-        return string.Empty;
+
+        public string ConvertToString(object? value, IWriterRow row, MemberMapData memberMapData)
+        {
+            if (value is DateOnly dateOnly)
+            {
+                return dateOnly.ToString("yyyy-MM-dd");
+            }
+            return string.Empty;
+        }
     }
 }

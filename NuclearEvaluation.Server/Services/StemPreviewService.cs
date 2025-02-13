@@ -22,9 +22,11 @@ public class StemPreviewService : IStemPreviewService
             {
                 await Task.CompletedTask;
             });
+    private readonly ITempTableService _tempTableService;
 
-    public StemPreviewService()
+    public StemPreviewService(ITempTableService tempTableService)
     {
+        _tempTableService = tempTableService;
     }
 
     // TODO: Optimize memory usage by implementing file streaming.
@@ -41,6 +43,8 @@ public class StemPreviewService : IStemPreviewService
         using CancellationTokenSource linkedCts = externalCt.HasValue ?
             CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value) :
             internalCts;
+
+        string tempTableName = await _tempTableService.CreateTempTable();
 
         try
         {
@@ -65,6 +69,9 @@ public class StemPreviewService : IStemPreviewService
                         csvReader.Context.RegisterClassMap<StemPreviewEntryMap>();
                         StemPreviewEntry[] entries = csvReader.GetRecords<StemPreviewEntry>()
                             .ToArray();
+
+                        //TODO handle mapping errors
+                        await _tempTableService.BulkCopyInto(tempTableName, entries);
 
                         return new OperationResult(OperationStatus.Succeeded);
                     }

@@ -39,7 +39,7 @@ public class FilterDataCommand<T>()
         bool success = _args.TryGetValue(key, out object? value);
         if (!success || value is not K result)
         {
-            throw new Exception();
+            throw new Exception($"Required argument '{key}' for '{nameof(FilterDataCommand)}' was not supplied");
         }
         return result;
     }

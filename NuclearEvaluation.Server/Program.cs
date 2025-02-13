@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using NuclearEvaluation.Server.Models.Identity;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
+using LinqToDB.EntityFrameworkCore;
 
 /*
 cd "NuclearEvaluation.Server"
@@ -65,7 +66,8 @@ internal class Program
         builder.Services.AddTransient<IChartService, ChartService>();
         builder.Services.AddTransient<IGenericService, GenericService>();
 
-        builder.Services.AddSingleton<IStemPreviewService, StemPreviewService>();
+        builder.Services.AddScoped<IStemPreviewService, StemPreviewService>();
+        builder.Services.AddScoped<ITempTableService, TempTableService>();
 
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();
@@ -83,6 +85,8 @@ internal class Program
         {
             options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
         }, ServiceLifetime.Transient);
+
+        LinqToDBForEFTools.Initialize();
 
         builder.Services.AddHttpClient("NuclearEvaluation.Server").ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { UseCookies = false }).AddHeaderPropagation(o => o.Headers.Add("Cookie"));
         builder.Services.AddHeaderPropagation(o => o.Headers.Add("Cookie"));

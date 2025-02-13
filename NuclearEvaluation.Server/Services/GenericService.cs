@@ -1,24 +1,45 @@
-﻿using NuclearEvaluation.Library.Commands;
+﻿using LinqToDB;
+using LinqToDB.Data;
+using LinqToDB.EntityFrameworkCore;
 using NuclearEvaluation.Library.Interfaces;
+using NuclearEvaluation.Library.Models.DataManagement;
 using NuclearEvaluation.Server.Data;
-using System.Linq.Dynamic.Core;
 
 namespace NuclearEvaluation.Server.Services;
 
-public class GenericService : DbServiceBase, IGenericService
+public class TempTableService : DbServiceBase, ITempTableService
 {
-    public GenericService(NuclearEvaluationServerDbContext dbContext) : base(dbContext)
+    const TableOptions tableOptions = TableOptions.IsGlobalTemporaryStructure;
+
+    public TempTableService(NuclearEvaluationServerDbContext dbContext) : base(dbContext)
     {
     }
 
-    public async Task<FilterDataResponse<dynamic>> GetFilterOptions<T>(FilterDataCommand<T> command, string propertyName) where T : class, IIdentifiable
+    public async Task<string> CreateTempTable()
     {
-        IQueryable<T> query = _dbContext.Set<T>().AsQueryable();
-        IQueryable<T> filteredQuery = GetFilteredQuery(query, command, false);
-        dynamic[] result = await filteredQuery.Select(propertyName).Distinct().OrderByDynamic("x => x").ToDynamicArrayAsync();
-        return new()
-        {
-            Entries = result,
-        };
+        string tableName = $"##{Guid.NewGuid()}";
+        _ = await CreateTable<StemPreviewEntry>(tableName);
+        return tableName;
     }
-} 
+
+    public async Task BulkCopyInto<T>(string tableName, IEnumerable<T> entries) where T : class
+    {
+        BulkCopyOptions options = new()
+        {
+            TableName = tableName,
+            TableOptions = TableOptions.IsGlobalTemporaryStructure,
+        };
+        using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
+        await dataConnection.BulkCopyAsync(options, entries);
+    }
+
+    private async Task<ITable<T>> CreateTable<T>(string tableName) where T : class
+    {
+        using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
+        return await dataConnection.CreateTableAsync<T>(
+            tableName: tableName,
+            tableOptions: tableOptions);
+    }
+
+    //TODO Dispose
+}

@@ -66,8 +66,8 @@ internal class Program
         builder.Services.AddTransient<IChartService, ChartService>();
         builder.Services.AddTransient<IGenericService, GenericService>();
 
-        builder.Services.AddScoped<IStemPreviewService, StemPreviewService>();
-        builder.Services.AddScoped<ITempTableService, TempTableService>();
+        builder.Services.AddTransient<IStemPreviewService, StemPreviewService>();
+        builder.Services.AddTransient<ITempTableService, TempTableService>();
 
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();

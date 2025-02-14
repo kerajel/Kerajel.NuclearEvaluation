@@ -11,14 +11,17 @@ public class TempTableService : DbServiceBase, ITempTableService
 {
     const TableOptions tableOptions = TableOptions.IsGlobalTemporaryStructure;
 
+    readonly List<string> usedTableNames = [];
+
     public TempTableService(NuclearEvaluationServerDbContext dbContext) : base(dbContext)
     {
     }
 
-    public async Task<string> CreateTempTable()
+    public async Task<string> CreateTempTable(string? tableName = default)
     {
-        string tableName = $"##{Guid.NewGuid()}";
+        tableName = tableName ?? $"##{Guid.NewGuid()}";
         _ = await CreateTable<StemPreviewEntry>(tableName);
+        usedTableNames.Add(tableName);
         return tableName;
     }
 
@@ -35,11 +38,22 @@ public class TempTableService : DbServiceBase, ITempTableService
 
     private async Task<ITable<T>> CreateTable<T>(string tableName) where T : class
     {
-        using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
+        DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
         return await dataConnection.CreateTableAsync<T>(
             tableName: tableName,
             tableOptions: tableOptions);
     }
 
-    //TODO Dispose
+    public void Dispose()
+    {
+        if (usedTableNames.Count != 0)
+        {
+            using DataConnection dc = _dbContext.CreateLinqToDBConnection();
+            foreach (string tableName in usedTableNames)
+            {
+                dc.DropTable<object>(tableName: tableName, tableOptions: tableOptions);
+
+            }
+        }
+    }
 }

@@ -9,6 +9,7 @@ using Polly;
 using Polly.Bulkhead;
 using System.Globalization;
 using CsvHelper.TypeConversion;
+using LinqToDB;
 
 namespace NuclearEvaluation.Server.Services;
 
@@ -93,6 +94,10 @@ public class StemPreviewService : IStemPreviewService
         }
     }
 
+    public void Dispose()
+    {
+        _tempTableService.Dispose();
+    }
 
     public sealed class StemPreviewEntryMap : ClassMap<StemPreviewEntry>
     {

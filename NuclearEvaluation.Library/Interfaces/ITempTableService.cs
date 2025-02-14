@@ -1,8 +1,8 @@
 ﻿
 namespace NuclearEvaluation.Library.Interfaces;
 
-public interface ITempTableService
+public interface ITempTableService : IDisposable
 {
     Task BulkCopyInto<T>(string tableName, IEnumerable<T> entries) where T : class;
-    Task<string> CreateTempTable();
+    Task<string> CreateTempTable(string? tableName = default);
 }

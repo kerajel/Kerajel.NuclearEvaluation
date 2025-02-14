@@ -166,6 +166,7 @@ public partial class StemPreview : IDisposable
 
     public void Dispose()
     {
+        StemPreviewService.Dispose();
         cts.Cancel();
         cts.Dispose();
         GC.SuppressFinalize(this);

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NuclearEvaluation.Library.Models.Views;
 
-public class SeriesView : IIdentifiable
+public class SeriesView
 {
     [Key]
     public int Id { get; set; }

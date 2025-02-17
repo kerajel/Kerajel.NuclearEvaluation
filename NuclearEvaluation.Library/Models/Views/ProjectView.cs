@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NuclearEvaluation.Library.Models.Views;
 
-public class ProjectView : IIdentifiable
+public class ProjectView
 {
     [Key]
     public int Id { get; set; }

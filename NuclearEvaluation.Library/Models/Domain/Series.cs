@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NuclearEvaluation.Library.Models.Domain;
 
-public class Series : IIdentifiable
+public class Series
 {
     [Key]
     public int Id { get; set; }

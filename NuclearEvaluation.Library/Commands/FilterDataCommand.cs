@@ -83,7 +83,8 @@ public class FilterDataCommand
 
     public static class ArgKeys
     {
-        public const string ProjectId = "ProjectId";
-        public const string EnableDecayCorrection = "UseDecayCorrection";
+        public const string ProjectId = nameof(ProjectId);
+        public const string EnableDecayCorrection = nameof(EnableDecayCorrection);
+        public const string StemPreviewTempTableName = nameof(StemPreviewTempTableName);
     }
 }

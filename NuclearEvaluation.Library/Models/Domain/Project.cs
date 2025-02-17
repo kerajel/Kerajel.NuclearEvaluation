@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 namespace NuclearEvaluation.Library.Models.Domain;
 
 [Index(nameof(Name), IsUnique = true)]
-public class Project : IIdentifiable
+public class Project
 {
     [Key]
     public int Id { get; set; }

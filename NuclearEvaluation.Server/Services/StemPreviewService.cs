@@ -10,6 +10,8 @@ using Polly.Bulkhead;
 using System.Globalization;
 using CsvHelper.TypeConversion;
 using LinqToDB;
+using NuclearEvaluation.Library.Commands;
+using NuclearEvaluation.Library.Models.Views;
 
 namespace NuclearEvaluation.Server.Services;
 
@@ -24,10 +26,12 @@ public class StemPreviewService : IStemPreviewService
                 await Task.CompletedTask;
             });
     private readonly ITempTableService _tempTableService;
+    private readonly IStemPreviewEntryService _stemPreviewEntryService;
 
-    public StemPreviewService(ITempTableService tempTableService)
+    public StemPreviewService(ITempTableService tempTableService, IStemPreviewEntryService stemPreviewEntryService)
     {
         _tempTableService = tempTableService;
+        _stemPreviewEntryService = stemPreviewEntryService;
     }
 
     // TODO: Optimize memory usage by implementing file streaming.
@@ -45,7 +49,7 @@ public class StemPreviewService : IStemPreviewService
             CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value) :
             internalCts;
 
-        string tempTableName = await _tempTableService.CreateTempTable();
+        string tempTableName = await _tempTableService.Create();
 
         try
         {
@@ -68,11 +72,16 @@ public class StemPreviewService : IStemPreviewService
 
                         using CsvReader csvReader = new(reader, csvConfig);
                         csvReader.Context.RegisterClassMap<StemPreviewEntryMap>();
-                        StemPreviewEntry[] entries = csvReader.GetRecords<StemPreviewEntry>()
+                        //TODO Parse into Domain model and then map to view (?)
+                        StemPreviewEntryView[] entries = csvReader.GetRecords<StemPreviewEntryView>()
                             .ToArray();
 
                         //TODO handle mapping errors
                         await _tempTableService.BulkCopyInto(tempTableName, entries);
+
+                        var cmd = new FilterDataCommand<StemPreviewEntryView>();
+                        cmd.AddArgument(FilterDataCommand.ArgKeys.StemPreviewTempTableName, tempTableName);
+                        var dat = await _stemPreviewEntryService.GetStemPreviewEntryViews(cmd);
 
                         return new OperationResult(OperationStatus.Succeeded);
                     }
@@ -81,7 +90,7 @@ public class StemPreviewService : IStemPreviewService
                         return new OperationResult(OperationStatus.Faulted, "Error processing the file");
                     }
                 },
-                linkedCts.Token); // Use the linked CancellationToken here
+                linkedCts.Token);
             return result;
         }
         catch (BulkheadRejectedException)

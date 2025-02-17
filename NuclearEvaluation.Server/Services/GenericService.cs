@@ -1,59 +1,24 @@
-﻿using LinqToDB;
-using LinqToDB.Data;
-using LinqToDB.EntityFrameworkCore;
+﻿using NuclearEvaluation.Library.Commands;
 using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.DataManagement;
 using NuclearEvaluation.Server.Data;
+using System.Linq.Dynamic.Core;
 
 namespace NuclearEvaluation.Server.Services;
 
-public class TempTableService : DbServiceBase, ITempTableService
+public class GenericService : DbServiceBase, IGenericService
 {
-    const TableOptions tableOptions = TableOptions.IsGlobalTemporaryStructure;
-
-    readonly List<string> usedTableNames = [];
-
-    public TempTableService(NuclearEvaluationServerDbContext dbContext) : base(dbContext)
+    public GenericService(NuclearEvaluationServerDbContext dbContext) : base(dbContext)
     {
     }
 
-    public async Task<string> CreateTempTable(string? tableName = default)
+    public async Task<FilterDataResponse<dynamic>> GetFilterOptions<T>(FilterDataCommand<T> command, string propertyName) where T : class
     {
-        tableName = tableName ?? $"##{Guid.NewGuid()}";
-        _ = await CreateTable<StemPreviewEntry>(tableName);
-        usedTableNames.Add(tableName);
-        return tableName;
-    }
-
-    public async Task BulkCopyInto<T>(string tableName, IEnumerable<T> entries) where T : class
-    {
-        BulkCopyOptions options = new()
+        IQueryable<T> query = _dbContext.Set<T>().AsQueryable();
+        IQueryable<T> filteredQuery = GetFilteredQuery(query, command, false);
+        dynamic[] result = await filteredQuery.Select(propertyName).Distinct().OrderByDynamic("x => x").ToDynamicArrayAsync();
+        return new()
         {
-            TableName = tableName,
-            TableOptions = TableOptions.IsGlobalTemporaryStructure,
+            Entries = result,
         };
-        using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
-        await dataConnection.BulkCopyAsync(options, entries);
     }
-
-    private async Task<ITable<T>> CreateTable<T>(string tableName) where T : class
-    {
-        DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
-        return await dataConnection.CreateTableAsync<T>(
-            tableName: tableName,
-            tableOptions: tableOptions);
-    }
-
-    public void Dispose()
-    {
-        if (usedTableNames.Count != 0)
-        {
-            using DataConnection dc = _dbContext.CreateLinqToDBConnection();
-            foreach (string tableName in usedTableNames)
-            {
-                dc.DropTable<object>(tableName: tableName, tableOptions: tableOptions);
-
-            }
-        }
-    }
-}
+} 

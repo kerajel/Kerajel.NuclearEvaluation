@@ -23,6 +23,8 @@ public class FilterDataCommand<T>()
 
     public bool AsNoTracking { get; set; } = true;
 
+    public TableKind TableKind {get;set;} = TableKind.Persisted;
+
     public void AddArgument<K>(string key, K? value)
     {
        _args.Add(key, value);

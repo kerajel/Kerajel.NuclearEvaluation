@@ -17,18 +17,20 @@ public class TempTableService : DbServiceBase, ITempTableService
     {
     }
 
-    public async Task<string> Create(string? tableName = default)
+    public async Task<string> GetOrAdd(string? tableName = default)
     {
-        tableName = tableName ?? $"##{Guid.NewGuid()}";
-        ITable<StemPreviewEntry> table = await CreateTable<StemPreviewEntry>(tableName);
+        tableName = tableName ?? Guid.NewGuid().ToString();
+        _ = await GetOrAdd<StemPreviewEntry>(tableName);
         return tableName;
     }
 
     public async Task<IQueryable<T>?> Get<T>(string tableName) where T : class
     {
-        if (tables.TryGetValue(tableName, out dynamic? value) && value is ITable<object> table)
+        string formattedTableName = GetTableName(tableName);
+
+        if (tables.TryGetValue(formattedTableName, out dynamic? value) && value is ITable<T> table)
         {
-            return table.Select(x => (T)x);
+            return table;
         }
         return default;
     }
@@ -37,22 +39,37 @@ public class TempTableService : DbServiceBase, ITempTableService
     {
         BulkCopyOptions options = new()
         {
-            TableName = tableName,
+            TableName = GetTableName(tableName),
             TableOptions = TableOptions.IsGlobalTemporaryStructure,
         };
         using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
         await dataConnection.BulkCopyAsync(options, entries);
     }
 
-    private async Task<ITable<T>> CreateTable<T>(string tableName) where T : class
+    private async Task<ITable<T>> GetOrAdd<T>(string tableName) where T : class
     {
+        string formattedTableName = GetTableName(tableName);
+
+        if (tables.TryGetValue(formattedTableName, out dynamic? value))
+        {
+            return value is ITable<T> tbl 
+                ? tbl 
+                : throw new Exception($"Type mismatch for temporary table '{formattedTableName}'");
+        }
+
         DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
-        ITable<T> table =  await dataConnection.CreateTableAsync<T>(
-            tableName: tableName,
+        ITable<T> table = await dataConnection.CreateTableAsync<T>(
+            tableName: formattedTableName,
             tableOptions: tableOptions);
-        tables.Add(tableName, table);
+        tables.Add(formattedTableName, table);
         return table;
     }
+
+    private static string GetTableName(string tableName)
+    {
+        return $"##{tableName.TrimStart('#')}";
+    }
+
 
     public void Dispose()
     {
@@ -61,7 +78,7 @@ public class TempTableService : DbServiceBase, ITempTableService
             using DataConnection dc = _dbContext.CreateLinqToDBConnection();
             foreach (string tableName in tables.Keys)
             {
-                dc.DropTable<object>(tableName: tableName, tableOptions: tableOptions);
+                dc.DropTable<object>(tableName: GetTableName(tableName), tableOptions: tableOptions);
                 tables.Remove(tableName);
             }
         }

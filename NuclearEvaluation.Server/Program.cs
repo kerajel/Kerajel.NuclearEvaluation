@@ -66,7 +66,6 @@ internal class Program
         builder.Services.AddTransient<IChartService, ChartService>();
         builder.Services.AddTransient<IGenericService, GenericService>();
         builder.Services.AddTransient<IStemPreviewEntryService, StemPreviewEntryService>();
-
         builder.Services.AddTransient<IStemPreviewService, StemPreviewService>();
 
         builder.Services.AddScoped<ITempTableService, TempTableService>();

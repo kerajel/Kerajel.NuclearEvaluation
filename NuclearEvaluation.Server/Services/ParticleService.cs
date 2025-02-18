@@ -37,6 +37,6 @@ public class ParticleService : DbServiceBase, IParticleService
                 break;
         }
 
-        return await ExecuteQueryAsync(baseQuery, command);
+        return await ExecuteQuery(baseQuery, command);
     }
 }

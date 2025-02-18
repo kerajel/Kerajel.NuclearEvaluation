@@ -4,13 +4,12 @@ using NuclearEvaluation.Library.Enums;
 using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Models.Filters;
 using NuclearEvaluation.Server.Data;
-using System;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Collections.Concurrent;
 using Z.EntityFramework.Plus;
+using LinqToDB.EntityFrameworkCore;
 
 namespace NuclearEvaluation.Server.Services;
 
@@ -24,38 +23,45 @@ public class DbServiceBase
         _dbContext = dbContext;
     }
 
-    public async Task<FilterDataResponse<T>> ExecuteQueryAsync<T>(
-        IQueryable<T> query,
-        FilterDataCommand<T> command) where T : class
+    public async Task<FilterDataResponse<T>> ExecuteQuery<T>(IQueryable<T> query, FilterDataCommand<T> cmd) where T : class
     {
         FilterDataResponse<T> result = new();
-        bool enableVirtualTracking = command.AsNoTracking && command.Includes.Any();
 
-        IQueryable<T> filteredQuery = GetFilteredQuery(query, command, enableVirtualTracking);
+        bool enableVirtualTracking = cmd.AsNoTracking && cmd.Includes.Any();
+
+        IQueryable<T> filteredQuery = GetFilteredQuery(query, cmd, enableVirtualTracking);
+
         PropertyInfo keyProperty = GetKeyProperty<T>();
         ParameterExpression param = Expression.Parameter(typeof(T), "x");
         Expression keyPropertyAccess = Expression.Property(param, keyProperty.Name);
         Expression<Func<T, object>> lambdaKeyPropertyAccess = Expression.Lambda<Func<T, object>>(Expression.Convert(keyPropertyAccess, typeof(object)), param);
 
         IQueryable<T> dataQuery = filteredQuery
-            .OrderByWithFallback(command.LoadDataArgs, lambdaKeyPropertyAccess)
-            .PageWithFallback(command.LoadDataArgs);
+            .OrderByWithFallback(cmd.LoadDataArgs, lambdaKeyPropertyAccess)
+            .PageWithFallback(cmd.LoadDataArgs);
 
-        foreach (dynamic include in command.Includes)
+        foreach (dynamic include in cmd.Includes)
         {
             dataQuery = QueryIncludeOptimizedExtensions.IncludeOptimized(dataQuery, include);
         }
 
-        bool fetchTotalCount = command.FetchTotalCount;
-        QueryFutureEnumerable<T> futureEntries = dataQuery.Future();
-
-        if (fetchTotalCount)
+        if (cmd.TableKind == TableKind.Persisted)
         {
-            QueryFutureValue<int> futureCount = filteredQuery.DeferredCount().FutureValue();
-            result.TotalCount = await futureCount.ValueAsync();
-        }
+            QueryFutureEnumerable<T> futureEntries = dataQuery.Future();
 
-        result.Entries = await futureEntries.ToArrayAsync();
+            if (cmd.FetchTotalCount)
+            {
+                QueryFutureValue<int> futureCount = filteredQuery.DeferredCount().FutureValue();
+                result.TotalCount = await futureCount.ValueAsync();
+            }
+
+            result.Entries = await futureEntries.ToArrayAsync();
+        }
+        else
+        {
+            result.TotalCount = await dataQuery.CountAsyncLinqToDB();
+            result.Entries = await dataQuery.ToArrayAsyncLinqToDB();
+        }
 
         if (enableVirtualTracking)
         {
@@ -73,13 +79,10 @@ public class DbServiceBase
         IQueryable<T> filteredQuery = enableVirtualTracking ? query.AsNoTracking() : command.AsNoTracking ? query.AsNoTracking() : query;
 
         PropertyInfo keyProperty = GetKeyProperty<T>();
-        ParameterExpression param = Expression.Parameter(typeof(T), "x");
-        Expression keyPropertyAccess = Expression.Property(param, keyProperty.Name);
-        Expression<Func<T, object>> lambdaKeyPropertyAccess = Expression.Lambda<Func<T, object>>(Expression.Convert(keyPropertyAccess, typeof(object)), param);
 
         if (command.QueryKind == QueryKind.QueryBuilder)
         {
-            IQueryable<int> qbFilter = ApplyPresetFilterBox<T>(command);
+            IQueryable<int> qbFilter = ApplyPresetFilterBox(command);
             filteredQuery = filteredQuery.Where(entry => qbFilter.Contains((int)keyProperty.GetValue(entry, null)!));
         }
 

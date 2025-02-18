@@ -15,6 +15,6 @@ public class SubSampleService : DbServiceBase, ISubSampleService
     {
         IQueryable<SubSampleView> baseQuery = _dbContext.SubSampleView;
 
-        return await ExecuteQueryAsync(baseQuery, command);
+        return await ExecuteQuery(baseQuery, command);
     }
 }

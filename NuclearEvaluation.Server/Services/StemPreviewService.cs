@@ -9,15 +9,12 @@ using Polly;
 using Polly.Bulkhead;
 using System.Globalization;
 using CsvHelper.TypeConversion;
-using LinqToDB;
-using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Models.Views;
 
 namespace NuclearEvaluation.Server.Services;
 
 public class StemPreviewService : IStemPreviewService
 {
-    private static readonly AsyncBulkheadPolicy<OperationResult> bulkheadPolicy = Policy
+    static readonly AsyncBulkheadPolicy<OperationResult> bulkheadPolicy = Policy
         .BulkheadAsync<OperationResult>(
             maxParallelization: 4,
             maxQueuingActions: 128,
@@ -25,13 +22,15 @@ public class StemPreviewService : IStemPreviewService
             {
                 await Task.CompletedTask;
             });
-    private readonly ITempTableService _tempTableService;
-    private readonly IStemPreviewEntryService _stemPreviewEntryService;
 
-    public StemPreviewService(ITempTableService tempTableService, IStemPreviewEntryService stemPreviewEntryService)
+    readonly ITempTableService _tempTableService;
+
+    const string entryTableSuffix = "stem-entry";
+    const string fileNameTableSuffix = "stem-file-name";
+
+    public StemPreviewService(ITempTableService tempTableService)
     {
         _tempTableService = tempTableService;
-        _stemPreviewEntryService = stemPreviewEntryService;
     }
 
     // TODO: Optimize memory usage by implementing file streaming.
@@ -40,7 +39,11 @@ public class StemPreviewService : IStemPreviewService
     // Subsequently, CSVHelper should read this output file in chunks, streaming parsed entries directly to the database.
     // This method conserves memory by avoiding in-memory processing of the entire file at once.
     // For simplicity, the current implementation handles everything in memory.
-    public async Task<OperationResult> UploadStemPreviewFile(Stream stream, string fileName, CancellationToken? externalCt = default)
+    public async Task<OperationResult> UploadStemPreviewFile(
+        Guid stemSessionId,
+        Stream stream,
+        string fileName,
+        CancellationToken? externalCt = default)
     {
         //TODO options
         using CancellationTokenSource internalCts = new(TimeSpan.FromMinutes(1));
@@ -49,7 +52,7 @@ public class StemPreviewService : IStemPreviewService
             CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value) :
             internalCts;
 
-        string tempTableName = await _tempTableService.Create();
+        (string entryTable, string fileNameTable) = GetTableNames(stemSessionId);
 
         try
         {
@@ -72,16 +75,12 @@ public class StemPreviewService : IStemPreviewService
 
                         using CsvReader csvReader = new(reader, csvConfig);
                         csvReader.Context.RegisterClassMap<StemPreviewEntryMap>();
-                        //TODO Parse into Domain model and then map to view (?)
-                        StemPreviewEntryView[] entries = csvReader.GetRecords<StemPreviewEntryView>()
+
+                        StemPreviewEntry[] entries = csvReader.GetRecords<StemPreviewEntry>()
                             .ToArray();
 
                         //TODO handle mapping errors
-                        await _tempTableService.BulkCopyInto(tempTableName, entries);
-
-                        var cmd = new FilterDataCommand<StemPreviewEntryView>();
-                        cmd.AddArgument(FilterDataCommand.ArgKeys.StemPreviewTempTableName, tempTableName);
-                        var dat = await _stemPreviewEntryService.GetStemPreviewEntryViews(cmd);
+                        await _tempTableService.BulkCopyInto(entryTable, entries);
 
                         return new OperationResult(OperationStatus.Succeeded);
                     }
@@ -101,6 +100,11 @@ public class StemPreviewService : IStemPreviewService
         {
             return new OperationResult(OperationStatus.Faulted, "The upload was canceled or timed out.");
         }
+    }
+
+    public (string EntryTable, string FileNameTable) GetTableNames(Guid sessionId)
+    {
+        return ($"{sessionId}-{entryTableSuffix}", $"{sessionId}-{fileNameTableSuffix}");
     }
 
     public void Dispose()

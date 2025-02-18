@@ -31,9 +31,11 @@ public partial class StemPreview : IDisposable
     [Inject]
     protected DialogService DialogService { get; set; } = null!;
 
-    private List<UploadedFile> files = [];
+    readonly Guid sessionId = Guid.NewGuid();
 
-    private readonly CancellationTokenSource cts = new();
+    List<UploadedFile> files = [];
+
+    readonly CancellationTokenSource cts = new();
 
     // 50 MB limit
     private const long fileSizeLimit = 1024L * 1024L * 50L;
@@ -126,6 +128,7 @@ public partial class StemPreview : IDisposable
             using Stream stream = browserFile.OpenReadStream(browserFile.Size);
 
             OperationResult result = await StemPreviewService.UploadStemPreviewFile(
+                 sessionId,
                   stream,
                   browserFile.Name,
                   cts.Token

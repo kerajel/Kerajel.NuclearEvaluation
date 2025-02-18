@@ -15,6 +15,6 @@ public class SampleService : DbServiceBase, ISampleService
     {
         IQueryable<SampleView> baseQuery = _dbContext.SampleView;
 
-        return await ExecuteQueryAsync(baseQuery, command);
+        return await ExecuteQuery(baseQuery, command);
     }
 }

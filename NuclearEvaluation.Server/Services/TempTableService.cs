@@ -2,7 +2,6 @@
 using LinqToDB.Data;
 using LinqToDB.EntityFrameworkCore;
 using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.DataManagement;
 using NuclearEvaluation.Server.Data;
 
 namespace NuclearEvaluation.Server.Services;
@@ -17,14 +16,14 @@ public class TempTableService : DbServiceBase, ITempTableService
     {
     }
 
-    public async Task<string> GetOrAdd(string? tableName = default)
+    public async Task<string> EnsureCreated<T>(string? tableName = default) where T : class
     {
         tableName = tableName ?? Guid.NewGuid().ToString();
-        _ = await GetOrAdd<StemPreviewEntry>(tableName);
+        _ = await GetOrAddInternal<T>(tableName);
         return tableName;
     }
 
-    public async Task<IQueryable<T>?> Get<T>(string tableName) where T : class
+    public IQueryable<T>? Get<T>(string tableName) where T : class
     {
         string formattedTableName = GetTableName(tableName);
 
@@ -46,14 +45,22 @@ public class TempTableService : DbServiceBase, ITempTableService
         await dataConnection.BulkCopyAsync(options, entries);
     }
 
-    private async Task<ITable<T>> GetOrAdd<T>(string tableName) where T : class
+    public async Task<K> InsertWithIdentity<T, K>(string tableName, T entry) where T : class
+    {
+        using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
+        object id = await dataConnection.InsertWithIdentityAsync(entry, GetTableName(tableName));
+        id = Convert.ChangeType(id, typeof(K));
+        return (K)id;
+    }
+
+    private async Task<ITable<T>> GetOrAddInternal<T>(string tableName) where T : class
     {
         string formattedTableName = GetTableName(tableName);
 
         if (tables.TryGetValue(formattedTableName, out dynamic? value))
         {
-            return value is ITable<T> tbl 
-                ? tbl 
+            return value is ITable<T> tbl
+                ? tbl
                 : throw new Exception($"Type mismatch for temporary table '{formattedTableName}'");
         }
 
@@ -69,7 +76,6 @@ public class TempTableService : DbServiceBase, ITempTableService
     {
         return $"##{tableName.TrimStart('#')}";
     }
-
 
     public void Dispose()
     {

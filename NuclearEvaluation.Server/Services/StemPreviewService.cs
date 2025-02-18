@@ -1,14 +1,10 @@
-﻿using CsvHelper.Configuration;
-using CsvHelper;
-using Kerajel.Primitives.Enums;
+﻿using Kerajel.Primitives.Enums;
 using Kerajel.Primitives.Models;
-using Kerajel.TabularDataReader.Services;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Library.Models.DataManagement;
 using Polly;
 using Polly.Bulkhead;
-using System.Globalization;
-using CsvHelper.TypeConversion;
+using NuclearEvaluation.Library.Models.Temporary;
 
 namespace NuclearEvaluation.Server.Services;
 
@@ -24,13 +20,15 @@ public class StemPreviewService : IStemPreviewService
             });
 
     readonly ITempTableService _tempTableService;
+    readonly IStemPreviewParser _stemPreviewParser;
 
     const string entryTableSuffix = "stem-entry";
     const string fileNameTableSuffix = "stem-file-name";
 
-    public StemPreviewService(ITempTableService tempTableService)
+    public StemPreviewService(ITempTableService tempTableService, IStemPreviewParser stemPreviewParser)
     {
         _tempTableService = tempTableService;
+        _stemPreviewParser = stemPreviewParser;
     }
 
     // TODO: Optimize memory usage by implementing file streaming.
@@ -54,6 +52,9 @@ public class StemPreviewService : IStemPreviewService
 
         (string entryTable, string fileNameTable) = GetTableNames(stemSessionId);
 
+        _ = await _tempTableService.EnsureCreated<TempString>(fileNameTable);
+        _ = await _tempTableService.EnsureCreated<StemPreviewEntry>(entryTable);
+
         try
         {
             OperationResult result = await bulkheadPolicy.ExecuteAsync(
@@ -61,28 +62,7 @@ public class StemPreviewService : IStemPreviewService
                 {
                     try
                     {
-                        OperationResult<string> operationResult = await TabularDataReader.Read(stream, fileName);
-                        if (!operationResult.Succeeded)
-                        {
-                            return new OperationResult(OperationStatus.Faulted, "Error reading the file");
-                        }
-
-                        using TextReader reader = new StringReader(operationResult.Content!);
-                        CsvConfiguration csvConfig = new(CultureInfo.InvariantCulture)
-                        {
-                            HasHeaderRecord = true,
-                        };
-
-                        using CsvReader csvReader = new(reader, csvConfig);
-                        csvReader.Context.RegisterClassMap<StemPreviewEntryMap>();
-
-                        StemPreviewEntry[] entries = csvReader.GetRecords<StemPreviewEntry>()
-                            .ToArray();
-
-                        //TODO handle mapping errors
-                        await _tempTableService.BulkCopyInto(entryTable, entries);
-
-                        return new OperationResult(OperationStatus.Succeeded);
+                        return await Execute();
                     }
                     catch (Exception)
                     {
@@ -100,6 +80,31 @@ public class StemPreviewService : IStemPreviewService
         {
             return new OperationResult(OperationStatus.Faulted, "The upload was canceled or timed out.");
         }
+
+        async Task<OperationResult> Execute()
+        {
+            OperationResult<IReadOnlyCollection<StemPreviewEntry>> parseResult = await _stemPreviewParser.Parse(stream, fileName);
+
+            if (!parseResult.Succeeded)
+            {
+                return new(OperationStatus.Faulted, "Error reading the file");
+            }
+
+            IReadOnlyCollection<StemPreviewEntry> entries = parseResult.Content!;
+
+            TempString storedFile = new() { Value = fileName };
+
+            int fileId = await _tempTableService.InsertWithIdentity<TempString, int>(fileNameTable, storedFile);
+
+            foreach (StemPreviewEntry entry in entries)
+            {
+                entry.FileId = fileId;
+            }
+
+            await _tempTableService.BulkCopyInto(entryTable, entries);
+
+            return new OperationResult(OperationStatus.Succeeded);
+        }
     }
 
     public (string EntryTable, string FileNameTable) GetTableNames(Guid sessionId)
@@ -110,59 +115,5 @@ public class StemPreviewService : IStemPreviewService
     public void Dispose()
     {
         _tempTableService.Dispose();
-    }
-
-    public sealed class StemPreviewEntryMap : ClassMap<StemPreviewEntry>
-    {
-        public StemPreviewEntryMap()
-        {
-            Map(m => m.Id).Name("Identifier");
-            Map(m => m.LabCode).Name("LaboratoryCode");
-            Map(m => m.AnalysisDate).Name("AnalysisDate")
-                    .TypeConverter<StemDateConverter>();
-            Map(m => m.IsNu).Name("IsNu");
-            Map(m => m.U234).Name("U234").Optional();
-            Map(m => m.ErU234).Name("ErU234").Optional();
-            Map(m => m.U235).Name("U235").Optional();
-            Map(m => m.ErU235).Name("ErU235").Optional();
-        }
-    }
-
-    public class StemDateConverter : ITypeConverter
-    {
-        public object? ConvertFromString(string? text, IReaderRow row, MemberMapData memberMapData)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                return null;
-            }
-
-            if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
-            {
-                return DateOnly.FromDateTime(date);
-            }
-            else if (double.TryParse(text, out double oaDate))
-            {
-                try
-                {
-                    DateTime validDate = DateTime.FromOADate(oaDate);
-                    return DateOnly.FromDateTime(validDate);
-                }
-                catch
-                {
-                    throw new FormatException($"Invalid OADate value: {text}");
-                }
-            }
-            throw new FormatException($"Invalid date format: {text}");
-        }
-
-        public string ConvertToString(object? value, IWriterRow row, MemberMapData memberMapData)
-        {
-            if (value is DateOnly dateOnly)
-            {
-                return dateOnly.ToString("yyyy-MM-dd");
-            }
-            return string.Empty;
-        }
     }
 }

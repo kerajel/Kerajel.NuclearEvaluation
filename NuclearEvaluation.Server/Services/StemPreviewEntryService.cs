@@ -22,7 +22,7 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
         command.TableKind = TableKind.Temporary;
         string tempTableName = command.GetRequiredArgument<string>(FilterDataCommand.ArgKeys.StemPreviewTempTableName);
 
-        IQueryable<StemPreviewEntry>? tempTable = await _tempTableService.Get<StemPreviewEntry>(tempTableName)
+        IQueryable<StemPreviewEntry> tempTable = _tempTableService.Get<StemPreviewEntry>(tempTableName)
             ?? throw new Exception($"Temporary table {tempTableName} does not exist");
 
         IQueryable<StemPreviewEntryView> baseQuery = tempTable.Select(x => new StemPreviewEntryView

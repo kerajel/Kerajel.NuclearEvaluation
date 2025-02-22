@@ -5,7 +5,6 @@ namespace NuclearEvaluation.Library.Models.DataManagement;
 
 public class StemPreviewEntry
 {
-    [Key]
     public decimal Id { get; set; }
     public string LabCode { get; set; } = string.Empty;
     public DateOnly AnalysisDate { get; set; }

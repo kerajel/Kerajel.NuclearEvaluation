@@ -150,6 +150,13 @@ public partial class StemPreview : IDisposable
             Logger.LogInformation("Upload completed for STEM preview file");
         }
 
+        OperationResult refreshIndexesResult = await StemPreviewService.RefreshIndexes(sessionId);
+
+        if (!refreshIndexesResult.Succeeded)
+        {
+            Logger.LogError("Failed to refresh indexes for Stem Preview session {sessionId}", sessionId);
+        }
+
         files = [.. files];
     }
 

@@ -4,6 +4,8 @@ namespace NuclearEvaluation.Library.Interfaces;
 
 public interface IStemPreviewService : IDisposable
 {
+    Task<OperationResult> RefreshIndexes(Guid stemSessionId);
+
     Task<OperationResult> UploadStemPreviewFile(
         Guid sessionId,
         Stream stream,

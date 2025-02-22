@@ -1,14 +1,18 @@
 ﻿using LinqToDB;
 using LinqToDB.Data;
 using LinqToDB.EntityFrameworkCore;
+using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Server.Data;
+using System.Linq.Expressions;
 
 namespace NuclearEvaluation.Server.Services;
 
 public class TempTableService : DbServiceBase, ITempTableService
 {
     const TableOptions tableOptions = TableOptions.IsGlobalTemporaryStructure;
+    const int maxBatchSize = 10_000;
+    const int bulkCopyTimeout = 60;
 
     readonly Dictionary<string, dynamic> tables = [];
 
@@ -16,30 +20,35 @@ public class TempTableService : DbServiceBase, ITempTableService
     {
     }
 
-    public async Task<string> EnsureCreated<T>(string? tableName = default) where T : class
+    public async Task<IQueryable<T>> EnsureCreated<T>(string tableName) where T : class
     {
-        tableName = tableName ?? Guid.NewGuid().ToString();
-        _ = await GetOrAddInternal<T>(tableName);
-        return tableName;
+        if (string.IsNullOrWhiteSpace(tableName))
+        {
+            tableName = Guid.NewGuid().ToString();
+        }
+        ITable<T> table = await GetOrAddInternal<T>(tableName);
+        return table.AsQueryable();
     }
 
-    public IQueryable<T>? Get<T>(string tableName) where T : class
+    public IQueryable<T> Get<T>(string tableName) where T : class
     {
-        string formattedTableName = GetTableName(tableName);
+        string formattedTableName = GetFormattedTableName(tableName);
 
         if (tables.TryGetValue(formattedTableName, out dynamic? value) && value is ITable<T> table)
         {
             return table;
         }
-        return default;
+        throw new Exception($"Temporary table '{tableName}' was not found");
     }
 
     public async Task BulkCopyInto<T>(string tableName, IEnumerable<T> entries) where T : class
     {
         BulkCopyOptions options = new()
         {
-            TableName = GetTableName(tableName),
+            TableName = GetFormattedTableName(tableName),
             TableOptions = TableOptions.IsGlobalTemporaryStructure,
+            BulkCopyTimeout = bulkCopyTimeout,
+            MaxBatchSize = maxBatchSize,
         };
         using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
         await dataConnection.BulkCopyAsync(options, entries);
@@ -48,14 +57,27 @@ public class TempTableService : DbServiceBase, ITempTableService
     public async Task<K> InsertWithIdentity<T, K>(string tableName, T entry) where T : class
     {
         using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
-        object id = await dataConnection.InsertWithIdentityAsync(entry, GetTableName(tableName));
+        object id = await dataConnection.InsertWithIdentityAsync(entry, GetFormattedTableName(tableName));
         id = Convert.ChangeType(id, typeof(K));
         return (K)id;
     }
 
+    public async Task EnsureIndex<T, K>(string tableName, Expression<Func<T, K>> propertyExpression) where T : class
+    {
+        var @params = new
+        {
+            tableName = GetFormattedTableName(tableName),
+            fieldName = propertyExpression.GetPropertyName(),
+        };
+
+        using DataConnection dc = _dbContext.CreateLinqToDBConnection();
+        await dc.ExecuteProcAsync("[DBO].EnsureIndexOnTempTableField", @params);
+    }
+
+
     private async Task<ITable<T>> GetOrAddInternal<T>(string tableName) where T : class
     {
-        string formattedTableName = GetTableName(tableName);
+        string formattedTableName = GetFormattedTableName(tableName);
 
         if (tables.TryGetValue(formattedTableName, out dynamic? value))
         {
@@ -72,7 +94,7 @@ public class TempTableService : DbServiceBase, ITempTableService
         return table;
     }
 
-    private static string GetTableName(string tableName)
+    private static string GetFormattedTableName(string tableName)
     {
         return $"##{tableName.TrimStart('#')}";
     }
@@ -84,7 +106,7 @@ public class TempTableService : DbServiceBase, ITempTableService
             using DataConnection dc = _dbContext.CreateLinqToDBConnection();
             foreach (string tableName in tables.Keys)
             {
-                dc.DropTable<object>(tableName: GetTableName(tableName), tableOptions: tableOptions);
+                dc.DropTable<object>(tableName: GetFormattedTableName(tableName), tableOptions: tableOptions);
                 tables.Remove(tableName);
             }
         }

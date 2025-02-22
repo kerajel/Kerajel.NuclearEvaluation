@@ -87,6 +87,6 @@ public class FilterDataCommand
     {
         public const string ProjectId = nameof(ProjectId);
         public const string EnableDecayCorrection = nameof(EnableDecayCorrection);
-        public const string StemPreviewTempTableName = nameof(StemPreviewTempTableName);
+        public const string StemPreviewSessionId = nameof(StemPreviewSessionId);
     }
 }

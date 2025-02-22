@@ -4,12 +4,13 @@ using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Library.Models.DataManagement;
 using Polly;
 using Polly.Bulkhead;
-using NuclearEvaluation.Library.Models.Temporary;
 
 namespace NuclearEvaluation.Server.Services;
 
 public class StemPreviewService : IStemPreviewService
 {
+    static readonly TimeSpan uploadTimeout = TimeSpan.FromMinutes(1);
+
     static readonly AsyncBulkheadPolicy<OperationResult> bulkheadPolicy = Policy
         .BulkheadAsync<OperationResult>(
             maxParallelization: 4,
@@ -19,16 +20,13 @@ public class StemPreviewService : IStemPreviewService
                 await Task.CompletedTask;
             });
 
-    readonly ITempTableService _tempTableService;
     readonly IStemPreviewParser _stemPreviewParser;
+    readonly IStemPreviewEntryService _stemPreviewEntryService;
 
-    const string entryTableSuffix = "stem-entry";
-    const string fileNameTableSuffix = "stem-file-name";
-
-    public StemPreviewService(ITempTableService tempTableService, IStemPreviewParser stemPreviewParser)
+    public StemPreviewService(IStemPreviewParser stemPreviewParser, IStemPreviewEntryService stemPreviewEntryService)
     {
-        _tempTableService = tempTableService;
         _stemPreviewParser = stemPreviewParser;
+        _stemPreviewEntryService = stemPreviewEntryService;
     }
 
     // TODO: Optimize memory usage by implementing file streaming.
@@ -43,43 +41,54 @@ public class StemPreviewService : IStemPreviewService
         string fileName,
         CancellationToken? externalCt = default)
     {
-        //TODO options
-        using CancellationTokenSource internalCts = new(TimeSpan.FromMinutes(1));
+        using CancellationTokenSource internalCts = new(uploadTimeout);
 
         using CancellationTokenSource linkedCts = externalCt.HasValue ?
             CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value) :
             internalCts;
 
-        (string entryTable, string fileNameTable) = GetTableNames(stemSessionId);
-
-        _ = await _tempTableService.EnsureCreated<TempString>(fileNameTable);
-        _ = await _tempTableService.EnsureCreated<StemPreviewEntry>(entryTable);
+        OperationResult result = new(OperationStatus.Succeeded);
+        int fileId = 0;
 
         try
         {
-            OperationResult result = await bulkheadPolicy.ExecuteAsync(
+            result = await bulkheadPolicy.ExecuteAsync(
                 async (CancellationToken ct) =>
                 {
                     try
                     {
                         return await Execute();
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        return new OperationResult(OperationStatus.Faulted, "Error processing the file");
+                        return new OperationResult(OperationStatus.Faulted, "Error processing the file", ex);
                     }
                 },
                 linkedCts.Token);
-            return result;
         }
-        catch (BulkheadRejectedException)
+        catch (BulkheadRejectedException ex)
         {
-            return new OperationResult(OperationStatus.Faulted, "Too many concurrent uploads. Please try again later.");
+            result = new OperationResult(OperationStatus.Faulted, "Too many concurrent uploads. Please try again later", ex);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            return new OperationResult(OperationStatus.Faulted, "The upload was canceled or timed out.");
+            result = new OperationResult(OperationStatus.Faulted, "The upload was canceled or timed out", ex);
         }
+        catch (Exception ex)
+        {
+            result = new OperationResult(OperationStatus.Faulted, "Error processing the file", ex);
+        }
+        finally
+        {
+            // Skipping a full transaction to minimize logging overhead and boost performance
+            // In case of an error, we clean up by deleting any file entries that were partially inserted
+            if (!result.Succeeded)
+            {
+                await _stemPreviewEntryService.DeleteFileData(stemSessionId, fileId);
+            }
+        }
+        
+        return result;
 
         async Task<OperationResult> Execute()
         {
@@ -90,30 +99,39 @@ public class StemPreviewService : IStemPreviewService
                 return new(OperationStatus.Faulted, "Error reading the file");
             }
 
+            int fileId = await _stemPreviewEntryService.InsertStemPreviewFileMetadata(stemSessionId, fileName);
+
             IReadOnlyCollection<StemPreviewEntry> entries = parseResult.Content!;
-
-            TempString storedFile = new() { Value = fileName };
-
-            int fileId = await _tempTableService.InsertWithIdentity<TempString, int>(fileNameTable, storedFile);
 
             foreach (StemPreviewEntry entry in entries)
             {
                 entry.FileId = fileId;
             }
 
-            await _tempTableService.BulkCopyInto(entryTable, entries);
+            await _stemPreviewEntryService.InsertStemPreviewEntries(stemSessionId, entries);
+            await _stemPreviewEntryService.SetStemPreviewFileAsFullyUploaded(stemSessionId, fileId);
 
             return new OperationResult(OperationStatus.Succeeded);
         }
     }
 
-    public (string EntryTable, string FileNameTable) GetTableNames(Guid sessionId)
+    public async Task<OperationResult> RefreshIndexes(Guid stemSessionId)
     {
-        return ($"{sessionId}-{entryTableSuffix}", $"{sessionId}-{fileNameTableSuffix}");
+        try
+        {
+            await _stemPreviewEntryService.RefreshIndexes(stemSessionId);
+        }
+        catch (Exception ex)
+        {
+            return new OperationResult(OperationStatus.Faulted, ex);
+        }
+        return new OperationResult(OperationStatus.Succeeded);
     }
+
 
     public void Dispose()
     {
-        _tempTableService.Dispose();
+        _stemPreviewEntryService.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

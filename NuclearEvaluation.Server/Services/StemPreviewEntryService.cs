@@ -89,7 +89,6 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService, 
     {
         string entryTable = GetEntryTableName(stemSessionId);
         await _tempTableService.EnsureCreated<StemPreviewEntry>(entryTable);
-
         await _tempTableService.EnsureIndex<StemPreviewEntry, decimal>(entryTable, e => e.Id);
     }
 

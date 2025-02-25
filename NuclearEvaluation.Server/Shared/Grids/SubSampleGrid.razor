@@ -34,12 +34,12 @@
 
             <RadzenDataGridColumn Property="@nameof(SubSampleView.ScreeningDate)"
                                   TextAlign="TextAlign.Left"
-                                  FormatString="{0:yyyy-MM-dd}"
+                                  FormatString="@DateOnlyFormat"
                                   Title="Screening Date" />
 
             <RadzenDataGridColumn Property="@nameof(SubSampleView.UploadResultDate)"
                                   TextAlign="TextAlign.Left"
-                                  FormatString="{0:yyyy-MM-dd}"
+                                  FormatString="@DateOnlyFormat"
                                   Title="Upload Result Date" />
 
             <RadzenDataGridColumn Property="@nameof(SubSampleView.IsFromLegacySystem)"

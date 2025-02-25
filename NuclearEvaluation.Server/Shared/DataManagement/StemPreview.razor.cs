@@ -7,6 +7,7 @@ using NuclearEvaluation.Library.Enums;
 using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Server.Models.Upload;
+using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Server.Shared.Grids;
 using Radzen;
 
@@ -129,7 +130,7 @@ public partial class StemPreview : IDisposable
 
             using Stream stream = browserFile.OpenReadStream(browserFile.Size);
 
-            OperationResult result = await StemPreviewService.UploadStemPreviewFile(
+            OperationResult<int> result = await StemPreviewService.UploadStemPreviewFile(
                  sessionId,
                   stream,
                   browserFile.Name,
@@ -146,18 +147,15 @@ public partial class StemPreview : IDisposable
                 file.ErrorMessage = result.ErrorMessage;
             }
 
+            file.FileId = result.Content;
+
             await InvokeAsync(StateHasChanged);
             await Task.Yield();
 
             Logger.LogInformation("Upload completed for STEM preview file");
         }
 
-        OperationResult refreshIndexesResult = await StemPreviewService.RefreshIndexes(sessionId);
-
-        if (!refreshIndexesResult.Succeeded)
-        {
-            Logger.LogError("Failed to refresh indexes for Stem Preview session {sessionId}", sessionId);
-        }
+        _ = await StemPreviewService.RefreshIndexes(sessionId);
 
         await stemPreviewEntryGrid.Refresh();
 
@@ -168,6 +166,10 @@ public partial class StemPreview : IDisposable
     {
         files.Remove(file);
         files = new List<UploadedFile>(files);
+
+        await StemPreviewService.DeleteFileData(sessionId, file.FileId);
+
+        await stemPreviewEntryGrid.Refresh();
 
         await InvokeAsync(StateHasChanged);
         await Task.Yield();

@@ -10,6 +10,6 @@ public interface IStemPreviewEntryService : IDisposable
     Task DeleteFileData(Guid stemSessionId, int fileId);
     Task<int> InsertStemPreviewFileMetadata(Guid stemSessionId, string fileName);
     Task InsertStemPreviewEntries(Guid stemSessionId, IEnumerable<StemPreviewEntry> entries);
-    Task RefreshIndexes(Guid stemSessionId);
     Task SetStemPreviewFileAsFullyUploaded(Guid stemSessionId, int fileId);
+    Task RefreshIndexes(Guid stemSessionId);
 }

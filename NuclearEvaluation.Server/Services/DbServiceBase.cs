@@ -59,7 +59,7 @@ public class DbServiceBase
         }
         else
         {
-            result.TotalCount = await dataQuery.CountAsyncLinqToDB();
+            result.TotalCount = await filteredQuery.CountAsyncLinqToDB();
             result.Entries = await dataQuery.ToArrayAsyncLinqToDB();
         }
 

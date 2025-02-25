@@ -13,6 +13,9 @@ public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilt
     [Parameter]
     public bool Visible { get; set; }
 
+    protected virtual string DecimalFormat => "{0:0.##}";
+    protected virtual string DateOnlyFormat => "{0:yyyy-MM-dd}";
+
     public PresetFilterEntry PresetFilterEntry
     {
         get

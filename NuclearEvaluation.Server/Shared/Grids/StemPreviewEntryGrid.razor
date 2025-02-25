@@ -30,41 +30,45 @@
         <Columns>
             <RadzenDataGridColumn Property="@nameof(StemPreviewEntryView.Id)"
                                   Title="Id"
-                                  TextAlign="TextAlign.Center" />
+                                  TextAlign="TextAlign.Center" 
+                                  FormatString="@DecimalFormat" />
 
             <RadzenDataGridColumn Property="@nameof(StemPreviewEntryView.FileName)"
                                   TextAlign="TextAlign.Left"
-                                  FormatString="{0:yyyy-MM-dd}"
                                   Title="File Name" />
 
             <RadzenDataGridColumn Property="@nameof(StemPreviewEntryView.LabCode)"
                                   TextAlign="TextAlign.Left"
-                                  FormatString="{0:yyyy-MM-dd}"
                                   Title="Lab Code" />
 
             <RadzenDataGridColumn Property="@nameof(StemPreviewEntryView.AnalysisDate)"
                                   TextAlign="TextAlign.Left"
-                                  FormatString="{0:yyyy-MM-dd}"
+                                  FormatString="@DateOnlyFormat"
                                   Title="Analysis Date" />
 
             <RadzenDataGridColumn Property="@nameof(StemPreviewEntryView.IsNu)"
                                   TextAlign="TextAlign.Left"
+                                  FormatString="@DecimalFormat"
                                   Title="Nu" />
 
             <RadzenDataGridColumn Property="@nameof(StemPreviewEntryView.U234)"
                                   TextAlign="TextAlign.Left"
+                                  FormatString="@DecimalFormat"
                                   Title="U234" />
 
             <RadzenDataGridColumn Property="@nameof(StemPreviewEntryView.ErU234)"
                                   TextAlign="TextAlign.Left"
+                                  FormatString="@DecimalFormat"
                                   Title="ErU234" />
 
             <RadzenDataGridColumn Property="@nameof(StemPreviewEntryView.U235)"
                                   TextAlign="TextAlign.Left"
+                                  FormatString="@DecimalFormat"
                                   Title="U235" />
 
             <RadzenDataGridColumn Property="@nameof(StemPreviewEntryView.ErU235)"
                                   TextAlign="TextAlign.Left"
+                                  FormatString="@DecimalFormat"
                                   Title="ErU235" />
 
         </Columns>

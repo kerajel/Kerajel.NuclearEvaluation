@@ -32,6 +32,9 @@ public abstract class BaseGrid : ComponentBase, IDataGrid
     protected bool isLoading;
     protected DataGridSettings? dataGridSettings;
 
+    protected virtual string DecimalFormat => "{0:0.##}";
+    protected virtual string DateOnlyFormat => "{0:yyyy-MM-dd}";
+
     protected string GridSettingsKey => $"{ComponentId}_{nameof(DataGridSettings)}";
 
     protected DataGridSettings? GridSettings

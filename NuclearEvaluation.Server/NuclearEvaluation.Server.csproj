@@ -39,6 +39,9 @@
 	  <Content Update="Shared\Grids\ParticleGrid.razor">
 	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 	  </Content>
+	  <Content Update="Shared\Grids\StemPreviewEntryGrid.razor">
+	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+	  </Content>
 	</ItemGroup>
 
 </Project>

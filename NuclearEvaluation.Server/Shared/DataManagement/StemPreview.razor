@@ -14,7 +14,6 @@
 
     <InputFile @ref="fileInput"
                OnChange="OnInputFileChange"
-               Multiple
                style="display:none" />
 
     <RadzenButton Text="Select files..."
@@ -90,4 +89,9 @@
                       Click="ProcessUpload"
                       Style="margin-top: 10px;" />
     }
+
+    <StemPreviewEntryGrid @ref=stemPreviewEntryGrid
+                          StemSessionId="@sessionId"
+                          Visible="@files.Any(x => x.Status == UploadStatus.Uploaded)" />
+
 </RadzenCard>

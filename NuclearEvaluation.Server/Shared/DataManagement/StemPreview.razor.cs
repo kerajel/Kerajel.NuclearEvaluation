@@ -7,6 +7,7 @@ using NuclearEvaluation.Library.Enums;
 using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Server.Models.Upload;
+using NuclearEvaluation.Server.Shared.Grids;
 using Radzen;
 
 namespace NuclearEvaluation.Server.Shared.DataManagement;
@@ -31,7 +32,8 @@ public partial class StemPreview : IDisposable
     [Inject]
     protected DialogService DialogService { get; set; } = null!;
 
-    readonly Guid sessionId = Guid.NewGuid();
+    protected readonly Guid sessionId = Guid.NewGuid();
+    protected StemPreviewEntryGrid stemPreviewEntryGrid = null!;
 
     List<UploadedFile> files = [];
 
@@ -113,7 +115,7 @@ public partial class StemPreview : IDisposable
             IBrowserFile browserFile = file.BrowserFile;
             file.Status = UploadStatus.Uploading;
 
-            Dictionary<string, object> fileLoggingParameters = new Dictionary<string, object>()
+            Dictionary<string, object> fileLoggingParameters = new()
             {
                   { "FileName", browserFile.Name },
                   { "FileSize", browserFile.Size },
@@ -156,6 +158,8 @@ public partial class StemPreview : IDisposable
         {
             Logger.LogError("Failed to refresh indexes for Stem Preview session {sessionId}", sessionId);
         }
+
+        await stemPreviewEntryGrid.Refresh();
 
         files = [.. files];
     }

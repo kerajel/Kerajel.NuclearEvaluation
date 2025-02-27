@@ -7,9 +7,9 @@ namespace NuclearEvaluation.Library.Interfaces;
 public interface IStemPreviewEntryService : IDisposable
 {
     Task<FilterDataResponse<StemPreviewEntryView>> GetStemPreviewEntryViews(Guid stemSessionId, FilterDataCommand<StemPreviewEntryView> command);
-    Task DeleteFileData(Guid stemSessionId, int fileId);
-    Task<int> InsertStemPreviewFileMetadata(Guid stemSessionId, string fileName);
-    Task InsertStemPreviewEntries(Guid stemSessionId, IEnumerable<StemPreviewEntry> entries);
-    Task SetStemPreviewFileAsFullyUploaded(Guid stemSessionId, int fileId);
+    Task DeleteFileData(Guid stemSessionId, Guid fileId);
+    Task InsertStemPreviewFileMetadata(Guid stemSessionId, StemPreviewFileMetadata fileMetadata, CancellationToken ct = default);
+    Task InsertStemPreviewEntries(Guid stemSessionId, IEnumerable<StemPreviewEntry> entries, CancellationToken ct = default);
+    Task SetStemPreviewFileAsFullyUploaded(Guid stemSessionId, Guid fileId);
     Task RefreshIndexes(Guid stemSessionId);
 }

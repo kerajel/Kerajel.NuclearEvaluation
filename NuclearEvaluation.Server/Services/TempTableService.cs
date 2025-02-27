@@ -41,7 +41,7 @@ public class TempTableService : DbServiceBase, ITempTableService
         throw new Exception($"Temporary table '{tableName}' was not found");
     }
 
-    public async Task BulkCopyInto<T>(string tableName, IEnumerable<T> entries) where T : class
+    public async Task BulkCopyInto<T>(string tableName, IEnumerable<T> entries, CancellationToken ct = default) where T : class
     {
         BulkCopyOptions options = new()
         {
@@ -51,15 +51,13 @@ public class TempTableService : DbServiceBase, ITempTableService
             MaxBatchSize = maxBatchSize,
         };
         using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
-        await dataConnection.BulkCopyAsync(options, entries);
+        await dataConnection.BulkCopyAsync(options, entries, cancellationToken: ct);
     }
 
-    public async Task<K> InsertWithIdentity<T, K>(string tableName, T entry) where T : class
+    public async Task InsertWithoutIdentity<T>(string tableName, T entry, CancellationToken ct = default) where T : class
     {
         using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
-        object id = await dataConnection.InsertWithIdentityAsync(entry, GetFormattedTableName(tableName));
-        id = Convert.ChangeType(id, typeof(K));
-        return (K)id;
+        object id = await dataConnection.InsertAsync(entry, GetFormattedTableName(tableName), token: ct);
     }
 
     public async Task EnsureIndex<T, K>(string tableName, Expression<Func<T, K>> propertyExpression) where T : class
@@ -110,5 +108,6 @@ public class TempTableService : DbServiceBase, ITempTableService
                 tables.Remove(tableName);
             }
         }
+        GC.SuppressFinalize(this);
     }
 }

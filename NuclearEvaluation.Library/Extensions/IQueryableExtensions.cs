@@ -19,7 +19,7 @@ public static class IQueryableExtensions
         {
             if (isAlreadyOrdered)
             {
-                // Apply ThenBy with args.OrderBy using Dynamic LINQ
+                // Apply ThenBy with args.OrderBy
                 IOrderedQueryable<T> orderedQueryWithPrimary = ((IOrderedQueryable<T>)query).ThenBy(args.OrderBy);
 
                 // Apply ThenBy with defaultOrderBy

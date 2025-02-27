@@ -9,6 +9,7 @@ using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Server.Models.Upload;
 using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Server.Shared.Grids;
+using NuclearEvaluation.Server.Shared.Misc;
 using Radzen;
 
 namespace NuclearEvaluation.Server.Shared.DataManagement;
@@ -38,8 +39,6 @@ public partial class StemPreview : IDisposable
 
     List<UploadedFile> files = [];
 
-    readonly CancellationTokenSource cts = new();
-
     // 50 MB limit
     private const long fileSizeLimit = 1024L * 1024L * 50L;
 
@@ -55,13 +54,9 @@ public partial class StemPreview : IDisposable
         if (hasInProgressOrUploaded)
         {
             bool? userConfirm = await DialogService.Confirm(
-                "You have a current STEM preview that would be lost if you leave. Are you sure?",
+                  "You have a current STEM preview that would be lost if you leave. Are you sure?",
                   "Confirm navigation",
-                  new ConfirmOptions()
-                  {
-                      OkButtonText = "Yes",
-                      CancelButtonText = "No",
-                  }
+                  Dialogs.YesNoConfirmOptions
             );
 
             if (userConfirm == false)
@@ -130,11 +125,12 @@ public partial class StemPreview : IDisposable
 
             using Stream stream = browserFile.OpenReadStream(browserFile.Size);
 
-            OperationResult<int> result = await StemPreviewService.UploadStemPreviewFile(
-                 sessionId,
+            OperationResult result = await StemPreviewService.UploadStemPreviewFile(
+                  sessionId,
                   stream,
+                  file.Id,
                   browserFile.Name,
-                  cts.Token
+                  file.FileCancellationTokenSource.Token
             );
 
             if (result.Succeeded)
@@ -146,8 +142,6 @@ public partial class StemPreview : IDisposable
                 file.Status = UploadStatus.UploadError;
                 file.ErrorMessage = result.ErrorMessage;
             }
-
-            file.FileId = result.Content;
 
             await InvokeAsync(StateHasChanged);
             await Task.Yield();
@@ -164,11 +158,29 @@ public partial class StemPreview : IDisposable
 
     private async Task RemoveFile(UploadedFile file)
     {
+        if (file.Status == UploadStatus.Uploaded || file.Status == UploadStatus.Uploading)
+        {
+            bool? confirmDelete = await DialogService.Confirm(
+                $"Are you sure you want to delete '{file.BrowserFile.Name}'?",
+                "Confirm Delete",
+                Dialogs.YesNoConfirmOptions
+            );
+
+            if (confirmDelete != true)
+            {
+                return;
+            }
+        }
+
+        if (file.Status == UploadStatus.Uploading)
+        {
+            await file.FileCancellationTokenSource.CancelAsync();
+        }
+
         files.Remove(file);
         files = new List<UploadedFile>(files);
 
-        await StemPreviewService.DeleteFileData(sessionId, file.FileId);
-
+        await StemPreviewService.DeleteFileData(sessionId, file.Id);
         await stemPreviewEntryGrid.Refresh();
 
         await InvokeAsync(StateHasChanged);
@@ -183,8 +195,6 @@ public partial class StemPreview : IDisposable
     public void Dispose()
     {
         StemPreviewService.Dispose();
-        cts.Cancel();
-        cts.Dispose();
         GC.SuppressFinalize(this);
     }
 }

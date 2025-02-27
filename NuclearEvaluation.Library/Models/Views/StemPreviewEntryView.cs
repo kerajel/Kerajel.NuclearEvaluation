@@ -13,5 +13,6 @@ public class StemPreviewEntryView
     public decimal? ErU234 { get; set; }
     public decimal? U235 { get; set; }
     public decimal? ErU235 { get; set; }
+    public Guid FileId { get; set; }
     public string FileName { get; set; } = string.Empty;
 }

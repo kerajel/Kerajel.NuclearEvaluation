@@ -1,6 +1,7 @@
 ﻿using LinqToDB;
 using NuclearEvaluation.Library.Commands;
 using NuclearEvaluation.Library.Enums;
+using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Library.Models.DataManagement;
 using NuclearEvaluation.Library.Models.Views;
@@ -11,7 +12,7 @@ namespace NuclearEvaluation.Server.Services;
 public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService, IDisposable
 {
     const string entryTableSuffix = "stem-entry";
-    const string fileNameTableSuffix = "stem-file-name";
+    const string fileNameTableSuffix = "stem-file";
 
     const TableKind tableKind = TableKind.Temporary;
 
@@ -23,7 +24,7 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService, 
         _tempTableService = tempTableService;
     }
 
-    public async Task DeleteFileData(Guid stemSessionId, int fileId)
+    public async Task DeleteFileData(Guid stemSessionId, Guid fileId)
     {
         string entryTable = GetEntryTableName(stemSessionId);
         string fileNameTable = GetFileNameTableName(stemSessionId);
@@ -34,7 +35,7 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService, 
         IQueryable<StemPreviewEntry> entryQueryable = _tempTableService.Get<StemPreviewEntry>(entryTable);
         IQueryable<StemPreviewFileMetadata> fileQueryable = _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable);
 
-        await entryQueryable.Where(x => x.Id == fileId).DeleteAsync();
+        await entryQueryable.Where(x => x.FileId == fileId).DeleteAsync();
         await fileQueryable.Where(x => x.Id == fileId).DeleteAsync();
     }
 
@@ -62,27 +63,33 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService, 
                 ErU234 = entry.ErU234,
                 U235 = entry.U235,
                 ErU235 = entry.ErU235,
-                FileName = file.Name
+                FileId = file.Id,
+                FileName = file.Name,
             };
+
+        if (command.LoadDataArgs != null && command.LoadDataArgs.HasEmptyOrder())
+        {
+            baseQuery = baseQuery.OrderBy(x => x.Id)
+                .ThenBy(x => x.FileId);
+        }
 
         return await ExecuteQuery(baseQuery, command);
     }
 
-    public async Task<int> InsertStemPreviewFileMetadata(Guid stemSessionId, string fileName)
+    public async Task InsertStemPreviewFileMetadata(Guid stemSessionId, StemPreviewFileMetadata fileMetadata, CancellationToken ct = default)
     {
         string fileNameTable = GetFileNameTableName(stemSessionId);
         await _tempTableService.EnsureCreated<StemPreviewFileMetadata>(fileNameTable);
 
-        StemPreviewFileMetadata stemPreviewFile = new() { Name = fileName };
-        return await _tempTableService.InsertWithIdentity<StemPreviewFileMetadata, int>(fileNameTable, stemPreviewFile);
+        await _tempTableService.InsertWithoutIdentity(fileNameTable, fileMetadata, ct);
     }
 
-    public async Task InsertStemPreviewEntries(Guid stemSessionId, IEnumerable<StemPreviewEntry> entries)
+    public async Task InsertStemPreviewEntries(Guid stemSessionId, IEnumerable<StemPreviewEntry> entries, CancellationToken ct = default)
     {
         string entryTable = GetEntryTableName(stemSessionId);
         await _tempTableService.EnsureCreated<StemPreviewEntry>(entryTable);
 
-        await _tempTableService.BulkCopyInto(entryTable, entries);
+        await _tempTableService.BulkCopyInto(entryTable, entries, ct);
     }
 
     public async Task RefreshIndexes(Guid stemSessionId)
@@ -92,7 +99,7 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService, 
         await _tempTableService.EnsureIndex<StemPreviewEntry, decimal>(entryTable, e => e.Id);
     }
 
-    public async Task SetStemPreviewFileAsFullyUploaded(Guid stemSessionId, int fileId)
+    public async Task SetStemPreviewFileAsFullyUploaded(Guid stemSessionId, Guid fileId)
     {
         string fileNameTable = GetFileNameTableName(stemSessionId);
         await _tempTableService.EnsureCreated<StemPreviewFileMetadata>(fileNameTable);

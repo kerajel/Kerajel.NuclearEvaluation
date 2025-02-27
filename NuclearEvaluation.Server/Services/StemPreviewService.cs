@@ -11,8 +11,8 @@ public class StemPreviewService : IStemPreviewService
 {
     static readonly TimeSpan uploadTimeout = TimeSpan.FromMinutes(1);
 
-    static readonly AsyncBulkheadPolicy<OperationResult<int>> bulkheadPolicy = Policy
-        .BulkheadAsync<OperationResult<int>>(
+    static readonly AsyncBulkheadPolicy<OperationResult> bulkheadPolicy = Policy
+        .BulkheadAsync<OperationResult>(
             maxParallelization: 4,
             maxQueuingActions: 128,
             onBulkheadRejectedAsync: async context =>
@@ -40,9 +40,10 @@ public class StemPreviewService : IStemPreviewService
     // Subsequently, CSVHelper should read this output file in chunks, streaming parsed entries directly to the database.
     // This method conserves memory by avoiding in-memory processing of the entire file at once.
     // For simplicity, the current implementation handles everything in memory.
-    public async Task<OperationResult<int>> UploadStemPreviewFile(
+    public async Task<OperationResult> UploadStemPreviewFile(
         Guid stemSessionId,
         Stream stream,
+        Guid fileId,
         string fileName,
         CancellationToken? externalCt = default)
     {
@@ -52,8 +53,7 @@ public class StemPreviewService : IStemPreviewService
             CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value) :
             internalCts;
 
-        int fileId = 0;
-        OperationResult<int> result = new(OperationStatus.Succeeded, 0);
+        OperationResult result = new(OperationStatus.Succeeded);
         
         try
         {
@@ -62,7 +62,8 @@ public class StemPreviewService : IStemPreviewService
                 {
                     try
                     {
-                        return await Execute();
+                        await Execute();
+                        return result;
                     }
                     catch (Exception ex)
                     {
@@ -95,7 +96,7 @@ public class StemPreviewService : IStemPreviewService
         
         return result;
 
-        async Task<OperationResult<int>> Execute()
+        async Task<OperationResult> Execute()
         {
             OperationResult<IReadOnlyCollection<StemPreviewEntry>> parseResult = await _stemPreviewParser.Parse(stream, fileName);
 
@@ -104,7 +105,9 @@ public class StemPreviewService : IStemPreviewService
                 return new(OperationStatus.Faulted, "Error reading the file");
             }
 
-            int fileId = await _stemPreviewEntryService.InsertStemPreviewFileMetadata(stemSessionId, fileName);
+            StemPreviewFileMetadata fileMetadata = new() { Id = fileId, Name = fileName };
+
+            await _stemPreviewEntryService.InsertStemPreviewFileMetadata(stemSessionId, fileMetadata, linkedCts.Token);
 
             IReadOnlyCollection<StemPreviewEntry> entries = parseResult.Content!;
 
@@ -113,10 +116,10 @@ public class StemPreviewService : IStemPreviewService
                 entry.FileId = fileId;
             }
 
-            await _stemPreviewEntryService.InsertStemPreviewEntries(stemSessionId, entries);
+            await _stemPreviewEntryService.InsertStemPreviewEntries(stemSessionId, entries, linkedCts.Token);
             await _stemPreviewEntryService.SetStemPreviewFileAsFullyUploaded(stemSessionId, fileId);
 
-            return new (OperationStatus.Succeeded, fileId);
+            return new (OperationStatus.Succeeded);
         }
     }
 
@@ -134,7 +137,7 @@ public class StemPreviewService : IStemPreviewService
         return new OperationResult(OperationStatus.Succeeded);
     }
 
-    public async Task<OperationResult> DeleteFileData(Guid stemSessionId, int fileId)
+    public async Task<OperationResult> DeleteFileData(Guid stemSessionId, Guid fileId)
     {
         try
         {

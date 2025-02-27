@@ -4,8 +4,8 @@ namespace NuclearEvaluation.Library.Models.DataManagement;
 
 public class StemPreviewFileMetadata
 {
-    [PrimaryKey, Identity]
-    public int Id { get; set; }
+    [PrimaryKey]
+    public Guid Id { get; set; }
 
     public string Name { get; set; } = string.Empty;
 

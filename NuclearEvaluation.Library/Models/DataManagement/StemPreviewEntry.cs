@@ -28,5 +28,5 @@ public class StemPreviewEntry
     [Column(DataType = DataType.Decimal, Precision = 38, Scale = 15)]
     public decimal? ErU235 { get; set; }
 
-    public int FileId { get; set; }
+    public Guid FileId { get; set; }
 }

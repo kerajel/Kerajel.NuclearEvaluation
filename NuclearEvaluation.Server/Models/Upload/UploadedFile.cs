@@ -5,8 +5,9 @@ namespace NuclearEvaluation.Server.Models.Upload;
 
 public class UploadedFile
 {
-    public int FileId { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
     public IBrowserFile BrowserFile { get; set; } = null!;
     public UploadStatus Status { get; set; }
     public string? ErrorMessage { get; set; }
+    public CancellationTokenSource FileCancellationTokenSource { get; set; } = new();
 }

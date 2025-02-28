@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # configuration
 /NuclearEvaluation.Server/appsettings.*.json
+/NuclearEvaluation.Server/wwwroot/files/stem-preview/blank-stem-preview-template.xlsx
+/NuclearEvaluation.Server/wwwroot/files/stem-preview/populated-stem-preview-file-1048567-rows.xlsx
+/NuclearEvaluation.Server/wwwroot/files/stem-preview/populated-stem-preview-file-350000-rows.xlsx

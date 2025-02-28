@@ -5,5 +5,5 @@ namespace NuclearEvaluation.Library.Interfaces;
 
 public interface IStemPreviewParser
 {
-    Task<OperationResult<IReadOnlyCollection<StemPreviewEntry>>> Parse(Stream stream, string fileName);
+    Task<OperationResult<IReadOnlyCollection<StemPreviewEntry>>> Parse(Stream stream, string fileName, CancellationToken ct = default);
 }

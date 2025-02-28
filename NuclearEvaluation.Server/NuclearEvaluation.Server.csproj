@@ -43,5 +43,8 @@
 	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 	  </Content>
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="wwwroot\files\stem-preview\" />
+	</ItemGroup>
 
 </Project>

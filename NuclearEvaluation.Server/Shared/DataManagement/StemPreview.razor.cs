@@ -110,50 +110,40 @@ public partial class StemPreview : IDisposable
         {
             IBrowserFile browserFile = file.BrowserFile;
             file.Status = UploadStatus.Uploading;
-
-            Dictionary<string, object> fileLoggingParameters = new()
-            {
-                  { "FileName", browserFile.Name },
-                  { "FileSize", browserFile.Size },
-            };
-
-            using IDisposable? fileScope = Logger.BeginScope(fileLoggingParameters);
-            Logger.LogInformation("Uploading STEM preview file");
-
             await InvokeAsync(StateHasChanged);
-            await Task.Yield();
 
-            using Stream stream = browserFile.OpenReadStream(browserFile.Size);
-
-            OperationResult result = await StemPreviewService.UploadStemPreviewFile(
-                  sessionId,
-                  stream,
-                  file.Id,
-                  browserFile.Name,
-                  file.FileCancellationTokenSource.Token
-            );
-
-            if (result.Succeeded)
+            _ = Task.Run(async () =>
             {
-                file.Status = UploadStatus.Uploaded;
-            }
-            else
-            {
-                file.Status = UploadStatus.UploadError;
-                file.ErrorMessage = result.ErrorMessage;
-            }
-
-            await InvokeAsync(StateHasChanged);
-            await Task.Yield();
-
-            Logger.LogInformation("Upload completed for STEM preview file");
+                try
+                {
+                    using Stream stream = browserFile.OpenReadStream(browserFile.Size);
+                    OperationResult result = await StemPreviewService.UploadStemPreviewFile(
+                          sessionId,
+                          stream,
+                          file.Id,
+                          browserFile.Name,
+                          file.FileCancellationTokenSource.Token
+                    );
+                    file.Status = result.Succeeded ? UploadStatus.Uploaded : UploadStatus.UploadError;
+                    if (!result.Succeeded)
+                    {
+                        file.ErrorMessage = result.ErrorMessage;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    file.Status = UploadStatus.UploadError;
+                    file.ErrorMessage = ex.Message;
+                }
+                finally
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
         }
 
         _ = await StemPreviewService.RefreshIndexes(sessionId);
-
         await stemPreviewEntryGrid.Refresh();
-
-        files = [.. files];
     }
 
     private async Task RemoveFile(UploadedFile file)

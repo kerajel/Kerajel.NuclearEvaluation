@@ -98,7 +98,7 @@ public class StemPreviewService : IStemPreviewService
 
         async Task<OperationResult> Execute()
         {
-            OperationResult<IReadOnlyCollection<StemPreviewEntry>> parseResult = await _stemPreviewParser.Parse(stream, fileName);
+            OperationResult<IReadOnlyCollection<StemPreviewEntry>> parseResult = await _stemPreviewParser.Parse(stream, fileName, linkedCts.Token);
 
             if (!parseResult.Succeeded)
             {

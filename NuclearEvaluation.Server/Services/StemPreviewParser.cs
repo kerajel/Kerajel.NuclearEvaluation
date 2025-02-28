@@ -17,7 +17,7 @@ public class StemPreviewParser : IStemPreviewParser
         HasHeaderRecord = true,
     };
 
-    public async Task<OperationResult<IReadOnlyCollection<StemPreviewEntry>>> Parse(Stream stream, string fileName)
+    public async Task<OperationResult<IReadOnlyCollection<StemPreviewEntry>>> Parse(Stream stream, string fileName, CancellationToken ct = default)
     {
         OperationResult<string> operationResult = await TabularDataReader.Read(stream, fileName);
         if (!operationResult.Succeeded)

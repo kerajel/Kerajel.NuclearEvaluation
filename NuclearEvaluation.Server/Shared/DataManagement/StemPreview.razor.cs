@@ -103,16 +103,18 @@ public partial class StemPreview : IDisposable
     private async Task ProcessUpload()
     {
         UploadedFile[] pendingFiles = files
-            .Where((UploadedFile f) => f.Status == UploadStatus.Pending)
-            .ToArray();
+              .Where((UploadedFile f) => f.Status == UploadStatus.Pending)
+              .ToArray();
 
         foreach (UploadedFile file in pendingFiles)
         {
             IBrowserFile browserFile = file.BrowserFile;
             file.Status = UploadStatus.Uploading;
-            await InvokeAsync(StateHasChanged);
 
-            _ = Task.Run(async () =>
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
+
+            await InvokeAsync(async () =>
             {
                 try
                 {
@@ -125,9 +127,17 @@ public partial class StemPreview : IDisposable
                           file.FileCancellationTokenSource.Token
                     );
                     file.Status = result.Succeeded ? UploadStatus.Uploaded : UploadStatus.UploadError;
+
+                    await InvokeAsync(StateHasChanged);
+                    await Task.Yield();
+
                     if (!result.Succeeded)
                     {
                         file.ErrorMessage = result.ErrorMessage;
+                    }
+                    else
+                    {
+                        await stemPreviewEntryGrid.Refresh();
                     }
                 }
                 catch (Exception ex)
@@ -138,12 +148,12 @@ public partial class StemPreview : IDisposable
                 finally
                 {
                     await InvokeAsync(StateHasChanged);
+                    await Task.Yield();
                 }
             });
-        }
 
-        _ = await StemPreviewService.RefreshIndexes(sessionId);
-        await stemPreviewEntryGrid.Refresh();
+            _ = await StemPreviewService.RefreshIndexes(sessionId);
+        }
     }
 
     private async Task RemoveFile(UploadedFile file)

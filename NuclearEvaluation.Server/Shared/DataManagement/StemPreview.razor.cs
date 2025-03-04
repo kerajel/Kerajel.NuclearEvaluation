@@ -7,7 +7,6 @@ using NuclearEvaluation.Library.Enums;
 using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Server.Models.Upload;
-using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Server.Shared.Grids;
 using NuclearEvaluation.Server.Shared.Misc;
 using Radzen;
@@ -108,13 +107,18 @@ public partial class StemPreview : IDisposable
 
         foreach (UploadedFile file in pendingFiles)
         {
+            if (file.Status != UploadStatus.Pending)
+            {
+                continue;
+            }
+
             IBrowserFile browserFile = file.BrowserFile;
             file.Status = UploadStatus.Uploading;
 
             await InvokeAsync(StateHasChanged);
             await Task.Yield();
 
-            await InvokeAsync(async () =>
+            await Task.Run(async () =>
             {
                 try
                 {
@@ -137,7 +141,7 @@ public partial class StemPreview : IDisposable
                     }
                     else
                     {
-                        await stemPreviewEntryGrid.Refresh();
+                        await InvokeAsync(stemPreviewEntryGrid.Refresh);
                     }
                 }
                 catch (Exception ex)
@@ -172,11 +176,13 @@ public partial class StemPreview : IDisposable
             }
         }
 
+        file.Status = UploadStatus.Removed;
+
         if (file.Status == UploadStatus.Uploading)
         {
             await file.FileCancellationTokenSource.CancelAsync();
         }
-
+        
         files.Remove(file);
         files = new List<UploadedFile>(files);
 

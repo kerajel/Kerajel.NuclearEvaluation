@@ -1,4 +1,5 @@
-﻿using LinqToDB;
+﻿using System.Collections.Concurrent;
+using LinqToDB;
 using NuclearEvaluation.Library.Commands;
 using NuclearEvaluation.Library.Enums;
 using NuclearEvaluation.Library.Extensions;
@@ -6,6 +7,8 @@ using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Library.Models.DataManagement;
 using NuclearEvaluation.Library.Models.Views;
 using NuclearEvaluation.Server.Data;
+using Polly;
+using Polly.Bulkhead;
 
 namespace NuclearEvaluation.Server.Services;
 
@@ -13,12 +16,45 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService, 
 {
     const string entryTableSuffix = "stem-entry";
     const string fileNameTableSuffix = "stem-file";
-
     const TableKind tableKind = TableKind.Temporary;
 
     readonly ITempTableService _tempTableService;
 
-    public StemPreviewEntryService(NuclearEvaluationServerDbContext dbContext, ITempTableService tempTableService)
+    static readonly ConcurrentDictionary<Guid, AsyncBulkheadPolicy> _bulkheadPolicies = new();
+
+    static AsyncBulkheadPolicy GetBulkheadPolicy(Guid stemSessionId)
+    {
+        AsyncBulkheadPolicy policy = _bulkheadPolicies.GetOrAdd(stemSessionId, id =>
+            Policy.BulkheadAsync(
+                maxParallelization: 1,
+                maxQueuingActions: 64,
+                onBulkheadRejectedAsync: async context =>
+                {
+                    await Task.CompletedTask;
+                }));
+        return policy;
+    }
+
+    static async Task ExecuteWithBulkheadPolicy(Guid stemSessionId, Func<Task> action)
+    {
+        AsyncBulkheadPolicy policy = GetBulkheadPolicy(stemSessionId);
+        await policy.ExecuteAsync(action);
+    }
+
+    static async Task<T> ExecuteWithBulkheadPolicy<T>(Guid stemSessionId, Func<Task<T>> action)
+    {
+        T result = default!;
+        AsyncBulkheadPolicy policy = GetBulkheadPolicy(stemSessionId);
+        await policy.ExecuteAsync(async () =>
+        {
+            result = await action();
+        });
+        return result;
+    }
+
+    public StemPreviewEntryService(
+        NuclearEvaluationServerDbContext dbContext,
+        ITempTableService tempTableService)
         : base(dbContext)
     {
         _tempTableService = tempTableService;
@@ -26,106 +62,121 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService, 
 
     public async Task DeleteFileData(Guid stemSessionId, Guid fileId)
     {
-        string entryTable = GetEntryTableName(stemSessionId);
-        string fileNameTable = GetFileNameTableName(stemSessionId);
+        await ExecuteWithBulkheadPolicy(stemSessionId, async () =>
+        {
+            string entryTable = GetEntryTableName(stemSessionId);
+            string fileNameTable = GetFileNameTableName(stemSessionId);
 
-        await _tempTableService.EnsureCreated<StemPreviewEntry>(entryTable);
-        await _tempTableService.EnsureCreated<StemPreviewFileMetadata>(fileNameTable);
+            await _tempTableService.EnsureCreated<StemPreviewEntry>(entryTable);
+            await _tempTableService.EnsureCreated<StemPreviewFileMetadata>(fileNameTable);
 
-        IQueryable<StemPreviewEntry> entryQueryable = _tempTableService.Get<StemPreviewEntry>(entryTable);
-        IQueryable<StemPreviewFileMetadata> fileQueryable = _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable);
+            IQueryable<StemPreviewEntry> entryQueryable = _tempTableService.Get<StemPreviewEntry>(entryTable);
+            IQueryable<StemPreviewFileMetadata> fileQueryable = _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable);
 
-        await entryQueryable.Where(x => x.FileId == fileId).DeleteAsync();
-        await fileQueryable.Where(x => x.Id == fileId).DeleteAsync();
+            await entryQueryable.Where(x => x.FileId == fileId).DeleteAsync();
+            await fileQueryable.Where(x => x.Id == fileId).DeleteAsync();
+        });
     }
 
     public async Task<FilterDataResponse<StemPreviewEntryView>> GetStemPreviewEntryViews(Guid stemSessionId, FilterDataCommand<StemPreviewEntryView> command)
     {
-        command.TableKind = tableKind;
-
-        string entryTable = GetEntryTableName(stemSessionId);
-        string fileNameTable = GetFileNameTableName(stemSessionId);
-
-        IQueryable<StemPreviewEntry> entryTableQuery = _tempTableService.Get<StemPreviewEntry>(entryTable);
-        IQueryable<StemPreviewFileMetadata> fileTableQuery = _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable);
-
-        IQueryable<StemPreviewEntryView> baseQuery =
-            from entry in entryTableQuery
-            join file in fileTableQuery on entry.FileId equals file.Id
-            where file.IsFullyUploaded == true
-            select new StemPreviewEntryView
-            {
-                Id = entry.Id,
-                LabCode = entry.LabCode,
-                AnalysisDate = entry.AnalysisDate,
-                IsNu = entry.IsNu,
-                U234 = entry.U234,
-                ErU234 = entry.ErU234,
-                U235 = entry.U235,
-                ErU235 = entry.ErU235,
-                FileId = file.Id,
-                FileName = file.Name,
-            };
-
-        if (command.LoadDataArgs != null && command.LoadDataArgs.HasEmptyOrder())
+        return await ExecuteWithBulkheadPolicy(stemSessionId, async () =>
         {
-            baseQuery = baseQuery.OrderBy(x => x.Id)
-                .ThenBy(x => x.FileId);
-        }
+            command.TableKind = tableKind;
 
-        return await ExecuteQuery(baseQuery, command);
+            string entryTable = GetEntryTableName(stemSessionId);
+            string fileNameTable = GetFileNameTableName(stemSessionId);
+
+            IQueryable<StemPreviewEntry> entryTableQuery = _tempTableService.Get<StemPreviewEntry>(entryTable);
+            IQueryable<StemPreviewFileMetadata> fileTableQuery = _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable);
+
+            IQueryable<StemPreviewEntryView> baseQuery =
+                from entry in entryTableQuery
+                join file in fileTableQuery on entry.FileId equals file.Id
+                where file.IsFullyUploaded == true
+                select new StemPreviewEntryView
+                {
+                    Id = entry.Id,
+                    LabCode = entry.LabCode,
+                    AnalysisDate = entry.AnalysisDate,
+                    IsNu = entry.IsNu,
+                    U234 = entry.U234,
+                    ErU234 = entry.ErU234,
+                    U235 = entry.U235,
+                    ErU235 = entry.ErU235,
+                    FileId = file.Id,
+                    FileName = file.Name,
+                };
+
+            if (command.LoadDataArgs != null && command.LoadDataArgs.HasEmptyOrder())
+            {
+                baseQuery = baseQuery.OrderBy(x => x.Id)
+                    .ThenBy(x => x.FileId);
+            }
+
+            return await ExecuteQuery(baseQuery, command);
+        });
     }
 
-    public async Task InsertStemPreviewFileMetadata(Guid stemSessionId, StemPreviewFileMetadata fileMetadata, CancellationToken ct = default)
+    public async Task InsertStemPreviewFileMetadata(Guid stemSessionId, StemPreviewFileMetadata fileMetadata, CancellationToken ct = default(CancellationToken))
     {
-        string fileNameTable = GetFileNameTableName(stemSessionId);
-        await _tempTableService.EnsureCreated<StemPreviewFileMetadata>(fileNameTable);
+        await ExecuteWithBulkheadPolicy(stemSessionId, async () =>
+        {
+            string fileNameTable = GetFileNameTableName(stemSessionId);
+            await _tempTableService.EnsureCreated<StemPreviewFileMetadata>(fileNameTable);
 
-        await _tempTableService.InsertWithoutIdentity(fileNameTable, fileMetadata, ct);
+            await _tempTableService.InsertWithoutIdentity(fileNameTable, fileMetadata, ct);
+        });
     }
 
-    public async Task InsertStemPreviewEntries(Guid stemSessionId, IEnumerable<StemPreviewEntry> entries, CancellationToken ct = default)
+    public async Task InsertStemPreviewEntries(Guid stemSessionId, IEnumerable<StemPreviewEntry> entries, CancellationToken ct = default(CancellationToken))
     {
-        string entryTable = GetEntryTableName(stemSessionId);
-        await _tempTableService.EnsureCreated<StemPreviewEntry>(entryTable);
+        await ExecuteWithBulkheadPolicy(stemSessionId, async () =>
+        {
+            string entryTable = GetEntryTableName(stemSessionId);
+            await _tempTableService.EnsureCreated<StemPreviewEntry>(entryTable);
 
-        await _tempTableService.BulkCopyInto(entryTable, entries, ct);
+            await _tempTableService.BulkCopyInto(entryTable, entries, ct);
+        });
     }
 
     public async Task RefreshIndexes(Guid stemSessionId)
     {
-        string entryTable = GetEntryTableName(stemSessionId);
-        await _tempTableService.EnsureCreated<StemPreviewEntry>(entryTable);
-        await _tempTableService.EnsureIndex<StemPreviewEntry, decimal>(entryTable, e => e.Id);
+        await ExecuteWithBulkheadPolicy(stemSessionId, async () =>
+        {
+            string entryTable = GetEntryTableName(stemSessionId);
+            await _tempTableService.EnsureCreated<StemPreviewEntry>(entryTable);
+            await _tempTableService.EnsureIndex<StemPreviewEntry, decimal>(entryTable, e => e.Id);
+        });
     }
 
     public async Task SetStemPreviewFileAsFullyUploaded(Guid stemSessionId, Guid fileId)
     {
-        string fileNameTable = GetFileNameTableName(stemSessionId);
-        await _tempTableService.EnsureCreated<StemPreviewFileMetadata>(fileNameTable);
+        await ExecuteWithBulkheadPolicy(stemSessionId, async () =>
+        {
+            string fileNameTable = GetFileNameTableName(stemSessionId);
+            await _tempTableService.EnsureCreated<StemPreviewFileMetadata>(fileNameTable);
 
-        await _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable)
-            .Where(x => x.Id == fileId)
-            .Set(x => x.IsFullyUploaded, true)
-            .UpdateAsync();
+            await _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable)
+                .Where(x => x.Id == fileId)
+                .Set(x => x.IsFullyUploaded, true)
+                .UpdateAsync();
+        });
     }
 
     static string GetEntryTableName(Guid sessionId)
     {
-        return $"{sessionId}-{entryTableSuffix}";
+        return string.Format("{0}-{1}", sessionId, entryTableSuffix);
     }
 
     static string GetFileNameTableName(Guid sessionId)
     {
-        return $"{sessionId}-{fileNameTableSuffix}";
+        return string.Format("{0}-{1}", sessionId, fileNameTableSuffix);
     }
 
     public void Dispose()
     {
-        if (_tempTableService != null)
-        {
-            _tempTableService.Dispose();
-        }
+        _tempTableService?.Dispose();
         GC.SuppressFinalize(this);
     }
 }

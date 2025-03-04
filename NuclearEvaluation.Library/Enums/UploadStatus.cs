@@ -6,4 +6,5 @@ public enum UploadStatus
     Uploading,
     Uploaded,
     UploadError,
+    Removed,
 }

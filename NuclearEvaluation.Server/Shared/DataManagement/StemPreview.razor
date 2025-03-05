@@ -47,12 +47,12 @@
                                       TextAlign="TextAlign.Center"
                                       Title="Upload Status">
                     <Template Context="file">
-                        @if (file.Status == UploadStatus.Uploaded)
+                        @if (file.Status == FileStatus.Uploaded)
                         {
                             <RadzenIcon Icon="check" Color="green" />
                             <span>Uploaded</span>
                         }
-                        else if (file.Status == UploadStatus.Uploading)
+                        else if (file.Status == FileStatus.Uploading  || file.Status == FileStatus.Deleting)
                         {
                             <RadzenStack AlignItems="AlignItems.Center"
                                          JustifyContent="JustifyContent.Center"
@@ -62,7 +62,7 @@
                                                            Mode="ProgressBarMode.Indeterminate" />
                             </RadzenStack>
                         }
-                        else if (file.Status == UploadStatus.UploadError)
+                        else if (file.Status == FileStatus.UploadError)
                         {
                             <span>@(file.ErrorMessage)</span>
                         }
@@ -85,7 +85,7 @@
         </RadzenDataGrid>
     }
 
-    @if (files.Any(f => f.Status == UploadStatus.Pending))
+    @if (files.Any(f => f.Status == FileStatus.Pending))
     {
         <RadzenButton Text="Upload Files"
                       Click="ProcessUpload"
@@ -94,6 +94,6 @@
 
     <StemPreviewEntryGrid @ref=stemPreviewEntryGrid
                           StemSessionId="@sessionId"
-                          Visible="@files.Any(x => x.Status == UploadStatus.Uploaded)" />
+                          Visible="@files.Any(x => x.Status == FileStatus.Uploaded)" />
 
 </RadzenCard>

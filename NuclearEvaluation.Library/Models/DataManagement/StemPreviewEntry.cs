@@ -1,6 +1,5 @@
 ﻿using LinqToDB;
 using LinqToDB.Mapping;
-using Microsoft.EntityFrameworkCore;
 
 namespace NuclearEvaluation.Library.Models.DataManagement;
 

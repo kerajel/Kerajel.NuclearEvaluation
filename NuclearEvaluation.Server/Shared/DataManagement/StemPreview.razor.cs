@@ -46,8 +46,8 @@ public partial class StemPreview : IDisposable
     private async Task HandleBeforeInternalNavigation(LocationChangingContext context)
     {
         bool hasInProgressOrUploaded = files.Any(
-            x => x.Status == UploadStatus.Uploading
-                || x.Status == UploadStatus.Uploaded
+            x => x.Status == FileStatus.Uploading
+                || x.Status == FileStatus.Uploaded
         );
 
         if (hasInProgressOrUploaded)
@@ -69,7 +69,7 @@ public partial class StemPreview : IDisposable
     {
         List<IBrowserFile> newlySelectedFiles = new(e.GetMultipleFiles());
 
-        files = files.Where(x => x.Status != UploadStatus.Pending).ToList();
+        files = files.Where(x => x.Status != FileStatus.Pending).ToList();
 
         foreach (IBrowserFile file in newlySelectedFiles)
         {
@@ -78,7 +78,7 @@ public partial class StemPreview : IDisposable
                 UploadedFile newFile = new()
                 {
                     BrowserFile = file,
-                    Status = UploadStatus.Pending,
+                    Status = FileStatus.Pending,
                 };
                 files.Add(newFile);
             }
@@ -87,7 +87,7 @@ public partial class StemPreview : IDisposable
                 UploadedFile newFile = new()
                 {
                     BrowserFile = file,
-                    Status = UploadStatus.UploadError,
+                    Status = FileStatus.UploadError,
                     ErrorMessage = $"Size exceeds {fileSizeLimit.AsMegabytes():F2} mb",
                 };
                 files.Add(newFile);
@@ -102,18 +102,18 @@ public partial class StemPreview : IDisposable
     private async Task ProcessUpload()
     {
         UploadedFile[] pendingFiles = files
-              .Where((UploadedFile f) => f.Status == UploadStatus.Pending)
+              .Where((UploadedFile f) => f.Status == FileStatus.Pending)
               .ToArray();
 
         foreach (UploadedFile file in pendingFiles)
         {
-            if (file.Status != UploadStatus.Pending)
+            if (file.Status != FileStatus.Pending)
             {
                 continue;
             }
 
             IBrowserFile browserFile = file.BrowserFile;
-            file.Status = UploadStatus.Uploading;
+            file.Status = FileStatus.Uploading;
 
             await InvokeAsync(StateHasChanged);
             await Task.Yield();
@@ -130,7 +130,7 @@ public partial class StemPreview : IDisposable
                           browserFile.Name,
                           file.FileCancellationTokenSource.Token
                     );
-                    file.Status = result.Succeeded ? UploadStatus.Uploaded : UploadStatus.UploadError;
+                    file.Status = result.Succeeded ? FileStatus.Uploaded : FileStatus.UploadError;
 
                     await InvokeAsync(StateHasChanged);
                     await Task.Yield();
@@ -146,7 +146,7 @@ public partial class StemPreview : IDisposable
                 }
                 catch (Exception ex)
                 {
-                    file.Status = UploadStatus.UploadError;
+                    file.Status = FileStatus.UploadError;
                     file.ErrorMessage = ex.Message;
                 }
                 finally
@@ -162,7 +162,7 @@ public partial class StemPreview : IDisposable
 
     private async Task RemoveFile(UploadedFile file)
     {
-        if (file.Status == UploadStatus.Uploaded || file.Status == UploadStatus.Uploading)
+        if (file.Status == FileStatus.Uploaded || file.Status == FileStatus.Uploading)
         {
             bool? confirmDelete = await DialogService.Confirm(
                 $"Are you sure you want to delete '{file.BrowserFile.Name}'?",
@@ -176,9 +176,12 @@ public partial class StemPreview : IDisposable
             }
         }
 
-        file.Status = UploadStatus.Removed;
+        file.Status = FileStatus.Deleting;
 
-        if (file.Status == UploadStatus.Uploading)
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+
+        if (file.Status == FileStatus.Uploading)
         {
             await file.FileCancellationTokenSource.CancelAsync();
         }
@@ -188,6 +191,8 @@ public partial class StemPreview : IDisposable
 
         await StemPreviewService.DeleteFileData(sessionId, file.Id);
         await stemPreviewEntryGrid.Refresh();
+
+        file.Status = FileStatus.Removed;
 
         await InvokeAsync(StateHasChanged);
         await Task.Yield();

@@ -75,7 +75,7 @@ public partial class StemPreview : IDisposable
 
         foreach (IBrowserFile file in newlySelectedFiles)
         {
-            if (file.Size <= stemSettings.MaxPreviewFileSizeMb)
+            if (file.Size <= stemSettings.MaxPreviewFileSize)
             {
                 UploadedFile newFile = new()
                 {
@@ -90,7 +90,7 @@ public partial class StemPreview : IDisposable
                 {
                     BrowserFile = file,
                     Status = FileStatus.UploadError,
-                    ErrorMessage = $"Size exceeds {stemSettings.MaxPreviewFileSizeMb:F2} mb",
+                    ErrorMessage = $"Size exceeds {stemSettings.MaxPreviewFileSize:F2} mb",
                 };
                 files.Add(newFile);
             }

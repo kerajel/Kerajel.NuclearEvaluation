@@ -2,5 +2,5 @@
 
 public class StemSettings
 {
-    public int MaxPreviewFileSizeMb { get; set; }
+    public long MaxPreviewFileSize { get; set; }
 }

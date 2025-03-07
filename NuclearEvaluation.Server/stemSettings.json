@@ -1,5 +1,5 @@
 {
   "StemSettings": {
-    "MaxPreviewFileSizeMb": 50
+    "MaxPreviewFileSize": 52428800 // 50 mb
   }
 }

@@ -693,60 +693,6 @@ SELECT ProjectId, [SeriesId]
 FROM cte
 GO
 
-
-
-
---SELECT COUNT(*) FROM [DBO].Series; --500414
---SELECT COUNT(*) FROM [DBO].Sample; --1252127
---SELECT COUNT(*) FROM [DBO].SubSample; --1881257
---SELECT COUNT(*) FROM [DBO].Particle; --2826158
---SELECT COUNT(*) FROM [DBO].APM; --4705506
-
-----500414	1252127	2826158	2826158
---SELECT TOP (1)
---        COUNT(DISTINCT [series].[Id]),
---        COUNT(DISTINCT [sample].[Id]),
---		COUNT(DISTINCT [subSample].[Id]),
---        COUNT(DISTINCT [particle].[Id]),
---        COUNT(DISTINCT [apm].[Id])
---FROM
---        [SeriesView] [series]
---                LEFT JOIN [SampleView] [sample] ON [sample].[SeriesId] = [series].[Id]
---                LEFT JOIN [SubSampleView] [subSample] ON [subSample].[SampleId] = [sample].[Id]
---                LEFT JOIN [ApmView] [apm] ON [apm].[SubSampleId] = [subSample].[Id]
---                LEFT JOIN [ParticleView] [particle] ON [particle].[SubSampleId] = [subSample].[Id]
---WHERE
---        [series].[Id] IN (
---                SELECT
---                        [x].[Id]
---                FROM
---                        [SeriesView] [x]
---        );
-
-
-
---SELECT TOP 200 * FROM [DBO].SeriesView;
---SELECT TOP 2000 * FROM [DBO].SampleView;
---SELECT TOP 200 * FROM [DBO].SubSampleView;
---SELECT TOP 200 * FROM [DBO].ApmView
---SELECT TOP 200 * FROM [DBO].ParticleView;
---SELECT TOP 200 * FROM [DBO].ProjectView;
---SELECT TOP 200 * FROM [DBO].ProjectSeries;
-
-
---SELECT SeriesId, COUNT(*) FROM [DBO].SampleView GROUP BY SeriesId;
---SELECT SampleId, COUNT(*) FROM [DBO].SubSampleView GROUP BY SampleId ORDER BY COUNT(*);
---SELECT SubSampleID, COUNT(*) FROM [DBO].ParticleView GROUP BY SubSampleID;
-
---SELECT COUNT(*) FROM [DBO].SampleView WHERE SubSampleCount = 0;
---SELECT COUNT(*) FROM [DBO].SeriesView WHERE SampleCount = 0;
-
---SELECT Id FROM [DBO].Sample x WHERE NOT EXISTS (SELECT 1 FROM [DBO].SubSample d WHERE d.SampleId = x.Id);
-
-
---DELETE FROM [DBO].SubSample;
---DELETE FROM [DBO].ProjectSeries;
-
 -- Check and Enable Snapshot Isolation if not already enabled
 IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = DB_NAME() AND snapshot_isolation_state = 1)
 BEGIN
@@ -768,3 +714,54 @@ GO
  
 DBCC SHRINKFILE (N'NuclearEvaluation.Server_log' , 0, TRUNCATEONLY);
 GO
+
+CREATE OR ALTER PROCEDURE [DBO].EnsureIndexOnTempTableField
+    @tableName NVARCHAR(128),
+    @fieldName NVARCHAR(128)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @tempIndexName NVARCHAR(128) = 'IDX_' + @fieldName + '_On_' + REPLACE(@tableName, '##', '');
+    DECLARE @dbName NVARCHAR(128) = 'tempdb';
+    DECLARE @sql NVARCHAR(MAX);
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM [TEMPDB].SYS.TABLES AS t
+        WHERE t.name = @tableName
+          AND t.is_ms_shipped = 0
+    )
+    BEGIN
+        RAISERROR(N'The specified table ''%s'' does not exist in tempdb.', 16, 1, @tableName);
+        RETURN;
+    END
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM [TEMPDB].SYS.COLUMNS AS c
+        INNER JOIN [TEMPDB].SYS.TABLES AS t ON c.object_id = t.object_id
+        WHERE t.name = @tableName
+          AND c.name = @fieldName
+    )
+    BEGIN
+        RAISERROR(N'The specified field ''%s'' does not exist in the table ''%s''.', 16, 1, @fieldName, @tableName);
+        RETURN;
+    END
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM [TEMPDB].SYS.INDEXES AS i
+        INNER JOIN [TEMPDB].SYS.INDEX_COLUMNS AS ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+        INNER JOIN [TEMPDB].SYS.TABLES AS t ON i.object_id = t.object_id
+        INNER JOIN [TEMPDB].SYS.COLUMNS AS c ON ic.column_id = c.column_id AND t.object_id = c.object_id
+        WHERE t.name = @tableName
+          AND c.name = @fieldName
+          AND i.name = @tempIndexName
+    )
+    BEGIN
+        SET @sql = 'CREATE NONCLUSTERED INDEX ' + QUOTENAME(@tempIndexName) +
+                   ' ON [TEMPDB].[DBO].' + QUOTENAME(@tableName) + ' (' + QUOTENAME(@fieldName) + ')';
+        EXEC sp_executesql @sql;
+    END
+END;

@@ -4,7 +4,7 @@ using NuclearEvaluation.Library.Models.Views;
 
 namespace NuclearEvaluation.Library.Interfaces;
 
-public interface IStemPreviewEntryService : IDisposable
+public interface IStemPreviewEntryService : IAsyncDisposable
 {
     Task<FilterDataResponse<StemPreviewEntryView>> GetStemPreviewEntryViews(Guid stemSessionId, FilterDataCommand<StemPreviewEntryView> command);
     Task DeleteFileData(Guid stemSessionId, Guid fileId);

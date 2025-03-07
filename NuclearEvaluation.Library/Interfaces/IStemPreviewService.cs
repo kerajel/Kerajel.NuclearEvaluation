@@ -2,7 +2,7 @@
 
 namespace NuclearEvaluation.Library.Interfaces;
 
-public interface IStemPreviewService : IDisposable
+public interface IStemPreviewService : IAsyncDisposable
 {
     Task<OperationResult> DeleteFileData(Guid stemSessionId, Guid fileId);
     Task<OperationResult> RefreshIndexes(Guid stemSessionId);

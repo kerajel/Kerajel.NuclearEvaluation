@@ -13,20 +13,16 @@ using NuclearEvaluation.Server.Models.Identity;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using LinqToDB.EntityFrameworkCore;
-
-/*
-cd "NuclearEvaluation.Server"
-dotnet ef migrations add NuclearEvaluationServerDbContext_1 --context NuclearEvaluationServerDbContext
-dotnet ef migrations add ApplicationIdentityContext_1 --context ApplicationIdentityContext
-dotnet ef database update --context NuclearEvaluationServerDbContext
-dotnet ef database update --context ApplicationIdentityContext
-*/
+using NuclearEvaluation.Server.Models.Settings;
 
 internal class Program
 {
     private static async Task Main(string[] args)
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+        builder.Configuration.AddJsonFile("stemSettings.json", optional: false, reloadOnChange: true);
+        builder.Services.Configure<StemSettings>(builder.Configuration.GetSection(nameof(StemSettings)));
 
         builder.Services.Configure<KestrelServerOptions>(options =>
         {
@@ -36,7 +32,7 @@ internal class Program
         builder.Services.AddRazorPages();
         builder.Services.AddServerSideBlazor().AddHubOptions(o =>
         {
-            o.MaximumReceiveMessageSize = 10 * 1024 * 1024;
+            o.MaximumReceiveMessageSize = 10 * 1024 * 1024;  // 100 MB
         });
         builder.Services.AddRadzenComponents();
 
@@ -131,13 +127,6 @@ internal class Program
         app.MapControllers();
         app.MapBlazorHub();
         app.MapFallbackToPage("/_Host");
-        using (IServiceScope scope = app.Services.CreateScope())
-        {
-            IServiceProvider serviceProvider = scope.ServiceProvider;
-            //await serviceProvider.GetRequiredService<ApplicationIdentityContext>().Database.MigrateAsync();
-            //await serviceProvider.GetRequiredService<NuclearEvaluationServerDbContext>().Database.MigrateAsync();
-        }
-
         app.Run();
     }
 }

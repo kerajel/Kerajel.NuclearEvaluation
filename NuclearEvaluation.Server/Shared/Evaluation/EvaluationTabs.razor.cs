@@ -22,8 +22,8 @@ public partial class EvaluationTabs
             .Initialize();
     }
 
-    void OnTabChanged(int index)
+    async Task OnTabChanged(int index)
     {
-        tabManager.OnTabChanged(index);
+        await tabManager.OnTabChanged(index);
     }
 }

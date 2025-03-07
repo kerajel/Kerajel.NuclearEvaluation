@@ -2,7 +2,7 @@
 
 namespace NuclearEvaluation.Library.Interfaces;
 
-public interface ITempTableService : IDisposable
+public interface ITempTableService : IAsyncDisposable
 {
     Task BulkCopyInto<T>(string tableName, IEnumerable<T> entries, CancellationToken ct = default) where T : class;
     Task<IQueryable<T>> EnsureCreated<T>(string tableName) where T : class; 

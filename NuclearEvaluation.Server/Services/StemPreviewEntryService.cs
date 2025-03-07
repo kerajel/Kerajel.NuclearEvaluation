@@ -12,7 +12,7 @@ using Polly.Bulkhead;
 
 namespace NuclearEvaluation.Server.Services;
 
-public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService, IDisposable
+public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
 {
     const string entryTableSuffix = "stem-entry";
     const string fileNameTableSuffix = "stem-file";
@@ -174,9 +174,9 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService, 
         return string.Format("{0}-{1}", sessionId, fileNameTableSuffix);
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _tempTableService?.Dispose();
+        _ =_tempTableService?.DisposeAsync();
         GC.SuppressFinalize(this);
     }
 }

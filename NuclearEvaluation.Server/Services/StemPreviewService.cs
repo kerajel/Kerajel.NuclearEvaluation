@@ -49,12 +49,12 @@ public class StemPreviewService : IStemPreviewService
     {
         using CancellationTokenSource internalCts = new(uploadTimeout);
 
-        using CancellationTokenSource linkedCts = externalCt.HasValue ?
-            CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value) :
-            internalCts;
+        using CancellationTokenSource linkedCts = externalCt.HasValue
+            ? CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value)
+            : internalCts;
 
         OperationResult result = new(OperationStatus.Succeeded);
-        
+
         try
         {
             result = await bulkheadPolicy.ExecuteAsync(
@@ -67,22 +67,22 @@ public class StemPreviewService : IStemPreviewService
                     }
                     catch (Exception ex)
                     {
-                        return new (OperationStatus.Faulted, "Error processing the file", ex);
+                        return new(OperationStatus.Faulted, "Error processing the file", ex);
                     }
                 },
                 linkedCts.Token);
         }
         catch (BulkheadRejectedException ex)
         {
-            result = new (OperationStatus.Faulted, "Too many concurrent uploads. Please try again later", ex);
+            result = new(OperationStatus.Faulted, "Too many concurrent uploads. Please try again later", ex);
         }
         catch (OperationCanceledException ex)
         {
-            result = new (OperationStatus.Faulted, "The upload was canceled or timed out", ex);
+            result = new(OperationStatus.Faulted, "The upload was canceled or timed out", ex);
         }
         catch (Exception ex)
         {
-            result = new (OperationStatus.Faulted, "Error processing the file", ex);
+            result = new(OperationStatus.Faulted, "Error processing the file", ex);
         }
         finally
         {
@@ -93,7 +93,7 @@ public class StemPreviewService : IStemPreviewService
                 await _stemPreviewEntryService.DeleteFileData(stemSessionId, fileId);
             }
         }
-        
+
         return result;
 
         async Task<OperationResult> Execute()
@@ -119,7 +119,7 @@ public class StemPreviewService : IStemPreviewService
             await _stemPreviewEntryService.InsertStemPreviewEntries(stemSessionId, entries, linkedCts.Token);
             await _stemPreviewEntryService.SetStemPreviewFileAsFullyUploaded(stemSessionId, fileId);
 
-            return new (OperationStatus.Succeeded);
+            return new(OperationStatus.Succeeded);
         }
     }
 
@@ -151,9 +151,9 @@ public class StemPreviewService : IStemPreviewService
         return new OperationResult(OperationStatus.Succeeded);
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _stemPreviewEntryService.Dispose();
+        _ = _stemPreviewEntryService.DisposeAsync();
         GC.SuppressFinalize(this);
     }
 }

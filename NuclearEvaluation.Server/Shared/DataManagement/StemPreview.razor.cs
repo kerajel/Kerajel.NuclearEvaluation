@@ -2,10 +2,11 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Routing;
+using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Interfaces;
+using NuclearEvaluation.Server.Models.Settings;
 using NuclearEvaluation.Server.Models.Upload;
 using NuclearEvaluation.Server.Shared.Grids;
 using NuclearEvaluation.Server.Shared.Misc;
@@ -28,35 +29,36 @@ public partial class StemPreview : IDisposable
     protected ILogger<StemPreview> Logger { get; set; } = null!;
 
     [Inject]
-    protected ISessionCache SessionCache { get; set; } = null!;
+    protected DialogService DialogService { get; set; } = null!;
 
     [Inject]
-    protected DialogService DialogService { get; set; } = null!;
+    protected IOptions<StemSettings> StemSettingsOptions { get; set; } = null!;
 
     protected readonly Guid sessionId = Guid.NewGuid();
     protected StemPreviewEntryGrid stemPreviewEntryGrid = null!;
 
     List<UploadedFile> files = [];
 
-    // 50 MB limit
-    private const long fileSizeLimit = 1024L * 1024L * 50L;
-
     private InputFile fileInput = null!;
+    private StemSettings stemSettings = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        stemSettings = StemSettingsOptions.Value;
+    }
 
     private async Task HandleBeforeInternalNavigation(LocationChangingContext context)
     {
-        bool hasInProgressOrUploaded = files.Any(
+        bool hasInProgressFiles = files.Any(
             x => x.Status == FileStatus.Uploading
-                || x.Status == FileStatus.Uploaded
-        );
+                || x.Status == FileStatus.Uploaded);
 
-        if (hasInProgressOrUploaded)
+        if (hasInProgressFiles)
         {
             bool? userConfirm = await DialogService.Confirm(
                   "You have a current STEM preview that would be lost if you leave. Are you sure?",
                   "Confirm navigation",
-                  Dialogs.YesNoConfirmOptions
-            );
+                  Dialogs.YesNoConfirmOptions);
 
             if (userConfirm == false)
             {
@@ -73,7 +75,7 @@ public partial class StemPreview : IDisposable
 
         foreach (IBrowserFile file in newlySelectedFiles)
         {
-            if (file.Size <= fileSizeLimit)
+            if (file.Size <= stemSettings.MaxPreviewFileSizeMb)
             {
                 UploadedFile newFile = new()
                 {
@@ -88,13 +90,14 @@ public partial class StemPreview : IDisposable
                 {
                     BrowserFile = file,
                     Status = FileStatus.UploadError,
-                    ErrorMessage = $"Size exceeds {fileSizeLimit.AsMegabytes():F2} mb",
+                    ErrorMessage = $"Size exceeds {stemSettings.MaxPreviewFileSizeMb:F2} mb",
                 };
                 files.Add(newFile);
             }
         }
 
-        files = new List<UploadedFile>(files);
+        files = new(files);
+
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }
@@ -130,6 +133,7 @@ public partial class StemPreview : IDisposable
                           browserFile.Name,
                           file.FileCancellationTokenSource.Token
                     );
+
                     file.Status = result.Succeeded ? FileStatus.Uploaded : FileStatus.UploadError;
 
                     await InvokeAsync(StateHasChanged);
@@ -185,9 +189,9 @@ public partial class StemPreview : IDisposable
         {
             await file.FileCancellationTokenSource.CancelAsync();
         }
-        
+
         files.Remove(file);
-        files = new List<UploadedFile>(files);
+        files = new(files);
 
         await StemPreviewService.DeleteFileData(sessionId, file.Id);
         await stemPreviewEntryGrid.Refresh();
@@ -205,7 +209,7 @@ public partial class StemPreview : IDisposable
 
     public void Dispose()
     {
-        StemPreviewService.Dispose();
+        _ = StemPreviewService.DisposeAsync();
         GC.SuppressFinalize(this);
     }
 }

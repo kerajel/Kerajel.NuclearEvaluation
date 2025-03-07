@@ -1,7 +1,6 @@
 ﻿using LinqToDB;
 using LinqToDB.Data;
 using LinqToDB.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Server.Data;
@@ -58,7 +57,7 @@ public class TempTableService : DbServiceBase, ITempTableService
     public async Task InsertWithoutIdentity<T>(string tableName, T entry, CancellationToken ct = default) where T : class
     {
         using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
-        object id = await dataConnection.InsertAsync(entry, GetFormattedTableName(tableName), token: ct);
+        _ = await dataConnection.InsertAsync(entry, GetFormattedTableName(tableName), token: ct);
     }
 
     public async Task EnsureIndex<T, K>(string tableName, Expression<Func<T, K>> propertyExpression) where T : class
@@ -72,7 +71,6 @@ public class TempTableService : DbServiceBase, ITempTableService
         using DataConnection dc = _dbContext.CreateLinqToDBConnection();
         await dc.ExecuteProcAsync("[DBO].EnsureIndexOnTempTableField", @params);
     }
-
 
     private async Task<ITable<T>> GetOrAddInternal<T>(string tableName) where T : class
     {
@@ -98,14 +96,14 @@ public class TempTableService : DbServiceBase, ITempTableService
         return $"##{tableName.TrimStart('#')}";
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (tables.Count != 0)
         {
             using DataConnection dc = _dbContext.CreateLinqToDBConnection();
             foreach (string tableName in tables.Keys)
             {
-                dc.DropTable<object>(tableName: GetFormattedTableName(tableName), tableOptions: tableOptions);
+                _ = dc.DropTableAsync<object>(tableName: GetFormattedTableName(tableName), tableOptions: tableOptions);
                 tables.Remove(tableName);
             }
         }

@@ -59,7 +59,7 @@
                     <RadzenDataGridColumn Property="@nameof(SampleView.ExternalCode)" Title="External Code" />
                     <RadzenDataGridColumn Property="@nameof(SampleView.SampleType)" Title="Type" />
                     <RadzenDataGridColumn Property="@nameof(SampleView.SampleClass)" Title="Class" />
-                    <RadzenDataGridColumn Property="@nameof(SampleView.SamplingDate)" Title="Sampling Date" FormatString="{0:yyyy-MM-dd}" />
+                    <RadzenDataGridColumn Property="@nameof(SampleView.SamplingDate)" Title="Sampling Date" FormatString="@DateOnlyFormat" />
                 </Columns>
             </RadzenDataGrid>
             </div>
@@ -134,7 +134,7 @@
 
             <RadzenDataGridColumn Property="@nameof(SeriesView.CreatedAt)"
                                   TextAlign="TextAlign.Left"
-                                  FormatString="{0:yyyy-MM-dd}"
+                                  FormatString="@DateOnlyFormat"
                                   Title="Created At" />
 
             <RadzenDataGridColumn Property="@nameof(SeriesView.SgasComment)"
@@ -173,7 +173,7 @@
 
             <RadzenDataGridColumn Property="@nameof(SeriesView.AnalysisCompleteDate)"
                                   TextAlign="TextAlign.Left"
-                                  FormatString="{0:yyyy-MM-dd}"
+                                  FormatString="@DateOnlyFormat"
                                   Title="Analysis Complete Date">
                 <EditTemplate Context="series">
                     <RadzenDatePicker @bind-Value="series.AnalysisCompleteDate" DateFormat="MM/dd/yyyy" />

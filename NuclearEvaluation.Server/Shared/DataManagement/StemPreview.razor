@@ -1,0 +1,99 @@
+﻿@using Microsoft.AspNetCore.Components.Routing
+@using NuclearEvaluation.Server.Models.Upload
+
+<NavigationLock OnBeforeInternalNavigation="@HandleBeforeInternalNavigation" />
+
+<h3>Upload your STEM-compatible analysis files for preview</h3>
+<h3>This preview tool is highly capable and can handle files with hundreds of thousands of rows</h3>
+
+<p>You can download a populated sample file (1,048,567 rows) <a href="files/stem-preview/populated-stem-preview-file-1048567-rows.xlsx" download>here</a></p>
+<p>Or a smaller one here (350,000 rows) <a href="files/stem-preview/populated-stem-preview-file-350000-rows.xlsx" download>here</a></p>
+<p>Or a blank sample file <a href="files/stem-preview/blank-stem-preview-template.xlsx" download>here</a></p>
+
+<RadzenCard Variant="Variant.Outlined" style="padding: 1rem;">
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Multiple Files Upload</RadzenText>
+
+    <InputFile @ref="fileInput"
+               OnChange="OnInputFileChange"
+               Multiple
+               style="display:none" />
+
+    <RadzenButton Text="Select files..."
+                  Icon="folder_open"
+                  Click="TriggerFileInputClick"
+                  Style="margin-bottom:10px;" />
+
+    @if (files.Any())
+    {
+        <RadzenDataGrid Data="@files"
+                        TItem="UploadedFile"
+                        Style="width: 100%; margin-top: 10px;"
+                        ColumnWidth="auto">
+            <Columns>
+                <RadzenDataGridColumn TItem="UploadedFile"
+                                      Property="BrowserFile.Name"
+                                      Title="File Name"
+                                      Width="50%" />
+                <RadzenDataGridColumn TItem="UploadedFile"
+                                      Title="File Size (MB)"
+                                      Width="100px"
+                                      TextAlign="TextAlign.Center">
+                    <Template Context="file">
+                        <span>@((file.BrowserFile.Size.AsMegabytes()).ToString("F2")) MB</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="UploadedFile"
+                                      Width="150px"
+                                      TextAlign="TextAlign.Center"
+                                      Title="Upload Status">
+                    <Template Context="file">
+                        @if (file.Status == FileStatus.Uploaded)
+                        {
+                            <RadzenIcon Icon="check" Color="green" />
+                            <span>Uploaded</span>
+                        }
+                        else if (file.Status == FileStatus.Uploading  || file.Status == FileStatus.Deleting)
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center"
+                                         JustifyContent="JustifyContent.Center"
+                                         Style="height: 100%;">
+                                <RadzenProgressBarCircular Value="100"
+                                                           ShowValue="false"
+                                                           Mode="ProgressBarMode.Indeterminate" />
+                            </RadzenStack>
+                        }
+                        else if (file.Status == FileStatus.UploadError)
+                        {
+                            <span>@(file.ErrorMessage)</span>
+                        }
+                        else
+                        {
+                            <span>Not uploaded</span>
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="UploadedFile"
+                                      Width="100px"
+                                      TextAlign="TextAlign.Center"
+                                      Title="Remove">
+                    <Template Context="file">
+                        <RadzenButton Icon="delete"
+                                      Click="() => RemoveFile(file)" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
+
+    @if (files.Any(f => f.Status == FileStatus.Pending))
+    {
+        <RadzenButton Text="Upload Files"
+                      Click="ProcessUpload"
+                      Style="margin-top: 10px;" />
+    }
+
+    <StemPreviewEntryGrid @ref=stemPreviewEntryGrid
+                          StemSessionId="@sessionId"
+                          Visible="@files.Any(x => x.Status == FileStatus.Uploaded)" />
+
+</RadzenCard>

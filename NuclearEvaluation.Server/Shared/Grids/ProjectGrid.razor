@@ -54,13 +54,13 @@
 
             <RadzenDataGridColumn Property="@nameof(ProjectView.CreatedAt)"
                                   TextAlign="TextAlign.Left"
-                                  FormatString="{0:yyyy-MM-dd}"
+                                  FormatString="@DateOnlyFormat"
                                   Width="65px"
                                   Title="Created At" />
 
             <RadzenDataGridColumn Property="@nameof(ProjectView.UpdatedAt)"
                                   TextAlign="TextAlign.Left"
-                                  FormatString="{0:yyyy-MM-dd}"
+                                  FormatString="@DateOnlyFormat"
                                   Width="65px"
                                   Title="Updated At" />
         </Columns>

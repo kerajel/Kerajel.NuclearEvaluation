@@ -13,4 +13,9 @@ public static partial class LoadDataArgsExtensions
     {
         return string.IsNullOrWhiteSpace(args.Filter);
     }
+
+    public static bool HasEmptyOrder(this LoadDataArgs args)
+    {
+        return string.IsNullOrWhiteSpace(args.OrderBy) && args.Sorts.IsNullOrEmpty();
+    }
 }

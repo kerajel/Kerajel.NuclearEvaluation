@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Server.Data;
-using NuclearEvaluation.Server.Models;
+using NuclearEvaluation.Server.Models.Identity;
 using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Server.Validators;
 using Radzen;

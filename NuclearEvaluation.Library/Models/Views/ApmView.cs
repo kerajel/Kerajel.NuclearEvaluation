@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NuclearEvaluation.Library.Models.Views;
 
-public class ApmBase : IIdentifiable
+public class ApmBase
 {
     [Key]
     public int Id { get; set; }

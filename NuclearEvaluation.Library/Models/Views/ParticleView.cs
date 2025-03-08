@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NuclearEvaluation.Library.Models.Views;
 
-public abstract class ParticleBase : IIdentifiable
+public abstract class ParticleBase
 {
     [Key]
     public int Id { get; set; }

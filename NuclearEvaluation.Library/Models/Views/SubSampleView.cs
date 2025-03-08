@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NuclearEvaluation.Library.Models.Views;
 
-public class SubSampleView : IIdentifiable
+public class SubSampleView
 {
     [Key]
     public int Id { get; set; }

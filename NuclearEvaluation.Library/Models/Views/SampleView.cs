@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NuclearEvaluation.Library.Models.Views;
 
-public class SampleView : IIdentifiable
+public class SampleView
 {
     [Key]
     public int Id { get; set; }

@@ -35,6 +35,6 @@ public class ApmService : DbServiceBase, IApmService
                 break;
         }
 
-        return await ExecuteQueryAsync(baseQuery, command);
+        return await ExecuteQuery(baseQuery, command);
     }
 }

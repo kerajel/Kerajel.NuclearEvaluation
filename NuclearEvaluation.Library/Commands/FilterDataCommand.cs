@@ -23,6 +23,8 @@ public class FilterDataCommand<T>()
 
     public bool AsNoTracking { get; set; } = true;
 
+    public TableKind TableKind {get;set;} = TableKind.Persisted;
+
     public void AddArgument<K>(string key, K? value)
     {
        _args.Add(key, value);
@@ -39,7 +41,7 @@ public class FilterDataCommand<T>()
         bool success = _args.TryGetValue(key, out object? value);
         if (!success || value is not K result)
         {
-            throw new Exception();
+            throw new Exception($"Required argument '{key}' for '{nameof(FilterDataCommand)}' was not supplied");
         }
         return result;
     }
@@ -83,7 +85,8 @@ public class FilterDataCommand
 
     public static class ArgKeys
     {
-        public const string ProjectId = "ProjectId";
-        public const string EnableDecayCorrection = "UseDecayCorrection";
+        public const string ProjectId = nameof(ProjectId);
+        public const string EnableDecayCorrection = nameof(EnableDecayCorrection);
+        public const string StemPreviewSessionId = nameof(StemPreviewSessionId);
     }
 }

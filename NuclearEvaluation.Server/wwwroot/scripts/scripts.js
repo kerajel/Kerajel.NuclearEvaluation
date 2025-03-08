@@ -8,3 +8,7 @@ function forceUpdateNumericInputs() {
         input.focus();
     });
 }
+
+function clickElement(element) {
+    element.click();
+}

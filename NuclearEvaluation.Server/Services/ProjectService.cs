@@ -6,6 +6,7 @@ using NuclearEvaluation.Library.Models.Domain;
 using NuclearEvaluation.Library.Models.Views;
 using NuclearEvaluation.Server.Data;
 using System.Linq.Expressions;
+using System.Threading;
 using Z.EntityFramework.Plus;
 
 namespace NuclearEvaluation.Server.Services;
@@ -46,7 +47,7 @@ public class ProjectService : DbServiceBase, IProjectService
     {
         IQueryable<ProjectView> baseQuery = _dbContext.ProjectView;
 
-        return await ExecuteQueryAsync(baseQuery, command);
+        return await ExecuteQuery(baseQuery, command);
     }
 
     public async Task UpdateProjectSeriesFromView(ProjectView projectView)

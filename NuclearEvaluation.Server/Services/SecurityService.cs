@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 
 using Radzen;
-using NuclearEvaluation.Server.Models;
+using NuclearEvaluation.Server.Models.Identity;
 
 namespace NuclearEvaluation.Server.Services;
 

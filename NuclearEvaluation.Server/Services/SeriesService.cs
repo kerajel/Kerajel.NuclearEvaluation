@@ -19,7 +19,7 @@ public class SeriesService : DbServiceBase, ISeriesService
     {
         IQueryable<SeriesView> baseQuery = _dbContext.SeriesView;
 
-        return await ExecuteQueryAsync(baseQuery, command);
+        return await ExecuteQuery(baseQuery, command);
     }
 
     public async Task<SeriesCountsView> GetSeriesCounts(FilterDataCommand<SeriesView> command)

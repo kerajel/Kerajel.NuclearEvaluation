@@ -5,18 +5,15 @@ using Microsoft.AspNetCore.OData;
 using Microsoft.OData.ModelBuilder;
 using Microsoft.AspNetCore.Components.Authorization;
 using NuclearEvaluation.Server.Services;
-using NuclearEvaluation.Server.Models;
 using NuclearEvaluation.Server.Validators;
 using NuclearEvaluation.Server.Data;
 using NuclearEvaluation.Library.Interfaces;
-
-/*
-cd "NuclearEvaluation.Server"
-dotnet ef migrations add NuclearEvaluationServerDbContext_1 --context NuclearEvaluationServerDbContext
-dotnet ef migrations add ApplicationIdentityContext_1 --context ApplicationIdentityContext
-dotnet ef database update --context NuclearEvaluationServerDbContext
-dotnet ef database update --context ApplicationIdentityContext
-*/
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using NuclearEvaluation.Server.Models.Identity;
+using Serilog;
+using Serilog.Sinks.SystemConsole.Themes;
+using LinqToDB.EntityFrameworkCore;
+using NuclearEvaluation.Server.Models.Settings;
 
 internal class Program
 {
@@ -24,10 +21,18 @@ internal class Program
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
+        builder.Configuration.AddJsonFile("stemSettings.json", optional: false, reloadOnChange: true);
+        builder.Services.Configure<StemSettings>(builder.Configuration.GetSection(nameof(StemSettings)));
+
+        builder.Services.Configure<KestrelServerOptions>(options =>
+        {
+            options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100 MB
+        });
+
         builder.Services.AddRazorPages();
         builder.Services.AddServerSideBlazor().AddHubOptions(o =>
         {
-            o.MaximumReceiveMessageSize = 10 * 1024 * 1024;
+            o.MaximumReceiveMessageSize = 10 * 1024 * 1024;  // 100 MB
         });
         builder.Services.AddRadzenComponents();
 
@@ -36,6 +41,15 @@ internal class Program
             options.Name = "NuclearEvaluationTheme";
             options.Duration = TimeSpan.FromDays(365);
         });
+
+        builder.Services.AddSerilog();
+
+        Log.Logger = new LoggerConfiguration()
+            .Enrich.FromLogContext()
+            .WriteTo.Console(
+                theme: AnsiConsoleTheme.Grayscale,
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}")
+            .CreateLogger();
 
         builder.Services.AddScoped<ISessionCache, SessionCache>();
 
@@ -47,6 +61,11 @@ internal class Program
         builder.Services.AddTransient<ISeriesService, SeriesService>();
         builder.Services.AddTransient<IChartService, ChartService>();
         builder.Services.AddTransient<IGenericService, GenericService>();
+        builder.Services.AddTransient<IStemPreviewEntryService, StemPreviewEntryService>();
+        builder.Services.AddTransient<IStemPreviewService, StemPreviewService>();
+        builder.Services.AddTransient<IStemPreviewParser, StemPreviewParser>();
+
+        builder.Services.AddScoped<ITempTableService, TempTableService>();
 
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();
@@ -64,6 +83,8 @@ internal class Program
         {
             options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
         }, ServiceLifetime.Transient);
+
+        LinqToDBForEFTools.Initialize();
 
         builder.Services.AddHttpClient("NuclearEvaluation.Server").ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { UseCookies = false }).AddHeaderPropagation(o => o.Headers.Add("Cookie"));
         builder.Services.AddHeaderPropagation(o => o.Headers.Add("Cookie"));
@@ -106,13 +127,6 @@ internal class Program
         app.MapControllers();
         app.MapBlazorHub();
         app.MapFallbackToPage("/_Host");
-        using (IServiceScope scope = app.Services.CreateScope())
-        {
-            IServiceProvider serviceProvider = scope.ServiceProvider;
-            //await serviceProvider.GetRequiredService<ApplicationIdentityContext>().Database.MigrateAsync();
-            //await serviceProvider.GetRequiredService<NuclearEvaluationServerDbContext>().Database.MigrateAsync();
-        }
-
         app.Run();
     }
 }

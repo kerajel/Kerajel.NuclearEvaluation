@@ -11,7 +11,7 @@ public class GenericService : DbServiceBase, IGenericService
     {
     }
 
-    public async Task<FilterDataResponse<dynamic>> GetFilterOptions<T>(FilterDataCommand<T> command, string propertyName) where T : class, IIdentifiable
+    public async Task<FilterDataResponse<dynamic>> GetFilterOptions<T>(FilterDataCommand<T> command, string propertyName) where T : class
     {
         IQueryable<T> query = _dbContext.Set<T>().AsQueryable();
         IQueryable<T> filteredQuery = GetFilteredQuery(query, command, false);

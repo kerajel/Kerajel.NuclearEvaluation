@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using NuclearEvaluation.Server.Models;
+using NuclearEvaluation.Server.Models.Identity;
 
 namespace NuclearEvaluation.Server.Controllers;
 

@@ -9,7 +9,7 @@ namespace NuclearEvaluation.Server.Shared.Generics;
 
 public partial class GenericEnumColumnFilter<T, K>
     where T : struct, Enum
-    where K : class, IIdentifiable
+    where K : class
 {
     [Inject]
     public IGenericService GenericService { get; set; } = null!;

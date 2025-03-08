@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
-using NuclearEvaluation.Server.Models;
+using NuclearEvaluation.Server.Models.Identity;
 
 namespace NuclearEvaluation.Server.Services;
 

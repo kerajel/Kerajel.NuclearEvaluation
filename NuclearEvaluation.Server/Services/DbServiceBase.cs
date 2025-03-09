@@ -96,17 +96,25 @@ public class DbServiceBase
     protected IQueryable<int> ApplyPresetFilterBox<T>(FilterDataCommand<T> command) where T : class
     {
         IQueryable<PresetFilterQueryObject> compositeQuery = GetBasePresetFilterQuery();
+
         foreach ((PresetFilterEntryType entryType, string? value) in command.PresetFilterBox!.AsEnumerable())
         {
             compositeQuery = compositeQuery.FilterWithFallback(value);
         }
 
+        PropertyInfo pi = typeof(PresetFilterQueryObject).GetProperties()
+            .First(prop => prop.PropertyType == typeof(T));
+
         PropertyInfo keyProperty = GetKeyProperty<T>();
         ParameterExpression param = Expression.Parameter(typeof(PresetFilterQueryObject), "x");
-        Expression keyPropertyAccess = Expression.Property(param, keyProperty.Name);
-        Expression<Func<PresetFilterQueryObject, int>> lambda = Expression.Lambda<Func<PresetFilterQueryObject, int>>(Expression.Convert(keyPropertyAccess, typeof(int)), param);
+        Expression propertyAccess = Expression.Property(param, pi);
+        Expression propertyIdAccess = Expression.Property(propertyAccess, keyProperty.Name);
+        Expression<Func<PresetFilterQueryObject, int>> lambda = Expression.Lambda<Func<PresetFilterQueryObject, int>>(propertyIdAccess, param);
 
-        return compositeQuery.Select(lambda).GroupBy(x => x).Select(x => x.Key);
+        return compositeQuery
+            .Select(x => x.Series!.Id)
+            .GroupBy(x => x)
+            .Select(x => x.Key);
     }
 
     private static PropertyInfo GetKeyProperty<T>() where T : class

@@ -20,4 +20,17 @@ public static class ExpressionExtensions
     {
         return propertyLambda.GetPropertyInfo().Name;
     }
+
+    public static string GetMemberName<T>(this Expression<Func<T, object>> expression)
+    {
+        if (expression.Body is MemberExpression me)
+        {
+            return me.Member.Name;
+        }
+        if (expression.Body is UnaryExpression ue && ue.Operand is MemberExpression me2)
+        {
+            return me2.Member.Name;
+        }
+        throw new NotSupportedException("Only direct property expressions are supported");
+    }
 }

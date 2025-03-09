@@ -115,6 +115,10 @@ public partial class StemPreview : IDisposable
                 continue;
             }
 
+            using IDisposable? scope = Logger.BeginScope("Processing file {fileId} on STEM session {stemSessionId}", file.Id, sessionId);
+
+            Logger.LogInformation("Processing started");
+
             IBrowserFile browserFile = file.BrowserFile;
             file.Status = FileStatus.Uploading;
 
@@ -161,6 +165,8 @@ public partial class StemPreview : IDisposable
             });
 
             _ = await StemPreviewService.RefreshIndexes(sessionId);
+
+            Logger.LogInformation("Processing complete");
         }
     }
 

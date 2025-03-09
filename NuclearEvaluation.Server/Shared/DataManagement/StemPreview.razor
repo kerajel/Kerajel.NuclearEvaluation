@@ -52,7 +52,7 @@
                             <RadzenIcon Icon="check" Color="green" />
                             <span>Uploaded</span>
                         }
-                        else if (file.Status == FileStatus.Uploading  || file.Status == FileStatus.Deleting)
+                        else if (file.Status == FileStatus.Uploading || file.Status == FileStatus.Deleting)
                         {
                             <RadzenStack AlignItems="AlignItems.Center"
                                          JustifyContent="JustifyContent.Center"
@@ -92,7 +92,7 @@
                       Style="margin-top: 10px;" />
     }
 
-    <StemPreviewEntryGrid @ref=stemPreviewEntryGrid
+    <StemPreviewEntryGrid @ref="stemPreviewEntryGrid"
                           StemSessionId="@sessionId"
                           Visible="@files.Any(x => x.Status == FileStatus.Uploaded)" />
 

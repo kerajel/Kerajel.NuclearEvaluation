@@ -25,6 +25,8 @@ public class FilterDataCommand<T>()
 
     public TableKind TableKind {get;set;} = TableKind.Persisted;
 
+    public bool HasOrderBy => LoadDataArgs is not null && !string.IsNullOrWhiteSpace(LoadDataArgs.OrderBy);
+
     public void AddArgument<K>(string key, K? value)
     {
        _args.Add(key, value);

@@ -62,20 +62,27 @@ namespace NuclearEvaluation.Server.Pages
             if (result == true)
             {
                 infoVisible = true;
-
-                info = "Registration accepted. Please check your email for further instructions.";
+                //TODO enable back once email provider is resolved
+                //info = "Registration accepted. Please check your email for further instructions.";
+                info = "Registration accepted."; // <-- remove
             }
         }
 
         protected async Task ResetPassword()
         {
+            //TODO enable back once email provider is resolved
+            infoVisible = true;
+
+            info = "Password reset is currently unavailable. Please create an issue on https://github.com/kerajel/Kerajel.NuclearEvaluation/";
+
+            return;
             var result = await DialogService.OpenAsync<ResetPassword>("Reset password");
 
             if (result == true)
             {
                 infoVisible = true;
 
-                info = "Password reset successfully. Please check your email for further instructions.";
+                info = "Password reset z";
             }
         }
     }

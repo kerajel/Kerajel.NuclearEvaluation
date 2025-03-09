@@ -54,7 +54,7 @@ public partial class AccountController : Controller
     {
         redirectUrl = string.IsNullOrEmpty(redirectUrl) ? "~/" : redirectUrl.StartsWith("/") ? redirectUrl : $"~/{redirectUrl}";
 
-        if (_env.IsDevelopment() &&  userName == "admin" && password == "admin")
+        if (_env.IsDevelopment() && userName == "admin" && password == "admin")
         {
             List<Claim> claims =
             [
@@ -80,31 +80,35 @@ public partial class AccountController : Controller
 
             if (!user.EmailConfirmed)
             {
-                return RedirectWithError("User email not confirmed", redirectUrl);
+                //TODO enable back once email provider is resolved
+                //return RedirectWithError("User email not confirmed", redirectUrl);
             }
 
             bool isTenantsAdmin = userName == "tenantsadmin";
-            bool isTwoFactor = await _userManager.GetTwoFactorEnabledAsync(user);
+
+            //TODO enable back once email provider is resolved
+            //bool isTwoFactor = await _userManager.GetTwoFactorEnabledAsync(user);
+            bool isTwoFactor = false;
             if (!isTwoFactor && !isTenantsAdmin)
             {
                 await _userManager.SetTwoFactorEnabledAsync(user, true);
             }
             Microsoft.AspNetCore.Identity.SignInResult result = await _signInManager.PasswordSignInAsync(userName, password, false, false);
 
+            //TODO enable back once email provider is resolved
+//            if (result.RequiresTwoFactor && !isTenantsAdmin)
+//            {
+//                string code = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
 
-            if (result.RequiresTwoFactor && !isTenantsAdmin)
-            {
-                string code = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
+//                string text = $@"Hi, <br /> <br />
+//We received your request for a single-use code to use with your Nuclear Evaluation account. <br /> <br />
+//Your single-use code is: {code} <br /> <br />
+//If you didn't request this code, you can safely ignore this email. Someone else might have typed your email address by mistake.";
 
-                string text = $@"Hi, <br /> <br />
-We received your request for a single-use code to use with your Nuclear Evaluation account. <br /> <br />
-Your single-use code is: {code} <br /> <br />
-If you didn't request this code, you can safely ignore this email. Someone else might have typed your email address by mistake.";
+//                await SendEmailAsync(user.Email, "Your single-use code", text);
 
-                await SendEmailAsync(user.Email, "Your single-use code", text);
-
-                return Redirect($"~/SecurityCode?email={Uri.EscapeDataString(user.Email)}");
-            }
+//                return Redirect($"~/SecurityCode?email={Uri.EscapeDataString(user.Email)}");
+//            }
             if (result.Succeeded)
             {
                 return Redirect(redirectUrl);
@@ -181,6 +185,7 @@ If you didn't request this code, you can safely ignore this email. Someone else 
 
         if (result.Succeeded)
         {
+            return Ok();
             try
             {
                 var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);

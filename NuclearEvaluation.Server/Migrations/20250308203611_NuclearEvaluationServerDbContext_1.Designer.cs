@@ -12,7 +12,7 @@ using NuclearEvaluation.Server.Data;
 namespace NuclearEvaluation.Server.Migrations
 {
     [DbContext(typeof(NuclearEvaluationServerDbContext))]
-    [Migration("20241123103147_NuclearEvaluationServerDbContext_1")]
+    [Migration("20250308203611_NuclearEvaluationServerDbContext_1")]
     partial class NuclearEvaluationServerDbContext_1
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace NuclearEvaluation.Server.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);

@@ -12,7 +12,7 @@ public class TempTableService : DbServiceBase, ITempTableService
 {
     const TableOptions tableOptions = TableOptions.IsGlobalTemporaryStructure;
     const int maxBatchSize = 10_000;
-    const int bulkCopyTimeout = 60;
+    const int bulkCopyTimeout = 60 * 5;
 
     readonly Dictionary<string, dynamic> tables = [];
 
@@ -30,7 +30,7 @@ public class TempTableService : DbServiceBase, ITempTableService
         return table.AsQueryable();
     }
 
-    public IQueryable<T> Get<T>(string tableName) where T : class
+    public IQueryable<T>? Get<T>(string tableName) where T : class
     {
         string formattedTableName = GetFormattedTableName(tableName);
 
@@ -38,7 +38,7 @@ public class TempTableService : DbServiceBase, ITempTableService
         {
             return table;
         }
-        throw new Exception($"Temporary table '{tableName}' was not found");
+        return default;
     }
 
     public async Task BulkCopyInto<T>(string tableName, IEnumerable<T> entries, CancellationToken ct = default) where T : class

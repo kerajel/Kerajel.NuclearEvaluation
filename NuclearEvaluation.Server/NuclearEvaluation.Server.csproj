@@ -5,6 +5,8 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<PlatformTarget>x86</PlatformTarget>
+		<Platforms>AnyCPU;x86</Platforms>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="CsvHelper" Version="33.0.1" />
@@ -24,11 +26,12 @@
 		<PackageReference Include="Radzen.Blazor" Version="5.9.8" />
 		<PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
 		<PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="9.103.7" />
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\..\..\..\Desktop\Kerajel.TabularDataReader\Kerajel.TabularDataReader\Kerajel.TabularDataReader.csproj" />
-	  <ProjectReference Include="..\NuclearEvaluation.Library\NuclearEvaluation.Library.csproj" />
+		<ProjectReference Include="..\..\..\..\Desktop\Kerajel.TabularDataReader\Kerajel.TabularDataReader\Kerajel.TabularDataReader.csproj" />
+		<ProjectReference Include="..\NuclearEvaluation.Library\NuclearEvaluation.Library.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
@@ -36,15 +39,15 @@
 		</AssemblyAttribute>
 	</ItemGroup>
 	<ItemGroup>
-	  <Content Update="Shared\Grids\ParticleGrid.razor">
-	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-	  </Content>
-	  <Content Update="Shared\Grids\StemPreviewEntryGrid.razor">
-	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-	  </Content>
+		<Content Update="Shared\Grids\ParticleGrid.razor">
+			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+		</Content>
+		<Content Update="Shared\Grids\StemPreviewEntryGrid.razor">
+			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+		</Content>
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="wwwroot\files\stem-preview\" />
+		<Folder Include="wwwroot\files\stem-preview\" />
 	</ItemGroup>
 
 </Project>

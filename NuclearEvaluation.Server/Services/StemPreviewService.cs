@@ -9,7 +9,7 @@ namespace NuclearEvaluation.Server.Services;
 
 public class StemPreviewService : IStemPreviewService
 {
-    static readonly TimeSpan uploadTimeout = TimeSpan.FromMinutes(1);
+    static readonly TimeSpan uploadTimeout = TimeSpan.FromMinutes(5);
 
     static readonly AsyncBulkheadPolicy<OperationResult> bulkheadPolicy = Policy
         .BulkheadAsync<OperationResult>(
@@ -60,21 +60,14 @@ public class StemPreviewService : IStemPreviewService
             result = await bulkheadPolicy.ExecuteAsync(
                 async (CancellationToken ct) =>
                 {
-                    try
-                    {
-                        await Execute();
-                        return result;
-                    }
-                    catch (Exception ex)
-                    {
-                        return new(OperationStatus.Faulted, "Error processing the file", ex);
-                    }
+                    await Execute();
+                    return result;
                 },
                 linkedCts.Token);
         }
         catch (BulkheadRejectedException ex)
         {
-            result = new(OperationStatus.Faulted, "Too many concurrent uploads. Please try again later", ex);
+            result = new(OperationStatus.Faulted, "Too many concurrent uploads", ex);
         }
         catch (OperationCanceledException ex)
         {
@@ -82,6 +75,7 @@ public class StemPreviewService : IStemPreviewService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error processing the file");
             result = new(OperationStatus.Faulted, "Error processing the file", ex);
         }
         finally
@@ -98,6 +92,7 @@ public class StemPreviewService : IStemPreviewService
 
         async Task<OperationResult> Execute()
         {
+            _logger.LogInformation("Parsing STEM entries");
             OperationResult<IReadOnlyCollection<StemPreviewEntry>> parseResult = await _stemPreviewParser.Parse(stream, fileName, linkedCts.Token);
 
             if (!parseResult.Succeeded)
@@ -105,11 +100,13 @@ public class StemPreviewService : IStemPreviewService
                 return new(OperationStatus.Faulted, "Error reading the file");
             }
 
+            IReadOnlyCollection<StemPreviewEntry> entries = parseResult.Content!;
+
+            _logger.LogInformation("Parsed {stemEntryCount} entries", entries.Count);
+
             StemPreviewFileMetadata fileMetadata = new() { Id = fileId, Name = fileName };
 
             await _stemPreviewEntryService.InsertStemPreviewFileMetadata(stemSessionId, fileMetadata, linkedCts.Token);
-
-            IReadOnlyCollection<StemPreviewEntry> entries = parseResult.Content!;
 
             foreach (StemPreviewEntry entry in entries)
             {
@@ -131,7 +128,7 @@ public class StemPreviewService : IStemPreviewService
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to refresh indexes for Stem Preview session {sessionId}", stemSessionId);
+            _logger.LogError("Failed to refresh indexes");
             return new OperationResult(OperationStatus.Faulted, ex);
         }
         return new OperationResult(OperationStatus.Succeeded);
@@ -145,7 +142,7 @@ public class StemPreviewService : IStemPreviewService
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to delete data for file {fileId}, Stem Preview session {sessionId}", fileId, stemSessionId);
+            _logger.LogError("Failed to delete file data");
             return new OperationResult(OperationStatus.Faulted, ex);
         }
         return new OperationResult(OperationStatus.Succeeded);

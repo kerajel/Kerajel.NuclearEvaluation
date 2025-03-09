@@ -2,7 +2,6 @@
 using LinqToDB;
 using NuclearEvaluation.Library.Commands;
 using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Interfaces;
 using NuclearEvaluation.Library.Models.DataManagement;
 using NuclearEvaluation.Library.Models.Views;
@@ -67,14 +66,14 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
             string entryTable = GetEntryTableName(stemSessionId);
             string fileNameTable = GetFileNameTableName(stemSessionId);
 
-            await _tempTableService.EnsureCreated<StemPreviewEntry>(entryTable);
-            await _tempTableService.EnsureCreated<StemPreviewFileMetadata>(fileNameTable);
+            IQueryable<StemPreviewEntry>? entryQueryable = _tempTableService.Get<StemPreviewEntry>(entryTable);
+            IQueryable<StemPreviewFileMetadata>? fileQueryable = _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable);
 
-            IQueryable<StemPreviewEntry> entryQueryable = _tempTableService.Get<StemPreviewEntry>(entryTable);
-            IQueryable<StemPreviewFileMetadata> fileQueryable = _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable);
+            if (entryQueryable != null)
+                await entryQueryable.Where(x => x.FileId == fileId).DeleteAsync();
 
-            await entryQueryable.Where(x => x.FileId == fileId).DeleteAsync();
-            await fileQueryable.Where(x => x.Id == fileId).DeleteAsync();
+            if (fileQueryable != null)
+                await fileQueryable.Where(x => x.Id == fileId).DeleteAsync();
         });
     }
 
@@ -87,8 +86,8 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
             string entryTable = GetEntryTableName(stemSessionId);
             string fileNameTable = GetFileNameTableName(stemSessionId);
 
-            IQueryable<StemPreviewEntry> entryTableQuery = _tempTableService.Get<StemPreviewEntry>(entryTable);
-            IQueryable<StemPreviewFileMetadata> fileTableQuery = _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable);
+            IQueryable<StemPreviewEntry> entryTableQuery = _tempTableService.Get<StemPreviewEntry>(entryTable)!;
+            IQueryable<StemPreviewFileMetadata> fileTableQuery = _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable)!;
 
             IQueryable<StemPreviewEntryView> baseQuery =
                 from entry in entryTableQuery
@@ -108,8 +107,9 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
                     FileName = file.Name,
                 };
 
-            if (command.LoadDataArgs != null && command.LoadDataArgs.HasEmptyOrder())
+            if (!command.HasOrderBy)
             {
+                //the exception occurs only if I specify this orderby-thenby expression, why?
                 baseQuery = baseQuery.OrderBy(x => x.Id)
                     .ThenBy(x => x.FileId);
             }
@@ -155,9 +155,9 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
         await ExecuteWithBulkheadPolicy(stemSessionId, async () =>
         {
             string fileNameTable = GetFileNameTableName(stemSessionId);
-            await _tempTableService.EnsureCreated<StemPreviewFileMetadata>(fileNameTable);
+            IQueryable<StemPreviewFileMetadata> queryable = await _tempTableService.EnsureCreated<StemPreviewFileMetadata>(fileNameTable);
 
-            await _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable)
+            await queryable
                 .Where(x => x.Id == fileId)
                 .Set(x => x.IsFullyUploaded, true)
                 .UpdateAsync();

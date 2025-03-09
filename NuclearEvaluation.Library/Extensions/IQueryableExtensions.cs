@@ -1,4 +1,5 @@
-﻿using Radzen;
+﻿using LinqToDB;
+using Radzen;
 using System.Linq.Dynamic.Core;
 using System.Linq.Expressions;
 
@@ -11,48 +12,30 @@ public static class IQueryableExtensions
         LoadDataArgs? args,
         Expression<Func<T, object>> defaultOrderBy) where T : class
     {
-        string filter = args?.OrderBy ?? string.Empty;
-
         bool isAlreadyOrdered = IsOrdered(query);
 
-        if (!string.IsNullOrWhiteSpace(filter))
+        if (args.HasOrderBy())
         {
             if (isAlreadyOrdered)
             {
-                // Apply ThenBy with args.OrderBy
-                IOrderedQueryable<T> orderedQueryWithPrimary = ((IOrderedQueryable<T>)query).ThenBy(args.OrderBy);
-
-                // Apply ThenBy with defaultOrderBy
-                IOrderedQueryable<T> finalOrderedQuery = orderedQueryWithPrimary.ThenBy(defaultOrderBy);
-
-                return finalOrderedQuery;
+                IOrderedQueryable<T> orderedQueryWithPrimary = ((IOrderedQueryable<T>)query).ThenBy(args!.OrderBy);
+                return orderedQueryWithPrimary.ThenBy(defaultOrderBy);
             }
             else
             {
-                // Apply primary OrderBy using Dynamic LINQ
-                IOrderedQueryable<T> orderedQueryWithPrimary = query.OrderBy(args.OrderBy);
-
-                // Apply ThenBy with defaultOrderBy
-                IOrderedQueryable<T> finalOrderedQuery = orderedQueryWithPrimary.ThenBy(defaultOrderBy);
-
-                return finalOrderedQuery;
+                IOrderedQueryable<T> orderedQueryWithPrimary = query.OrderBy(args!.OrderBy);
+                return orderedQueryWithPrimary.ThenBy(defaultOrderBy);
             }
         }
         else
         {
             if (isAlreadyOrdered)
             {
-                // Apply ThenBy with defaultOrderBy
-                IOrderedQueryable<T> orderedQuery = ((IOrderedQueryable<T>)query).ThenBy(defaultOrderBy);
-
-                return orderedQuery;
+                return ((IOrderedQueryable<T>)query).ThenOrBy(defaultOrderBy);
             }
             else
             {
-                // Apply OrderBy with defaultOrderBy
-                IOrderedQueryable<T> orderedQuery = query.OrderBy(defaultOrderBy);
-
-                return orderedQuery;
+                return query.OrderBy(defaultOrderBy);
             }
         }
     }

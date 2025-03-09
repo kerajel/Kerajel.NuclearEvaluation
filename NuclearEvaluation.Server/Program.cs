@@ -48,7 +48,11 @@ internal class Program
             .Enrich.FromLogContext()
             .WriteTo.Console(
                 theme: AnsiConsoleTheme.Grayscale,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}")
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}")
+            .WriteTo.File(
+                path: "logs/log-.txt",
+                rollingInterval: RollingInterval.Day,
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}")
             .CreateLogger();
 
         builder.Services.AddScoped<ISessionCache, SessionCache>();

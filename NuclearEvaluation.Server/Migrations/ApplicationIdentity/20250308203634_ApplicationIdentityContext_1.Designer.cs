@@ -12,7 +12,7 @@ using NuclearEvaluation.Server.Data;
 namespace NuclearEvaluation.Server.Migrations.ApplicationIdentity
 {
     [DbContext(typeof(ApplicationIdentityContext))]
-    [Migration("20241123103200_ApplicationIdentityContext_1")]
+    [Migration("20250308203634_ApplicationIdentityContext_1")]
     partial class ApplicationIdentityContext_1
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace NuclearEvaluation.Server.Migrations.ApplicationIdentity
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -131,7 +131,7 @@ namespace NuclearEvaluation.Server.Migrations.ApplicationIdentity
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Server.Models.ApplicationRole", b =>
+            modelBuilder.Entity("NuclearEvaluation.Server.Models.Identity.ApplicationRole", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -158,7 +158,7 @@ namespace NuclearEvaluation.Server.Migrations.ApplicationIdentity
                     b.ToTable("AspNetRoles", (string)null);
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Server.Models.ApplicationUser", b =>
+            modelBuilder.Entity("NuclearEvaluation.Server.Models.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -226,7 +226,7 @@ namespace NuclearEvaluation.Server.Migrations.ApplicationIdentity
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Server.Models.ApplicationRole", null)
+                    b.HasOne("NuclearEvaluation.Server.Models.Identity.ApplicationRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -235,7 +235,7 @@ namespace NuclearEvaluation.Server.Migrations.ApplicationIdentity
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Server.Models.ApplicationUser", null)
+                    b.HasOne("NuclearEvaluation.Server.Models.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -244,7 +244,7 @@ namespace NuclearEvaluation.Server.Migrations.ApplicationIdentity
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Server.Models.ApplicationUser", null)
+                    b.HasOne("NuclearEvaluation.Server.Models.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -253,13 +253,13 @@ namespace NuclearEvaluation.Server.Migrations.ApplicationIdentity
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Server.Models.ApplicationRole", null)
+                    b.HasOne("NuclearEvaluation.Server.Models.Identity.ApplicationRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("NuclearEvaluation.Server.Models.ApplicationUser", null)
+                    b.HasOne("NuclearEvaluation.Server.Models.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -268,7 +268,7 @@ namespace NuclearEvaluation.Server.Migrations.ApplicationIdentity
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Server.Models.ApplicationUser", null)
+                    b.HasOne("NuclearEvaluation.Server.Models.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)

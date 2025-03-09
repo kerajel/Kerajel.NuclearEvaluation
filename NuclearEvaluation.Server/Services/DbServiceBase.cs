@@ -1,15 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using LinqToDB.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Library.Commands;
 using NuclearEvaluation.Library.Enums;
 using NuclearEvaluation.Library.Extensions;
 using NuclearEvaluation.Library.Models.Filters;
 using NuclearEvaluation.Server.Data;
+using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Collections.Concurrent;
 using Z.EntityFramework.Plus;
-using LinqToDB.EntityFrameworkCore;
 
 namespace NuclearEvaluation.Server.Services;
 
@@ -83,7 +83,18 @@ public class DbServiceBase
         if (command.QueryKind == QueryKind.QueryBuilder)
         {
             IQueryable<int> qbFilter = ApplyPresetFilterBox(command);
-            filteredQuery = filteredQuery.Where(entry => qbFilter.Contains((int)keyProperty.GetValue(entry, null)!));
+
+            ParameterExpression paramEntity = Expression.Parameter(typeof(T), "x");
+            MemberExpression memberExpr = Expression.Property(paramEntity, keyProperty);
+            UnaryExpression convertExpr = Expression.Convert(memberExpr, typeof(object));
+            Expression<Func<T, object>> keySelector = Expression.Lambda<Func<T, object>>(convertExpr, paramEntity);
+
+            filteredQuery = filteredQuery.Join(
+                  qbFilter
+                , keySelector
+                , filter => filter
+                , (entry, filter) => entry
+            );
         }
 
         filteredQuery = filteredQuery
@@ -112,7 +123,7 @@ public class DbServiceBase
         Expression<Func<PresetFilterQueryObject, int>> lambda = Expression.Lambda<Func<PresetFilterQueryObject, int>>(propertyIdAccess, param);
 
         return compositeQuery
-            .Select(x => x.Series!.Id)
+            .Select(lambda)
             .GroupBy(x => x)
             .Select(x => x.Key);
     }

@@ -1,6 +1,6 @@
-﻿using NuclearEvaluation.Library.Models.Views;
+﻿using NuclearEvaluation.Kernel.Models.Views;
 
-namespace NuclearEvaluation.Library.Models.QueryBuilder;
+namespace NuclearEvaluation.Kernel.Models.QueryBuilder;
 
 public class SubSampleViewPresetFilter
 {

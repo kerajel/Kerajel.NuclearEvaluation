@@ -1,4 +1,4 @@
-﻿namespace NuclearEvaluation.Library.Models.Plotting;
+﻿namespace NuclearEvaluation.Kernel.Models.Plotting;
 
 public class BinCount
 {

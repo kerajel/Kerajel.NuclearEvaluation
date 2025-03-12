@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.Filters;
+using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.Filters;
 using NuclearEvaluation.Server.Shared.Grids;
 using Radzen;
 

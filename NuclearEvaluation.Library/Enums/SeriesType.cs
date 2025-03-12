@@ -1,4 +1,4 @@
-﻿namespace NuclearEvaluation.Library.Enums;
+﻿namespace NuclearEvaluation.Kernel.Enums;
 
 public enum SeriesType
 {

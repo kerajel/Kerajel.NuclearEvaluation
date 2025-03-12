@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components.Forms;
-using NuclearEvaluation.Library.Enums;
+using NuclearEvaluation.Kernel.Enums;
 
 namespace NuclearEvaluation.Server.Models.Upload;
 

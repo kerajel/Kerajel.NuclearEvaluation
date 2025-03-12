@@ -1,7 +1,7 @@
-﻿using NuclearEvaluation.Library.Enums;
+﻿using NuclearEvaluation.Kernel.Enums;
 using System.ComponentModel.DataAnnotations;
 
-namespace NuclearEvaluation.Library.Models.Filters;
+namespace NuclearEvaluation.Kernel.Models.Filters;
 
 public class PresetFilter
 {

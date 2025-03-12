@@ -1,8 +1,8 @@
-﻿using NuclearEvaluation.Library.Interfaces;
+﻿using NuclearEvaluation.Kernel.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
-namespace NuclearEvaluation.Library.Models.Views;
+namespace NuclearEvaluation.Kernel.Models.Views;
 
 public class ApmBase
 {

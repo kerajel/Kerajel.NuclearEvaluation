@@ -1,14 +1,14 @@
-﻿using NuclearEvaluation.Library.Converters;
-using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Extensions;
+﻿using NuclearEvaluation.Kernel.Converters;
 using Microsoft.EntityFrameworkCore;
 using Radzen;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Kernel.Enums;
 
-namespace NuclearEvaluation.Library.Models.Filters;
+namespace NuclearEvaluation.Kernel.Models.Filters;
 
 [Index(nameof(PresetFilterId))]
 public class PresetFilterEntry

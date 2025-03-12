@@ -2,11 +2,11 @@
 using CsvHelper;
 using Kerajel.Primitives.Models;
 using Kerajel.TabularDataReader.Services;
-using NuclearEvaluation.Library.Models.DataManagement;
 using System.Globalization;
 using Kerajel.Primitives.Enums;
-using NuclearEvaluation.Library.Interfaces;
 using CsvHelper.TypeConversion;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.DataManagement;
 
 namespace NuclearEvaluation.Server.Services;
 

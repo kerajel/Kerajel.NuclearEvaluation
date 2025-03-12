@@ -1,5 +1,5 @@
 ﻿using System.Collections.Concurrent;
-using NuclearEvaluation.Library.Interfaces;
+using NuclearEvaluation.Kernel.Interfaces;
 
 namespace NuclearEvaluation.Server.Services;
 

@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace NuclearEvaluation.Library.Converters;
+namespace NuclearEvaluation.Kernel.Converters;
 
 public class CompositeFilterDescriptorConverter : JsonConverter<CompositeFilterDescriptor>
 {

@@ -1,6 +1,6 @@
-﻿using NuclearEvaluation.Library.Enums;
+﻿using NuclearEvaluation.Kernel.Enums;
 
-namespace NuclearEvaluation.Library.Models.Filters;
+namespace NuclearEvaluation.Kernel.Models.Filters;
 
 public class PresetFilterBox
 {

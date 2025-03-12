@@ -1,8 +1,8 @@
-using NuclearEvaluation.Library.Models.Domain;
-using NuclearEvaluation.Library.Models.Filters;
-using NuclearEvaluation.Library.Models.Views;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using NuclearEvaluation.Kernel.Models.Filters;
+using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Kernel.Models.Domain;
 
 namespace NuclearEvaluation.Server.Data;
 
@@ -51,7 +51,7 @@ public class NuclearEvaluationServerDbContext : DbContext
         modelBuilder.Entity<Sample>()
             .Property(x => x.SampleType)
             .HasColumnType("tinyint")
-            .HasComputedColumnSql(NuclearEvaluation.Library.Models.Domain.Sample.GetSampleTypeSqlExpression());
+            .HasComputedColumnSql(Kernel.Models.Domain.Sample.GetSampleTypeSqlExpression());
 
         modelBuilder.Entity<PresetFilterEntry>()
             .Property(b => b.SerializedDescriptors)

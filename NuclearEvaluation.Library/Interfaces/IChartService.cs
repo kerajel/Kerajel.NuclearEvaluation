@@ -1,6 +1,6 @@
-﻿using NuclearEvaluation.Library.Models.Plotting;
+﻿using NuclearEvaluation.Kernel.Models.Plotting;
 
-namespace NuclearEvaluation.Library.Interfaces;
+namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IChartService
 {

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
-using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.Plotting;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.Plotting;
 
 namespace NuclearEvaluation.Server.Shared.Charts;
 

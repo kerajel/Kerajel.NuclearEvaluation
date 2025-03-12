@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Components;
-using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Models.Filters;
 using NuclearEvaluation.Server.Data;
 using NuclearEvaluation.Server.Shared.Generics;
 using NuclearEvaluation.Server.Validators;
@@ -9,6 +7,8 @@ using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
 using Radzen;
 using Z.EntityFramework.Plus;
+using NuclearEvaluation.Kernel.Models.Filters;
+using NuclearEvaluation.Kernel.Enums;
 
 namespace NuclearEvaluation.Server.Shared.Evaluation.QueryBuilder;
 

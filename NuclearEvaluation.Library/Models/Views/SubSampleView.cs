@@ -1,8 +1,8 @@
-﻿using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.Domain;
+﻿using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.Domain;
 using System.ComponentModel.DataAnnotations;
 
-namespace NuclearEvaluation.Library.Models.Views;
+namespace NuclearEvaluation.Kernel.Models.Views;
 
 public class SubSampleView
 {

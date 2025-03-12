@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace NuclearEvaluation.Library.Extensions;
+namespace NuclearEvaluation.Kernel.Extensions;
 
 public static class JsonExtensions
 {
@@ -8,9 +8,9 @@ public static class JsonExtensions
     {
         result = default;
 
-        if (string.IsNullOrWhiteSpace(json)) 
+        if (string.IsNullOrWhiteSpace(json))
             return false;
-        
+
         try
         {
             result = JsonSerializer.Deserialize<T>(json, options);

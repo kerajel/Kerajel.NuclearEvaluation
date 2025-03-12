@@ -1,4 +1,4 @@
-﻿namespace NuclearEvaluation.Library.Interfaces;
+﻿namespace NuclearEvaluation.Kernel.Interfaces;
 
 using System.Threading.Tasks;
 

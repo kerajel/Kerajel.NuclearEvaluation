@@ -1,7 +1,7 @@
 ﻿using Kerajel.Primitives.Models;
-using NuclearEvaluation.Library.Models.DataManagement;
+using NuclearEvaluation.Kernel.Models.DataManagement;
 
-namespace NuclearEvaluation.Library.Interfaces;
+namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IStemPreviewParser
 {

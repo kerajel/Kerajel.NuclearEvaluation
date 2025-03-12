@@ -1,6 +1,6 @@
-﻿using NuclearEvaluation.Library.Models.Views;
+﻿using NuclearEvaluation.Kernel.Models.Views;
 
-namespace NuclearEvaluation.Library.Models.Filters;
+namespace NuclearEvaluation.Kernel.Models.Filters;
 
 public class PresetFilterQueryObject
 {

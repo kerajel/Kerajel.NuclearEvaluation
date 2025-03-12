@@ -1,4 +1,4 @@
-﻿namespace NuclearEvaluation.Library.Helpers;
+﻿namespace NuclearEvaluation.Kernel.Helpers;
 
 public class Debouncer<TResult>
 {

@@ -1,9 +1,9 @@
-﻿using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Models.Domain;
-using NuclearEvaluation.Library.Models.Views;
+﻿using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Models.Domain;
+using NuclearEvaluation.Kernel.Models.Views;
 using System.Linq.Expressions;
 
-namespace NuclearEvaluation.Library.Interfaces;
+namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IProjectService
 {

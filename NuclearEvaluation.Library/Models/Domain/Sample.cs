@@ -1,9 +1,9 @@
-﻿using NuclearEvaluation.Library.Enums;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using NuclearEvaluation.Kernel.Enums;
 
-namespace NuclearEvaluation.Library.Models.Domain;
+namespace NuclearEvaluation.Kernel.Models.Domain;
 
 [Index(nameof(SeriesId))]
 public class Sample

@@ -1,9 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.Domain;
-using NuclearEvaluation.Library.Models.Views;
+using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.Domain;
+using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Server.Data;
 using Z.EntityFramework.Plus;
 

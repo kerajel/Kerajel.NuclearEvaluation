@@ -1,7 +1,7 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
 
-namespace NuclearEvaluation.Library.Extensions;
+namespace NuclearEvaluation.Kernel.Extensions;
 
 public static class ExpressionExtensions
 {

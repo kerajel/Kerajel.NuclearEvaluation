@@ -1,4 +1,4 @@
-﻿namespace NuclearEvaluation.Library.Commands;
+﻿namespace NuclearEvaluation.Kernel.Commands;
 
 public class FilterDataResponse<T>()
 {

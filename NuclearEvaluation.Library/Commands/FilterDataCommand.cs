@@ -1,9 +1,9 @@
-﻿using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Models.Filters;
+﻿using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.Kernel.Models.Filters;
 using Radzen;
 using System.Linq.Expressions;
 
-namespace NuclearEvaluation.Library.Commands;
+namespace NuclearEvaluation.Kernel.Commands;
 
 public class FilterDataCommand<T>()
 {
@@ -23,13 +23,13 @@ public class FilterDataCommand<T>()
 
     public bool AsNoTracking { get; set; } = true;
 
-    public TableKind TableKind {get;set;} = TableKind.Persisted;
+    public TableKind TableKind { get; set; } = TableKind.Persisted;
 
     public bool HasOrderBy => LoadDataArgs is not null && !string.IsNullOrWhiteSpace(LoadDataArgs.OrderBy);
 
     public void AddArgument<K>(string key, K? value)
     {
-       _args.Add(key, value);
+        _args.Add(key, value);
     }
 
     public K? TryGetArgumentOrDefault<K>(string key)
@@ -82,7 +82,7 @@ public class FilterDataCommand
 {
     private FilterDataCommand()
     {
-            
+
     }
 
     public static class ArgKeys

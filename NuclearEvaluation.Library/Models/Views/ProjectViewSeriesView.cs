@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace NuclearEvaluation.Library.Models.Views;
+namespace NuclearEvaluation.Kernel.Models.Views;
 
 public class ProjectViewSeriesView
 {

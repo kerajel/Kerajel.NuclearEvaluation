@@ -1,13 +1,18 @@
 ﻿using Kerajel.Primitives.Enums;
 using Kerajel.Primitives.Models;
-using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.DataManagement;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.DataManagement;
+using NuclearEvaluation.Kernel.Models.Files;
 using Polly;
 using Polly.Bulkhead;
 
 namespace NuclearEvaluation.Server.Services;
 
-public class StemPreviewService : IStemPreviewService
+public class StemPreviewService(
+    IStemPreviewParser stemPreviewParser,
+    IStemPreviewEntryService stemPreviewEntryService,
+    IFileService fileService,
+    ILogger<StemPreviewService> logger) : IStemPreviewService
 {
     static readonly TimeSpan uploadTimeout = TimeSpan.FromMinutes(5);
 
@@ -20,26 +25,51 @@ public class StemPreviewService : IStemPreviewService
                 await Task.CompletedTask;
             });
 
-    readonly IStemPreviewParser _stemPreviewParser;
-    readonly IStemPreviewEntryService _stemPreviewEntryService;
-    readonly ILogger<StemPreviewService> _logger;
-
-    public StemPreviewService(
-        IStemPreviewParser stemPreviewParser,
-        IStemPreviewEntryService stemPreviewEntryService,
-        ILogger<StemPreviewService> logger)
+    public async Task<OperationResult> EnqueueStemPreviewForProcessingAsync(
+        Stream stream,
+        Guid fileId,
+        string fileName,
+        CancellationToken? externalCt = default)
     {
-        _stemPreviewParser = stemPreviewParser;
-        _stemPreviewEntryService = stemPreviewEntryService;
-        _logger = logger;
+        using CancellationTokenSource internalCts = new(uploadTimeout);
+
+        using CancellationTokenSource linkedCts = externalCt.HasValue
+            ? CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value)
+            : internalCts;
+
+        OperationResult result = new(OperationStatus.Succeeded);
+
+        WriteFileCommand writeFileCommand = new(fileId, fileName, stream, true);
+
+        try
+        {
+            result = await bulkheadPolicy.ExecuteAsync(
+                async (CancellationToken ct) =>
+                {
+                    await fileService.Write(writeFileCommand, ct);
+                    //upload to temp storate
+                    //send to queue
+                    return result;
+                },
+                linkedCts.Token);
+        }
+        catch (BulkheadRejectedException ex)
+        {
+            result = new(OperationStatus.Faulted, "Too many concurrent uploads", ex);
+        }
+        catch (OperationCanceledException ex)
+        {
+            result = new(OperationStatus.Faulted, "The upload was canceled or timed out", ex);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing the file");
+            result = new(OperationStatus.Faulted, "Error processing the file", ex);
+        }
+
+        return result;
     }
 
-    // TODO: Optimize memory usage by implementing file streaming.
-    // The ideal approach involves streaming the input file to a physical temporary file,
-    // then having RUST process this file and output to another temporary file.
-    // Subsequently, CSVHelper should read this output file in chunks, streaming parsed entries directly to the database.
-    // This method conserves memory by avoiding in-memory processing of the entire file at once.
-    // For simplicity, the current implementation handles everything in memory.
     public async Task<OperationResult> UploadStemPreviewFile(
         Guid stemSessionId,
         Stream stream,
@@ -75,7 +105,7 @@ public class StemPreviewService : IStemPreviewService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing the file");
+            logger.LogError(ex, "Error processing the file");
             result = new(OperationStatus.Faulted, "Error processing the file", ex);
         }
         finally
@@ -84,7 +114,7 @@ public class StemPreviewService : IStemPreviewService
             // In case of an error, we clean up by deleting any file entries that were partially inserted
             if (!result.Succeeded)
             {
-                await _stemPreviewEntryService.DeleteFileData(stemSessionId, fileId);
+                await stemPreviewEntryService.DeleteFileData(stemSessionId, fileId);
             }
         }
 
@@ -92,8 +122,8 @@ public class StemPreviewService : IStemPreviewService
 
         async Task<OperationResult> Execute()
         {
-            _logger.LogInformation("Parsing STEM entries");
-            OperationResult<IReadOnlyCollection<StemPreviewEntry>> parseResult = await _stemPreviewParser.Parse(stream, fileName, linkedCts.Token);
+            logger.LogInformation("Parsing STEM entries");
+            OperationResult<IReadOnlyCollection<StemPreviewEntry>> parseResult = await stemPreviewParser.Parse(stream, fileName, linkedCts.Token);
 
             if (!parseResult.Succeeded)
             {
@@ -102,19 +132,19 @@ public class StemPreviewService : IStemPreviewService
 
             IReadOnlyCollection<StemPreviewEntry> entries = parseResult.Content!;
 
-            _logger.LogInformation("Parsed {stemEntryCount} entries", entries.Count);
+            logger.LogInformation("Parsed {stemEntryCount} entries", entries.Count);
 
             StemPreviewFileMetadata fileMetadata = new() { Id = fileId, Name = fileName };
 
-            await _stemPreviewEntryService.InsertStemPreviewFileMetadata(stemSessionId, fileMetadata, linkedCts.Token);
+            await stemPreviewEntryService.InsertStemPreviewFileMetadata(stemSessionId, fileMetadata, linkedCts.Token);
 
             foreach (StemPreviewEntry entry in entries)
             {
                 entry.FileId = fileId;
             }
 
-            await _stemPreviewEntryService.InsertStemPreviewEntries(stemSessionId, entries, linkedCts.Token);
-            await _stemPreviewEntryService.SetStemPreviewFileAsFullyUploaded(stemSessionId, fileId);
+            await stemPreviewEntryService.InsertStemPreviewEntries(stemSessionId, entries, linkedCts.Token);
+            await stemPreviewEntryService.SetStemPreviewFileAsFullyUploaded(stemSessionId, fileId);
 
             return new(OperationStatus.Succeeded);
         }
@@ -124,11 +154,11 @@ public class StemPreviewService : IStemPreviewService
     {
         try
         {
-            await _stemPreviewEntryService.RefreshIndexes(stemSessionId);
+            await stemPreviewEntryService.RefreshIndexes(stemSessionId);
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to refresh indexes");
+            logger.LogError("Failed to refresh indexes");
             return new OperationResult(OperationStatus.Faulted, ex);
         }
         return new OperationResult(OperationStatus.Succeeded);
@@ -138,11 +168,11 @@ public class StemPreviewService : IStemPreviewService
     {
         try
         {
-            await _stemPreviewEntryService.DeleteFileData(stemSessionId, fileId); ;
+            await stemPreviewEntryService.DeleteFileData(stemSessionId, fileId); ;
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to delete file data");
+            logger.LogError("Failed to delete file data");
             return new OperationResult(OperationStatus.Faulted, ex);
         }
         return new OperationResult(OperationStatus.Succeeded);
@@ -150,7 +180,7 @@ public class StemPreviewService : IStemPreviewService
 
     public async ValueTask DisposeAsync()
     {
-        _ = _stemPreviewEntryService.DisposeAsync();
+        _ = stemPreviewEntryService.DisposeAsync();
         GC.SuppressFinalize(this);
     }
 }

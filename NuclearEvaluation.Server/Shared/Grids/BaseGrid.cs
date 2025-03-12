@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
-using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.Filters;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.Filters;
 using Radzen;
 
 namespace NuclearEvaluation.Server.Shared.Grids;

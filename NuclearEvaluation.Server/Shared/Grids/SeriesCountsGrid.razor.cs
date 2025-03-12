@@ -1,7 +1,7 @@
-﻿using NuclearEvaluation.Library.Models.Views;
-using Microsoft.AspNetCore.Components;
-using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Interfaces;
+﻿using Microsoft.AspNetCore.Components;
+using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Interfaces;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 

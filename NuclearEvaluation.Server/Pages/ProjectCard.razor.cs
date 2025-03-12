@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.Views;
+using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Server.Shared.Charts;
 using NuclearEvaluation.Server.Shared.Generics;

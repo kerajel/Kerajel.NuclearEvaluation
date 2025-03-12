@@ -1,5 +1,5 @@
-﻿using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Interfaces;
+﻿using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Server.Data;
 using System.Linq.Dynamic.Core;
 

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace NuclearEvaluation.Library.Models.Views;
+namespace NuclearEvaluation.Kernel.Models.Views;
 
 public class StemPreviewEntryView
 {

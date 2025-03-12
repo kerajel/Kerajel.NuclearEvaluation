@@ -1,6 +1,6 @@
 ﻿using LinqToDB.Mapping;
 
-namespace NuclearEvaluation.Library.Models.DataManagement;
+namespace NuclearEvaluation.Kernel.Models.DataManagement;
 
 public class StemPreviewFileMetadata
 {

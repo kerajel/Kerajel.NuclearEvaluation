@@ -1,4 +1,4 @@
-﻿namespace NuclearEvaluation.Library.Extensions;
+﻿namespace NuclearEvaluation.Kernel.Extensions;
 
 public static class NumericExtensions
 {

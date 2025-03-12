@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
-using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Interfaces;
+using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Server.Models.Settings;
 using NuclearEvaluation.Server.Models.Upload;
 using NuclearEvaluation.Server.Shared.Grids;
@@ -130,13 +130,13 @@ public partial class StemPreview : IDisposable
                 try
                 {
                     using Stream stream = browserFile.OpenReadStream(browserFile.Size);
-                    OperationResult result = await StemPreviewService.UploadStemPreviewFile(
-                          sessionId,
+                    OperationResult result = await StemPreviewService.EnqueueStemPreviewForProcessingAsync(
                           stream,
                           file.Id,
                           browserFile.Name,
                           file.FileCancellationTokenSource.Token
                     );
+
 
                     file.Status = result.Succeeded ? FileStatus.Uploaded : FileStatus.UploadError;
 

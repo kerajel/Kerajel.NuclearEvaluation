@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace NuclearEvaluation.Library.Models.Domain;
+namespace NuclearEvaluation.Kernel.Models.Domain;
 
 public class ProjectSeries
 {

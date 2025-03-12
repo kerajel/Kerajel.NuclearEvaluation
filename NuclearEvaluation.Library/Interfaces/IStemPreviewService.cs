@@ -1,10 +1,11 @@
 ﻿using Kerajel.Primitives.Models;
 
-namespace NuclearEvaluation.Library.Interfaces;
+namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IStemPreviewService : IAsyncDisposable
 {
     Task<OperationResult> DeleteFileData(Guid stemSessionId, Guid fileId);
+    Task<OperationResult> EnqueueStemPreviewForProcessingAsync(Stream stream, Guid fileId, string fileName, CancellationToken? externalCt = null);
     Task<OperationResult> RefreshIndexes(Guid stemSessionId);
 
     Task<OperationResult> UploadStemPreviewFile(

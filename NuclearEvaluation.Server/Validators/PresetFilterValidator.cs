@@ -1,7 +1,7 @@
-﻿using NuclearEvaluation.Library.Models.Filters;
-using FluentValidation;
+﻿using FluentValidation;
 using NuclearEvaluation.Server.Data;
 using Microsoft.EntityFrameworkCore;
+using NuclearEvaluation.Kernel.Models.Filters;
 
 namespace NuclearEvaluation.Server.Validators;
 

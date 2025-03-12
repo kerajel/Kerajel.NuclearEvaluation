@@ -1,6 +1,6 @@
-﻿using NuclearEvaluation.Library.Commands;
+﻿using NuclearEvaluation.Kernel.Commands;
 
-namespace NuclearEvaluation.Library.Interfaces;
+namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IGenericService
 {

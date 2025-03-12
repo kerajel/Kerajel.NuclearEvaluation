@@ -1,5 +1,4 @@
-﻿using NuclearEvaluation.Library.Helpers;
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Components;
 using Radzen.Blazor;
 using System.Linq.Expressions;
@@ -7,7 +6,8 @@ using FluentValidation.Results;
 using Microsoft.AspNetCore.Components.Web;
 using System.Reflection;
 using Radzen;
-using NuclearEvaluation.Library.Extensions;
+using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Kernel.Helpers;
 
 namespace NuclearEvaluation.Server.Shared.Generics;
 

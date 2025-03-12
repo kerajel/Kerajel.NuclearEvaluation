@@ -1,8 +1,8 @@
 ﻿using LinqToDB;
 using LinqToDB.Data;
 using LinqToDB.EntityFrameworkCore;
-using NuclearEvaluation.Library.Extensions;
-using NuclearEvaluation.Library.Interfaces;
+using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Server.Data;
 using System.Linq.Expressions;
 

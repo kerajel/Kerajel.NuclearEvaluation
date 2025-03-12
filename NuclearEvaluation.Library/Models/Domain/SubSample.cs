@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
-namespace NuclearEvaluation.Library.Models.Domain;
+namespace NuclearEvaluation.Kernel.Models.Domain;
 
 [Index(nameof(SampleId))]
 public class SubSample

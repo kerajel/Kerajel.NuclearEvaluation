@@ -2,8 +2,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NuclearEvaluation.Library.Helpers;
-using NuclearEvaluation.Library.Interfaces;
+using NuclearEvaluation.Kernel.Helpers;
+using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Server.Data;
 using NuclearEvaluation.Server.Services;
 using System.Transactions;

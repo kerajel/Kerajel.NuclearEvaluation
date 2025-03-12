@@ -1,6 +1,6 @@
 ﻿using Radzen;
 
-namespace NuclearEvaluation.Library.Extensions;
+namespace NuclearEvaluation.Kernel.Extensions;
 
 public static partial class LoadDataArgsExtensions
 {

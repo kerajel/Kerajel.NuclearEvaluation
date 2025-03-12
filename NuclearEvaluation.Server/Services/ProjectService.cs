@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Extensions;
-using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.Domain;
-using NuclearEvaluation.Library.Models.Views;
+using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.Domain;
+using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Kernel.Models.Domain;
 using NuclearEvaluation.Server.Data;
 using System.Linq.Expressions;
 using System.Threading;

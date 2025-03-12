@@ -1,9 +1,9 @@
-﻿using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Interfaces;
+﻿using NuclearEvaluation.Kernel.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using NuclearEvaluation.Kernel.Enums;
 
-namespace NuclearEvaluation.Library.Models.Views;
+namespace NuclearEvaluation.Kernel.Models.Views;
 
 public class SampleView
 {

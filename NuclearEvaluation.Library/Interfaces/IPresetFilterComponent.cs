@@ -1,7 +1,7 @@
-﻿using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Models.Filters;
+﻿using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.Kernel.Models.Filters;
 
-namespace NuclearEvaluation.Library.Interfaces;
+namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IPresetFilterComponent
 {

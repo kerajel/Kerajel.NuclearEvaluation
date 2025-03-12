@@ -1,8 +1,8 @@
-﻿using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Interfaces;
+﻿using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.Kernel.Interfaces;
 using System.ComponentModel.DataAnnotations;
 
-namespace NuclearEvaluation.Library.Models.Domain;
+namespace NuclearEvaluation.Kernel.Models.Domain;
 
 public class Series
 {

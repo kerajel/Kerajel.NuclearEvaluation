@@ -7,13 +7,13 @@ using Microsoft.AspNetCore.Components.Authorization;
 using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Server.Validators;
 using NuclearEvaluation.Server.Data;
-using NuclearEvaluation.Library.Interfaces;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using NuclearEvaluation.Server.Models.Identity;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using LinqToDB.EntityFrameworkCore;
 using NuclearEvaluation.Server.Models.Settings;
+using NuclearEvaluation.Kernel.Interfaces;
 
 internal class Program
 {
@@ -70,6 +70,7 @@ internal class Program
         builder.Services.AddTransient<IStemPreviewParser, StemPreviewParser>();
 
         builder.Services.AddScoped<ITempTableService, TempTableService>();
+        builder.Services.AddScoped<IFileService, FileService>();
 
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();

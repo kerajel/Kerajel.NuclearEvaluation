@@ -1,7 +1,7 @@
-﻿using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.Views;
+﻿using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Server.Data;
 
 namespace NuclearEvaluation.Server.Services;

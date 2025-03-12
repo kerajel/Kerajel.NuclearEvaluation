@@ -1,7 +1,7 @@
-﻿using NuclearEvaluation.Library.Models.Views;
-using FluentValidation;
+﻿using FluentValidation;
 using NuclearEvaluation.Server.Data;
 using Microsoft.EntityFrameworkCore;
+using NuclearEvaluation.Kernel.Models.Views;
 
 namespace NuclearEvaluation.Server.Validators;
 

@@ -1,7 +1,7 @@
-﻿using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Models.Views;
+﻿using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Models.Views;
 
-namespace NuclearEvaluation.Library.Interfaces;
+namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IParticleService
 {

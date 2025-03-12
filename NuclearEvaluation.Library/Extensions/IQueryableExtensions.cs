@@ -3,7 +3,7 @@ using Radzen;
 using System.Linq.Dynamic.Core;
 using System.Linq.Expressions;
 
-namespace NuclearEvaluation.Library.Extensions;
+namespace NuclearEvaluation.Kernel.Extensions;
 
 public static class IQueryableExtensions
 {

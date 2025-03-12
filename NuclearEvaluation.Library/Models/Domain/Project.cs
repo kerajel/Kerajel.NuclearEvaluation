@@ -1,8 +1,8 @@
-﻿using NuclearEvaluation.Library.Interfaces;
+﻿using NuclearEvaluation.Kernel.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
-namespace NuclearEvaluation.Library.Models.Domain;
+namespace NuclearEvaluation.Kernel.Models.Domain;
 
 [Index(nameof(Name), IsUnique = true)]
 public class Project

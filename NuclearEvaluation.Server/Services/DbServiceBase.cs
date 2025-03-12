@@ -1,9 +1,9 @@
 ﻿using LinqToDB.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Extensions;
-using NuclearEvaluation.Library.Models.Filters;
+using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Kernel.Models.Filters;
 using NuclearEvaluation.Server.Data;
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;

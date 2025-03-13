@@ -2,8 +2,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 16.0.0.0
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuclearEvaluation.Kernel", "NuclearEvaluation.Library\NuclearEvaluation.Kernel.csproj", "{5986F461-5C04-40C2-A562-67894D6DEAC6}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuclearEvaluation.Server", "NuclearEvaluation.Server\NuclearEvaluation.Server.csproj", "{300B1237-C459-4746-B0FF-4BA89964DA72}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.Tests", "NuclearEvaluation.Tests\NuclearEvaluation.Tests.csproj", "{560FB291-9DD4-4B26-8AF9-98B70E305825}"
@@ -11,6 +9,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kerajel.TabularDataReader", "..\..\..\Desktop\Kerajel.TabularDataReader\Kerajel.TabularDataReader\Kerajel.TabularDataReader.csproj", "{CA216D36-D4F9-40F8-9239-CABFE0E6571E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kerajel.Primitives", "..\..\..\Desktop\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives.csproj", "{28D983D1-A86C-4CFA-A5A1-927FC703D8AA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.Kernel", "NuclearEvaluation.Kernel\NuclearEvaluation.Kernel.csproj", "{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.StemPreviewProcessor", "NuclearEvaluation.StemPreviewProcessor\NuclearEvaluation.StemPreviewProcessor.csproj", "{5EA96826-3A18-4A26-9553-C310B71B039E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.SharedServices", "NuclearEvaluation.SharedServices\NuclearEvaluation.SharedServices.csproj", "{5061DFC0-7F16-43E2-8A19-88380C904600}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,14 +24,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{5986F461-5C04-40C2-A562-67894D6DEAC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5986F461-5C04-40C2-A562-67894D6DEAC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5986F461-5C04-40C2-A562-67894D6DEAC6}.Debug|x86.ActiveCfg = Debug|x86
-		{5986F461-5C04-40C2-A562-67894D6DEAC6}.Debug|x86.Build.0 = Debug|x86
-		{5986F461-5C04-40C2-A562-67894D6DEAC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5986F461-5C04-40C2-A562-67894D6DEAC6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5986F461-5C04-40C2-A562-67894D6DEAC6}.Release|x86.ActiveCfg = Release|Any CPU
-		{5986F461-5C04-40C2-A562-67894D6DEAC6}.Release|x86.Build.0 = Release|Any CPU
 		{300B1237-C459-4746-B0FF-4BA89964DA72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{300B1237-C459-4746-B0FF-4BA89964DA72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{300B1237-C459-4746-B0FF-4BA89964DA72}.Debug|x86.ActiveCfg = Debug|x86
@@ -60,6 +56,30 @@ Global
 		{28D983D1-A86C-4CFA-A5A1-927FC703D8AA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{28D983D1-A86C-4CFA-A5A1-927FC703D8AA}.Release|x86.ActiveCfg = Release|x86
 		{28D983D1-A86C-4CFA-A5A1-927FC703D8AA}.Release|x86.Build.0 = Release|x86
+		{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}.Debug|x86.ActiveCfg = Debug|x86
+		{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}.Debug|x86.Build.0 = Debug|x86
+		{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}.Release|x86.ActiveCfg = Release|x86
+		{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}.Release|x86.Build.0 = Release|x86
+		{5EA96826-3A18-4A26-9553-C310B71B039E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5EA96826-3A18-4A26-9553-C310B71B039E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5EA96826-3A18-4A26-9553-C310B71B039E}.Debug|x86.ActiveCfg = Debug|x86
+		{5EA96826-3A18-4A26-9553-C310B71B039E}.Debug|x86.Build.0 = Debug|x86
+		{5EA96826-3A18-4A26-9553-C310B71B039E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5EA96826-3A18-4A26-9553-C310B71B039E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5EA96826-3A18-4A26-9553-C310B71B039E}.Release|x86.ActiveCfg = Release|Any CPU
+		{5EA96826-3A18-4A26-9553-C310B71B039E}.Release|x86.Build.0 = Release|Any CPU
+		{5061DFC0-7F16-43E2-8A19-88380C904600}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5061DFC0-7F16-43E2-8A19-88380C904600}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5061DFC0-7F16-43E2-8A19-88380C904600}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5061DFC0-7F16-43E2-8A19-88380C904600}.Debug|x86.Build.0 = Debug|Any CPU
+		{5061DFC0-7F16-43E2-8A19-88380C904600}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5061DFC0-7F16-43E2-8A19-88380C904600}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5061DFC0-7F16-43E2-8A19-88380C904600}.Release|x86.ActiveCfg = Release|Any CPU
+		{5061DFC0-7F16-43E2-8A19-88380C904600}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

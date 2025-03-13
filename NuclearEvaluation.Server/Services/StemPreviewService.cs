@@ -14,7 +14,7 @@ namespace NuclearEvaluation.Server.Services;
 public class StemPreviewService(
     IStemPreviewParser stemPreviewParser,
     IStemPreviewEntryService stemPreviewEntryService,
-    IFileService fileService,
+    IEfsFileService fileService,
     IMessager messager,
     IOptions<StemSettings> stemSettingsOptions,
     ILogger<StemPreviewService> logger) : IStemPreviewService
@@ -30,7 +30,8 @@ public class StemPreviewService(
                 await Task.CompletedTask;
             });
 
-    public async Task<OperationResult> EnqueueStemPreviewForProcessingAsync(
+    public async Task<OperationResult> EnqueueStemPreviewForProcessing(
+        Guid sessionId,
         Stream stream,
         Guid fileId,
         string fileName,
@@ -54,9 +55,13 @@ public class StemPreviewService(
                     await fileService.Write(writeFileCommand, ct);
                     ProcessStemPreviewMessage message = new()
                     {
+                        SessionId = sessionId,
                         FileId = fileId,
                     };
-                    await messager.PublishMessageAsync(message, stemSettingsOptions.Value.ProcessingQueueName);
+                    await messager.PublishMessageAsync(
+                        message,
+                        stemSettingsOptions.Value.ProcessingExchangeName,
+                        stemSettingsOptions.Value.ProcessingExchangeRoutingKey);
                     return result;
                 },
                 linkedCts.Token);

@@ -1,0 +1,155 @@
+﻿using Kerajel.Primitives.Enums;
+using Kerajel.Primitives.Models;
+using Microsoft.JSInterop;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.Files;
+
+namespace NuclearEvaluation.SharedServices.Services;
+
+/// <summary>
+/// In an ideal world, our files would be hanging out in Amazon EFS, but until the budget improves, local storage will have to do!
+/// </summary>
+public class EfsFileService : IEfsFileService
+{
+    private const string _subFolder = "NuclearEvaluationStorage";
+    private const int _bufferSize = 81920;
+
+    public async Task<OperationResult> Write(WriteFileCommand command, CancellationToken ct = default)
+    {
+        OperationResult result;
+
+        try
+        {
+            DirectoryInfo fileDirectory = GetFileDirectory(command.FileId);
+            if (!fileDirectory.Exists)
+            {
+                fileDirectory.Create();
+            }
+
+            FileInfo fileInfo = new(Path.Combine(fileDirectory.FullName, command.FileName));
+
+            if (command.IsTemporary)
+            {
+                fileInfo.Attributes = FileAttributes.Temporary;
+            }
+
+            await WriteToFile(fileInfo, command.FileContent, ct);
+
+            result = new(OperationStatus.Succeeded);
+        }
+        catch (Exception ex)
+        {
+            result = new(OperationStatus.Faulted, "Could write file", ex);
+        }
+
+        return result;
+    }
+
+    static async Task WriteToFile(FileInfo fileInfo, Stream stream, CancellationToken ct = default)
+    {
+        using FileStream fileStream = new(
+            fileInfo.FullName,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            _bufferSize,
+            useAsync: true);
+
+        await stream.CopyToAsync(fileStream, _bufferSize, ct);
+    }
+
+    public Task<OperationResult<GetFilePathResponse>> GetPath(Guid fileGuid, CancellationToken ct = default)
+    {
+        OperationResult<GetFilePathResponse> result;
+
+        try
+        {
+            DirectoryInfo fileDirectory = GetFileDirectory(fileGuid);
+            if (!fileDirectory.Exists || fileDirectory.GetFiles().Length == 0)
+            {
+                result = new(OperationStatus.Faulted, "File not found");
+                return Task.FromResult(result);
+            }
+
+            FileInfo fileInfo = fileDirectory.GetFiles()[0];
+            GetFilePathResponse response = new(fileInfo.FullName);
+            result = new(OperationStatus.Succeeded, response);
+        }
+        catch (Exception ex)
+        {
+            result = new(OperationStatus.Faulted, "Could not access file", ex);
+        }
+
+        return Task.FromResult(result);
+    }
+
+    public async Task<OperationResult> Delete(Guid fileGuid, CancellationToken ct = default)
+    {
+        OperationResult result;
+
+        try
+        {
+            DirectoryInfo fileDirectory = GetFileDirectory(fileGuid);
+            if (fileDirectory.Exists)
+            {
+                await Task.Run(() =>
+                {
+                    fileDirectory.Delete(recursive: true);
+                }, ct);
+            }
+            result = new(OperationStatus.Succeeded);
+        }
+        catch (Exception ex)
+        {
+            result = new(OperationStatus.Faulted, "Could not delete a file", ex);
+        }
+
+        return result;
+    }
+
+    public Task<OperationResult<string>> GetExtension(Guid fileGuid, CancellationToken ct = default)
+    {
+        OperationResult<string> result;
+
+        try
+        {
+            DirectoryInfo fileDirectory = GetFileDirectory(fileGuid);
+            if (fileDirectory.Exists)
+            {
+                FileInfo[] files = fileDirectory.GetFiles();
+                if (files.Length == 1)
+                {
+                    string extension = files[0].Extension;
+                    result = new (OperationStatus.Succeeded, extension);
+                    return Task.FromResult(result);
+                }
+            }
+            result = new(OperationStatus.Faulted, "File not found");
+        }
+        catch (Exception ex)
+        {
+            result = new(OperationStatus.Faulted, "Error accessing file", ex);
+        }
+
+        return Task.FromResult(result);
+    }
+
+    static DirectoryInfo GetStorageDirectory()
+    {
+        string currentDirectory = Directory.GetCurrentDirectory();
+        DirectoryInfo parentDirectoryInfo = Directory.GetParent(currentDirectory)!;
+        DirectoryInfo storageDirectory = new(Path.Combine(parentDirectoryInfo.FullName, _subFolder));
+        if (!storageDirectory.Exists)
+        {
+            storageDirectory.Create();
+        }
+        return storageDirectory;
+    }
+
+    static DirectoryInfo GetFileDirectory(Guid fileGuid)
+    {
+        DirectoryInfo storageDirectory = GetStorageDirectory();
+        DirectoryInfo fileDirectory = new(Path.Combine(storageDirectory.FullName, fileGuid.ToString()));
+        return fileDirectory;
+    }
+}

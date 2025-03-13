@@ -31,8 +31,11 @@
 		<PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="9.103.7" />
 	</ItemGroup>
 	<ItemGroup>
+		<ProjectReference Include="..\..\..\..\Desktop\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives.csproj" />
 		<ProjectReference Include="..\..\..\..\Desktop\Kerajel.TabularDataReader\Kerajel.TabularDataReader\Kerajel.TabularDataReader.csproj" />
+		<ProjectReference Include="..\NuclearEvaluation.Kernel\NuclearEvaluation.Kernel.csproj" />
 		<ProjectReference Include="..\NuclearEvaluation.Library\NuclearEvaluation.Kernel.csproj" />
+		<ProjectReference Include="..\NuclearEvaluation.SharedServices\NuclearEvaluation.SharedServices.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">

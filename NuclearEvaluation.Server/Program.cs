@@ -15,6 +15,7 @@ using LinqToDB.EntityFrameworkCore;
 using NuclearEvaluation.Server.Models.Settings;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Messaging;
+using NuclearEvaluation.SharedServices.Services;
 
 internal class Program
 {
@@ -74,7 +75,7 @@ internal class Program
         builder.Services.AddTransient<IStemPreviewParser, StemPreviewParser>();
 
         builder.Services.AddScoped<ITempTableService, TempTableService>();
-        builder.Services.AddScoped<IFileService, FileService>();
+        builder.Services.AddScoped<IEfsFileService, EfsFileService>();
         builder.Services.AddScoped<IMessager, RabbitMQPublisher>();
 
         builder.Services.AddScoped<PresetFilterValidator>();

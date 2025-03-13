@@ -130,7 +130,7 @@ public partial class StemPreview : IDisposable
                 try
                 {
                     using Stream stream = browserFile.OpenReadStream(browserFile.Size);
-                    OperationResult result = await StemPreviewService.EnqueueStemPreviewForProcessingAsync(
+                    OperationResult result = await StemPreviewService.EnqueueStemPreviewForProcessing(
                           stream,
                           file.Id,
                           browserFile.Name,

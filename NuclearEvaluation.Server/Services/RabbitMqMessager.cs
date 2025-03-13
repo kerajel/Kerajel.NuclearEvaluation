@@ -23,17 +23,13 @@ public class RabbitMQPublisher : IMessager
         };
     }
 
-    public async Task PublishMessageAsync<T>(T message, string queueName)
+    public async Task PublishMessageAsync<T>(T message, string exchangeName, string routingKey)
     {
         using IConnection connection = await _connectionFactory.CreateConnectionAsync();
         using IChannel channel = await connection.CreateChannelAsync();
 
-        await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false,
-            arguments: null);
-
         byte[] body = JsonSerializer.SerializeToUtf8Bytes(message);
 
-        //TODO Publish to an exchange, not queue
-        await channel.BasicPublishAsync(exchange: string.Empty, routingKey: queueName, body: body);
+        await channel.BasicPublishAsync(exchange: exchangeName, routingKey: routingKey, body: body);
     }
 }

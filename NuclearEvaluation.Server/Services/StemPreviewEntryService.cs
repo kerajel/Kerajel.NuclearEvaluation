@@ -109,7 +109,6 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
 
             if (!command.HasOrderBy)
             {
-                //the exception occurs only if I specify this orderby-thenby expression, why?
                 baseQuery = baseQuery.OrderBy(x => x.Id)
                     .ThenBy(x => x.FileId);
             }

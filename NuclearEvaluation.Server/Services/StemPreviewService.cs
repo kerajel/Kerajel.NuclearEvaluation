@@ -1,8 +1,11 @@
 ﻿using Kerajel.Primitives.Enums;
 using Kerajel.Primitives.Models;
+using Microsoft.Extensions.Options;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.DataManagement;
 using NuclearEvaluation.Kernel.Models.Files;
+using NuclearEvaluation.Kernel.Models.Messaging.StemPreview;
+using NuclearEvaluation.Server.Models.Settings;
 using Polly;
 using Polly.Bulkhead;
 
@@ -12,6 +15,8 @@ public class StemPreviewService(
     IStemPreviewParser stemPreviewParser,
     IStemPreviewEntryService stemPreviewEntryService,
     IFileService fileService,
+    IMessager messager,
+    IOptions<StemSettings> stemSettingsOptions,
     ILogger<StemPreviewService> logger) : IStemPreviewService
 {
     static readonly TimeSpan uploadTimeout = TimeSpan.FromMinutes(5);
@@ -47,8 +52,11 @@ public class StemPreviewService(
                 async (CancellationToken ct) =>
                 {
                     await fileService.Write(writeFileCommand, ct);
-                    //upload to temp storate
-                    //send to queue
+                    ProcessStemPreviewMessage message = new()
+                    {
+                        FileId = fileId,
+                    };
+                    await messager.PublishMessageAsync(message, stemSettingsOptions.Value.ProcessingQueueName);
                     return result;
                 },
                 linkedCts.Token);

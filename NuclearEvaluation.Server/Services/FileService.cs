@@ -22,7 +22,6 @@ namespace NuclearEvaluation.Server.Services
             await WriteToFile(fileInfo, command.FileContent, ct);
             if (command.IsTemporary)
             {
-                fileDirectory.Attributes = FileAttributes.Temporary;
                 fileInfo.Attributes = FileAttributes.Temporary;
             }
         }

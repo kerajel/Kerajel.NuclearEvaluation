@@ -14,6 +14,7 @@ using Serilog.Sinks.SystemConsole.Themes;
 using LinqToDB.EntityFrameworkCore;
 using NuclearEvaluation.Server.Models.Settings;
 using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.Messaging;
 
 internal class Program
 {
@@ -23,6 +24,9 @@ internal class Program
 
         builder.Configuration.AddJsonFile("stemSettings.json", optional: false, reloadOnChange: true);
         builder.Services.Configure<StemSettings>(builder.Configuration.GetSection(nameof(StemSettings)));
+
+        builder.Configuration.AddJsonFile("rabbitMqSettings.json", optional: false, reloadOnChange: true);
+        builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection(nameof(RabbitMQSettings)));
 
         builder.Services.Configure<KestrelServerOptions>(options =>
         {
@@ -71,6 +75,7 @@ internal class Program
 
         builder.Services.AddScoped<ITempTableService, TempTableService>();
         builder.Services.AddScoped<IFileService, FileService>();
+        builder.Services.AddScoped<IMessager, RabbitMQPublisher>();
 
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();

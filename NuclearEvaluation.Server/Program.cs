@@ -28,12 +28,6 @@ internal class Program
         builder.Configuration.AddJsonFile("stemSettings.json", optional: false, reloadOnChange: true);
         builder.Services.Configure<StemSettings>(builder.Configuration.GetSection(nameof(StemSettings)));
 
-        builder.Configuration.AddJsonFile("rabbitMqSettings.json", optional: false, reloadOnChange: true);
-        builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection(nameof(RabbitMQSettings)));
-
-        builder.Configuration.AddJsonFile("tempTableServiceSettings.json", optional: false, reloadOnChange: true);
-        builder.Services.Configure<TempTableServiceSettings>(builder.Configuration.GetSection(nameof(TempTableServiceSettings)));
-
         builder.Services.Configure<KestrelServerOptions>(options =>
         {
             options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100 MB

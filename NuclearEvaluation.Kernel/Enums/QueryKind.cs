@@ -1,7 +1,8 @@
 ﻿namespace NuclearEvaluation.Kernel.Enums;
 
-public enum TableKind : byte
+public enum QueryKind : byte
 {
-    Persisted = 1,
-    Temporary = 2,
+    Basic = 1,
+    DecayCorrected = 2,
+    QueryBuilder = 3,
 }

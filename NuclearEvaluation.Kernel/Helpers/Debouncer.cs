@@ -3,10 +3,11 @@
 public class Debouncer<TResult>
 {
     readonly TimeSpan _debounceInterval;
-    readonly object _syncRoot = new();
+    readonly Lock _syncRoot = new();
+    readonly List<TaskCompletionSource<TResult>> _pendingTasks = [];
+
     Timer? _debounceTimer;
     CancellationTokenSource? _cancellationTokenSource;
-    List<TaskCompletionSource<TResult>> _pendingTasks = new();
     Func<Task<TResult>>? _executeAction;
 
     public Debouncer(TimeSpan interval)

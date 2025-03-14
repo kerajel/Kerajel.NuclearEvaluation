@@ -97,7 +97,7 @@ public class StemPreviewService(
 
             if (!deleteFileResult.Succeeded)
             {
-                logger.LogError("Failed to delete {fileId} from the EFS", fileId);
+                logger.LogError("Failed to delete file '{fileId}' from the EFS", fileId);
             }
 
             return new OperationResult(OperationStatus.Succeeded);
@@ -122,7 +122,7 @@ public class StemPreviewService(
     {
         try
         {
-            await stemPreviewEntryService.DeleteFileData(stemSessionId, fileId); ;
+            await stemPreviewEntryService.DeleteFileData(stemSessionId, fileId);
         }
         catch (Exception ex)
         {

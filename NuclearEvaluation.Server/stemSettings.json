@@ -1,8 +1,5 @@
 {
   "StemSettings": {
-    "MaxPreviewFileSize": 52428800,
-    "ProcessingExchangeRoutingKey": "37cc9c05-49f8-4c92-9133-79378759fdec",
-    "ProcessingExchangeName": "StemPreviewProcessingExchange",
-    "ResponseQueueName": "StemPreviewResponseQueue"
+    "MaxPreviewFileSize": 52428800
   }
 }

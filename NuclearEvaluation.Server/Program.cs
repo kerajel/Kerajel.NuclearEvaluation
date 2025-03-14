@@ -7,13 +7,17 @@ using Microsoft.AspNetCore.Components.Authorization;
 using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Server.Validators;
 using NuclearEvaluation.Server.Data;
-using NuclearEvaluation.Library.Interfaces;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using NuclearEvaluation.Server.Models.Identity;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using LinqToDB.EntityFrameworkCore;
-using NuclearEvaluation.Server.Models.Settings;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.Messaging;
+using NuclearEvaluation.SharedServices.Services;
+using NuclearEvaluation.Kernel.Contexts;
+using NuclearEvaluation.Kernel.Models.Temporary;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
 internal class Program
 {
@@ -70,6 +74,8 @@ internal class Program
         builder.Services.AddTransient<IStemPreviewParser, StemPreviewParser>();
 
         builder.Services.AddScoped<ITempTableService, TempTableService>();
+        builder.Services.AddScoped<IEfsFileService, EfsFileService>();
+        builder.Services.AddScoped<IMessager, RabbitMQPublisher>();
 
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();

@@ -1,10 +1,10 @@
-﻿using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Extensions;
-using NuclearEvaluation.Library.Models.Filters;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Radzen;
 using Radzen.Blazor;
-using NuclearEvaluation.Library.Interfaces;
+using NuclearEvaluation.Kernel.Models.Filters;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Kernel.Enums;
 
 namespace NuclearEvaluation.Server.Shared.Evaluation.QueryBuilder;
 

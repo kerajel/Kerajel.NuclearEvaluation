@@ -1,5 +1,5 @@
-﻿using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Models.Views;
+﻿using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Server.Shared.Grids;
 
 namespace NuclearEvaluation.Server.Shared.DataManagement;

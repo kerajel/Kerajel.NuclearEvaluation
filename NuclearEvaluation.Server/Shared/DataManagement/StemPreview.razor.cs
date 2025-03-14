@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
-using NuclearEvaluation.Library.Enums;
-using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Server.Models.Settings;
+using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using NuclearEvaluation.Server.Models.Upload;
 using NuclearEvaluation.Server.Shared.Grids;
 using NuclearEvaluation.Server.Shared.Misc;
@@ -137,6 +137,7 @@ public partial class StemPreview : IDisposable
                           browserFile.Name,
                           file.FileCancellationTokenSource.Token
                     );
+
 
                     file.Status = result.Succeeded ? FileStatus.Uploaded : FileStatus.UploadError;
 

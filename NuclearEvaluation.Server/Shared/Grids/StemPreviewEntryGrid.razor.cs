@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Radzen.Blazor;
 using Radzen;
-using NuclearEvaluation.Library.Commands;
 using System.Linq.Expressions;
-using NuclearEvaluation.Library.Interfaces;
-using NuclearEvaluation.Library.Models.DataManagement;
-using NuclearEvaluation.Library.Models.Views;
+using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 

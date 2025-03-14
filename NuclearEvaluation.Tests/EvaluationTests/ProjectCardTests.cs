@@ -1,6 +1,6 @@
 using AngleSharp.Dom;
 using Bunit;
-using NuclearEvaluation.Library.Models.Domain;
+using NuclearEvaluation.Kernel.Models.Domain;
 using NuclearEvaluation.Server.Pages;
 using NuclearEvaluation.Tests;
 using Shouldly;

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
-using NuclearEvaluation.Library.Commands;
-using NuclearEvaluation.Library.Interfaces;
+using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Interfaces;
 using Radzen;
 using Radzen.Blazor;
 using System.Linq.Dynamic.Core;

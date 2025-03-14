@@ -16,6 +16,7 @@ using NuclearEvaluation.Server.Models.Settings;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Messaging;
 using NuclearEvaluation.SharedServices.Services;
+using NuclearEvaluation.Kernel.Contexts;
 
 internal class Program
 {

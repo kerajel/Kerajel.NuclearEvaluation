@@ -3,6 +3,7 @@ using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Plotting;
 using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Server.Data;
+using NuclearEvaluation.SharedServices.Services;
 using System.Linq.Expressions;
 
 namespace NuclearEvaluation.Server.Services;

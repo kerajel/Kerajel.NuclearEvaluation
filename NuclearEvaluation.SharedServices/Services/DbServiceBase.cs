@@ -1,6 +1,7 @@
 ﻿using LinqToDB.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Contexts;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Extensions;
 using NuclearEvaluation.Kernel.Models.Filters;
@@ -11,7 +12,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Z.EntityFramework.Plus;
 
-namespace NuclearEvaluation.Server.Services;
+namespace NuclearEvaluation.SharedServices.Services;
 
 public class DbServiceBase
 {

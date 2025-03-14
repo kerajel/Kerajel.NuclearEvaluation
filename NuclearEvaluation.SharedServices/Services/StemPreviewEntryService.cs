@@ -1,15 +1,15 @@
 ﻿using System.Collections.Concurrent;
 using LinqToDB;
 using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Contexts;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.DataManagement;
 using NuclearEvaluation.Kernel.Models.Views;
-using NuclearEvaluation.Server.Data;
 using Polly;
 using Polly.Bulkhead;
 
-namespace NuclearEvaluation.Server.Services;
+namespace NuclearEvaluation.SharedServices.Services;
 
 public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
 {
@@ -117,7 +117,7 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
         });
     }
 
-    public async Task InsertStemPreviewFileMetadata(Guid stemSessionId, StemPreviewFileMetadata fileMetadata, CancellationToken ct = default(CancellationToken))
+    public async Task InsertStemPreviewFileMetadata(Guid stemSessionId, StemPreviewFileMetadata fileMetadata, CancellationToken ct = default)
     {
         await ExecuteWithBulkheadPolicy(stemSessionId, async () =>
         {
@@ -128,7 +128,7 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
         });
     }
 
-    public async Task InsertStemPreviewEntries(Guid stemSessionId, IEnumerable<StemPreviewEntry> entries, CancellationToken ct = default(CancellationToken))
+    public async Task InsertStemPreviewEntries(Guid stemSessionId, IAsyncEnumerable<StemPreviewEntry> entries, CancellationToken ct = default)
     {
         await ExecuteWithBulkheadPolicy(stemSessionId, async () =>
         {
@@ -175,7 +175,7 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
 
     public async ValueTask DisposeAsync()
     {
-        _ =_tempTableService?.DisposeAsync();
+        _ = _tempTableService?.DisposeAsync();
         GC.SuppressFinalize(this);
     }
 }

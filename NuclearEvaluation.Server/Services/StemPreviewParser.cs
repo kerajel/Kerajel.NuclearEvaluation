@@ -1,9 +1,7 @@
 ﻿using CsvHelper.Configuration;
 using CsvHelper;
 using Kerajel.Primitives.Models;
-using Kerajel.TabularDataReader.Services;
 using System.Globalization;
-using Kerajel.Primitives.Enums;
 using CsvHelper.TypeConversion;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.DataManagement;
@@ -19,21 +17,27 @@ public class StemPreviewParser : IStemPreviewParser
 
     public async Task<OperationResult<IReadOnlyCollection<StemPreviewEntry>>> Parse(Stream stream, string fileName, CancellationToken ct = default)
     {
-        OperationResult<string> operationResult = await TabularDataReader.Read(stream, fileName);
-        if (!operationResult.Succeeded)
-        {
-            return new(OperationStatus.Faulted, "Error reading the file");
-        }
+        return null;
+        //OperationResult<string> operationResult = await TabularDataReader.Read(stream, fileName);
+        //if (!operationResult.Succeeded)
+        //{
+        //    return new(OperationStatus.Faulted, "Error reading the file");
+        //}
 
-        using TextReader reader = new StringReader(operationResult.Content!);
-        using CsvReader csvReader = new(reader, _csvConfig);
-        csvReader.Context.RegisterClassMap<StemPreviewEntryMap>();
+        //using TextReader reader = new StringReader(operationResult.Content!);
+        //using CsvReader csvReader = new(reader, _csvConfig);
+        //csvReader.Context.RegisterClassMap<StemPreviewEntryMap>();
 
-        //TODO handle mapping errors
-        StemPreviewEntry[] entries = csvReader.GetRecords<StemPreviewEntry>()
-            .ToArray();
+        ////TODO handle mapping errors
+        //StemPreviewEntry[] entries = csvReader.GetRecords<StemPreviewEntry>()
+        //    .ToArray();
 
-        return new(OperationStatus.Succeeded, entries);
+        //return new(OperationStatus.Succeeded, entries);
+    }
+
+    Task<OperationResult<IReadOnlyCollection<Kernel.Models.DataManagement.StemPreviewEntry>>> IStemPreviewParser.Parse(Stream stream, string fileName, CancellationToken ct)
+    {
+        throw new NotImplementedException();
     }
 
     private sealed class StemPreviewEntryMap : ClassMap<StemPreviewEntry>

@@ -131,6 +131,7 @@ public partial class StemPreview : IDisposable
                 {
                     using Stream stream = browserFile.OpenReadStream(browserFile.Size);
                     OperationResult result = await StemPreviewService.EnqueueStemPreviewForProcessing(
+                          sessionId,
                           stream,
                           file.Id,
                           browserFile.Name,

@@ -83,85 +83,85 @@ public class StemPreviewService(
         return result;
     }
 
-    public async Task<OperationResult> UploadStemPreviewFile(
-        Guid stemSessionId,
-        Stream stream,
-        Guid fileId,
-        string fileName,
-        CancellationToken? externalCt = default)
-    {
-        using CancellationTokenSource internalCts = new(uploadTimeout);
+    //public async Task<OperationResult> UploadStemPreviewFile(
+    //    Guid stemSessionId,
+    //    Stream stream,
+    //    Guid fileId,
+    //    string fileName,
+    //    CancellationToken? externalCt = default)
+    //{
+    //    using CancellationTokenSource internalCts = new(uploadTimeout);
 
-        using CancellationTokenSource linkedCts = externalCt.HasValue
-            ? CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value)
-            : internalCts;
+    //    using CancellationTokenSource linkedCts = externalCt.HasValue
+    //        ? CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value)
+    //        : internalCts;
 
-        OperationResult result = new(OperationStatus.Succeeded);
+    //    OperationResult result = new(OperationStatus.Succeeded);
 
-        try
-        {
-            result = await bulkheadPolicy.ExecuteAsync(
-                async (CancellationToken ct) =>
-                {
-                    await Execute();
-                    return result;
-                },
-                linkedCts.Token);
-        }
-        catch (BulkheadRejectedException ex)
-        {
-            result = new(OperationStatus.Faulted, "Too many concurrent uploads", ex);
-        }
-        catch (OperationCanceledException ex)
-        {
-            result = new(OperationStatus.Faulted, "The upload was canceled or timed out", ex);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error processing the file");
-            result = new(OperationStatus.Faulted, "Error processing the file", ex);
-        }
-        finally
-        {
-            // Skipping a full transaction to minimize logging overhead and boost performance
-            // In case of an error, we clean up by deleting any file entries that were partially inserted
-            if (!result.Succeeded)
-            {
-                await stemPreviewEntryService.DeleteFileData(stemSessionId, fileId);
-            }
-        }
+    //    try
+    //    {
+    //        result = await bulkheadPolicy.ExecuteAsync(
+    //            async (CancellationToken ct) =>
+    //            {
+    //                await Execute();
+    //                return result;
+    //            },
+    //            linkedCts.Token);
+    //    }
+    //    catch (BulkheadRejectedException ex)
+    //    {
+    //        result = new(OperationStatus.Faulted, "Too many concurrent uploads", ex);
+    //    }
+    //    catch (OperationCanceledException ex)
+    //    {
+    //        result = new(OperationStatus.Faulted, "The upload was canceled or timed out", ex);
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        logger.LogError(ex, "Error processing the file");
+    //        result = new(OperationStatus.Faulted, "Error processing the file", ex);
+    //    }
+    //    finally
+    //    {
+    //        // Skipping a full transaction to minimize logging overhead and boost performance
+    //        // In case of an error, we clean up by deleting any file entries that were partially inserted
+    //        if (!result.Succeeded)
+    //        {
+    //            await stemPreviewEntryService.DeleteFileData(stemSessionId, fileId);
+    //        }
+    //    }
 
-        return result;
+    //    return result;
 
-        async Task<OperationResult> Execute()
-        {
-            logger.LogInformation("Parsing STEM entries");
-            OperationResult<IReadOnlyCollection<StemPreviewEntry>> parseResult = await stemPreviewParser.Parse(stream, fileName, linkedCts.Token);
+    //    async Task<OperationResult> Execute()
+    //    {
+    //        logger.LogInformation("Parsing STEM entries");
+    //        OperationResult<IReadOnlyCollection<StemPreviewEntry>> parseResult = await stemPreviewParser.Parse(stream, fileName, linkedCts.Token);
 
-            if (!parseResult.Succeeded)
-            {
-                return new(OperationStatus.Faulted, "Error reading the file");
-            }
+    //        if (!parseResult.Succeeded)
+    //        {
+    //            return new(OperationStatus.Faulted, "Error reading the file");
+    //        }
 
-            IReadOnlyCollection<StemPreviewEntry> entries = parseResult.Content!;
+    //        IReadOnlyCollection<StemPreviewEntry> entries = parseResult.Content!;
 
-            logger.LogInformation("Parsed {stemEntryCount} entries", entries.Count);
+    //        logger.LogInformation("Parsed {stemEntryCount} entries", entries.Count);
 
-            StemPreviewFileMetadata fileMetadata = new() { Id = fileId, Name = fileName };
+    //        StemPreviewFileMetadata fileMetadata = new() { Id = fileId, Name = fileName };
 
-            await stemPreviewEntryService.InsertStemPreviewFileMetadata(stemSessionId, fileMetadata, linkedCts.Token);
+    //        await stemPreviewEntryService.InsertStemPreviewFileMetadata(stemSessionId, fileMetadata, linkedCts.Token);
 
-            foreach (StemPreviewEntry entry in entries)
-            {
-                entry.FileId = fileId;
-            }
+    //        foreach (StemPreviewEntry entry in entries)
+    //        {
+    //            entry.FileId = fileId;
+    //        }
 
-            await stemPreviewEntryService.InsertStemPreviewEntries(stemSessionId, entries, linkedCts.Token);
-            await stemPreviewEntryService.SetStemPreviewFileAsFullyUploaded(stemSessionId, fileId);
+    //        await stemPreviewEntryService.InsertStemPreviewEntries(stemSessionId, entries, linkedCts.Token);
+    //        await stemPreviewEntryService.SetStemPreviewFileAsFullyUploaded(stemSessionId, fileId);
 
-            return new(OperationStatus.Succeeded);
-        }
-    }
+    //        return new(OperationStatus.Succeeded);
+    //    }
+    //}
 
     public async Task<OperationResult> RefreshIndexes(Guid stemSessionId)
     {
@@ -195,5 +195,10 @@ public class StemPreviewService(
     {
         _ = stemPreviewEntryService.DisposeAsync();
         GC.SuppressFinalize(this);
+    }
+
+    public Task<OperationResult> UploadStemPreviewFile(Guid sessionId, Stream stream, Guid fileId, string fileName, CancellationToken? ct = null)
+    {
+        throw new NotImplementedException();
     }
 }

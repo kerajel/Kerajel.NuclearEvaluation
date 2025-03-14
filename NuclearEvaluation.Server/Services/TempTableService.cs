@@ -1,9 +1,10 @@
 ﻿using LinqToDB;
 using LinqToDB.Data;
 using LinqToDB.EntityFrameworkCore;
+using NuclearEvaluation.Kernel.Contexts;
 using NuclearEvaluation.Kernel.Extensions;
 using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.Server.Data;
+using NuclearEvaluation.SharedServices.Services;
 using System.Linq.Expressions;
 
 namespace NuclearEvaluation.Server.Services;
@@ -41,7 +42,7 @@ public class TempTableService : DbServiceBase, ITempTableService
         return default;
     }
 
-    public async Task BulkCopyInto<T>(string tableName, IEnumerable<T> entries, CancellationToken ct = default) where T : class
+    public async Task BulkCopyInto<T>(string tableName, IAsyncEnumerable<T> entries, CancellationToken ct = default) where T : class
     {
         BulkCopyOptions options = new()
         {

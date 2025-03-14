@@ -5,6 +5,7 @@ using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Kernel.Models.Plotting;
 using NuclearEvaluation.Server.Data;
+using NuclearEvaluation.SharedServices.Services;
 
 namespace NuclearEvaluation.Server.Services;
 

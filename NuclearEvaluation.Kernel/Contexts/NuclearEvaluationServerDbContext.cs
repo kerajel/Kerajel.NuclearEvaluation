@@ -4,7 +4,7 @@ using NuclearEvaluation.Kernel.Models.Filters;
 using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Kernel.Models.Domain;
 
-namespace NuclearEvaluation.Server.Data;
+namespace NuclearEvaluation.Kernel.Contexts;
 
 public class NuclearEvaluationServerDbContext : DbContext
 {
@@ -51,7 +51,7 @@ public class NuclearEvaluationServerDbContext : DbContext
         modelBuilder.Entity<Sample>()
             .Property(x => x.SampleType)
             .HasColumnType("tinyint")
-            .HasComputedColumnSql(Kernel.Models.Domain.Sample.GetSampleTypeSqlExpression());
+            .HasComputedColumnSql(Models.Domain.Sample.GetSampleTypeSqlExpression());
 
         modelBuilder.Entity<PresetFilterEntry>()
             .Property(b => b.SerializedDescriptors)

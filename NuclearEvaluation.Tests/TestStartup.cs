@@ -8,6 +8,7 @@ using NuclearEvaluation.Server.Data;
 using NuclearEvaluation.Server.Models.Identity;
 using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Server.Validators;
+using NuclearEvaluation.SharedServices.Services;
 using Radzen;
 
 namespace NuclearEvaluation.Tests;

@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Models.Views;
-using NuclearEvaluation.Kernel.Models.DataManagement;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 

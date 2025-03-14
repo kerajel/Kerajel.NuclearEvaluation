@@ -1,13 +1,14 @@
 ﻿using LinqToDB;
 using LinqToDB.Data;
 using LinqToDB.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using NuclearEvaluation.Kernel.Contexts;
 using NuclearEvaluation.Kernel.Extensions;
 using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.SharedServices.Services;
+using NuclearEvaluation.Kernel.Models.Temporary;
 using System.Linq.Expressions;
 
-namespace NuclearEvaluation.Server.Services;
+namespace NuclearEvaluation.SharedServices.Services;
 
 public class TempTableService : DbServiceBase, ITempTableService
 {
@@ -17,8 +18,13 @@ public class TempTableService : DbServiceBase, ITempTableService
 
     readonly Dictionary<string, dynamic> tables = [];
 
-    public TempTableService(NuclearEvaluationServerDbContext dbContext) : base(dbContext)
+    readonly TempTableServiceSettings _settings;
+
+    public TempTableService(
+        NuclearEvaluationServerDbContext dbContext,
+        IOptions<TempTableServiceSettings> serviceOptions) : base(dbContext)
     {
+        _settings = serviceOptions.Value;
     }
 
     public async Task<IQueryable<T>> EnsureCreated<T>(string tableName) where T : class
@@ -99,7 +105,7 @@ public class TempTableService : DbServiceBase, ITempTableService
 
     public async ValueTask DisposeAsync()
     {
-        if (tables.Count != 0)
+        if (tables.Count != 0 && !_settings.RetainTables)
         {
             using DataConnection dc = _dbContext.CreateLinqToDBConnection();
             foreach (string tableName in tables.Keys)

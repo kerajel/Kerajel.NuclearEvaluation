@@ -1,12 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using NuclearEvaluation.Kernel.Contexts;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Plotting;
 using NuclearEvaluation.Kernel.Models.Views;
-using NuclearEvaluation.Server.Data;
-using NuclearEvaluation.SharedServices.Services;
 using System.Linq.Expressions;
 
-namespace NuclearEvaluation.Server.Services;
+namespace NuclearEvaluation.SharedServices.Services;
 
 public class ChartService : DbServiceBase, IChartService
 {
@@ -63,21 +62,21 @@ public class ChartService : DbServiceBase, IChartService
             {
                 x.Isotope,
                 Bin = x.Value == null ? "n.m." :
-                      (x.Value < 1) ? "< 1" :
-                      (x.Value >= 1 && x.Value < 2) ? "1-2" :
-                      (x.Value >= 2 && x.Value < 3) ? "2-3" :
-                      (x.Value >= 3 && x.Value < 4) ? "3-4" :
-                      (x.Value >= 4 && x.Value < 5) ? "4-5" :
-                      (x.Value >= 5 && x.Value < 6) ? "5-6" :
-                      (x.Value >= 6 && x.Value < 7) ? "6-7" :
-                      (x.Value >= 7 && x.Value < 8) ? "7-8" :
-                      (x.Value >= 8 && x.Value < 9) ? "8-9" :
+                      x.Value < 1 ? "< 1" :
+                      x.Value >= 1 && x.Value < 2 ? "1-2" :
+                      x.Value >= 2 && x.Value < 3 ? "2-3" :
+                      x.Value >= 3 && x.Value < 4 ? "3-4" :
+                      x.Value >= 4 && x.Value < 5 ? "4-5" :
+                      x.Value >= 5 && x.Value < 6 ? "5-6" :
+                      x.Value >= 6 && x.Value < 7 ? "6-7" :
+                      x.Value >= 7 && x.Value < 8 ? "7-8" :
+                      x.Value >= 8 && x.Value < 9 ? "8-9" :
                       "> 9",
             })
             .GroupBy(x => new { x.Isotope, x.Bin })
             .Select(g => new
             {
-                Isotope = g.Key.Isotope,
+                g.Key.Isotope,
                 Name = g.Key.Bin,
                 Count = g.Count(),
             });

@@ -4,14 +4,11 @@ using NuclearEvaluation.Kernel.Extensions;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Domain;
 using NuclearEvaluation.Kernel.Models.Views;
-using NuclearEvaluation.Kernel.Models.Domain;
-using NuclearEvaluation.Server.Data;
 using System.Linq.Expressions;
-using System.Threading;
 using Z.EntityFramework.Plus;
-using NuclearEvaluation.SharedServices.Services;
+using NuclearEvaluation.Kernel.Contexts;
 
-namespace NuclearEvaluation.Server.Services;
+namespace NuclearEvaluation.SharedServices.Services;
 
 public class ProjectService : DbServiceBase, IProjectService
 {

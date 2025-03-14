@@ -1,10 +1,9 @@
 ﻿using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Contexts;
 using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.Server.Data;
-using NuclearEvaluation.SharedServices.Services;
 using System.Linq.Dynamic.Core;
 
-namespace NuclearEvaluation.Server.Services;
+namespace NuclearEvaluation.SharedServices.Services;
 
 public class GenericService : DbServiceBase, IGenericService
 {
@@ -22,4 +21,4 @@ public class GenericService : DbServiceBase, IGenericService
             Entries = result,
         };
     }
-} 
+}

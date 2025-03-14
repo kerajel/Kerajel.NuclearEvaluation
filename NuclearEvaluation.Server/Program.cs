@@ -12,11 +12,12 @@ using NuclearEvaluation.Server.Models.Identity;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using LinqToDB.EntityFrameworkCore;
-using NuclearEvaluation.Server.Models.Settings;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Messaging;
 using NuclearEvaluation.SharedServices.Services;
 using NuclearEvaluation.Kernel.Contexts;
+using NuclearEvaluation.Kernel.Models.Temporary;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
 internal class Program
 {
@@ -29,6 +30,9 @@ internal class Program
 
         builder.Configuration.AddJsonFile("rabbitMqSettings.json", optional: false, reloadOnChange: true);
         builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection(nameof(RabbitMQSettings)));
+
+        builder.Configuration.AddJsonFile("tempTableServiceSettings.json", optional: false, reloadOnChange: true);
+        builder.Services.Configure<TempTableServiceSettings>(builder.Configuration.GetSection(nameof(TempTableServiceSettings)));
 
         builder.Services.Configure<KestrelServerOptions>(options =>
         {

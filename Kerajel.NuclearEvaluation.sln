@@ -12,8 +12,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kerajel.Primitives", "..\..
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.Kernel", "NuclearEvaluation.Kernel\NuclearEvaluation.Kernel.csproj", "{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.StemPreviewProcessor", "NuclearEvaluation.StemPreviewProcessor\NuclearEvaluation.StemPreviewProcessor.csproj", "{5EA96826-3A18-4A26-9553-C310B71B039E}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.SharedServices", "NuclearEvaluation.SharedServices\NuclearEvaluation.SharedServices.csproj", "{5061DFC0-7F16-43E2-8A19-88380C904600}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kerajel.TabularDataReader.Tests", "test\Kerajel.TabularDataReader.Tests.csproj", "{F942D4E6-90CF-47F4-ACD0-CC682F8EC604}"
@@ -66,14 +64,6 @@ Global
 		{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}.Release|Any CPU.Build.0 = Release|Any CPU
 		{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}.Release|x86.ActiveCfg = Release|x86
 		{28D4EC07-77B9-4FD0-BD52-ED38FEF89B04}.Release|x86.Build.0 = Release|x86
-		{5EA96826-3A18-4A26-9553-C310B71B039E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5EA96826-3A18-4A26-9553-C310B71B039E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5EA96826-3A18-4A26-9553-C310B71B039E}.Debug|x86.ActiveCfg = Debug|x86
-		{5EA96826-3A18-4A26-9553-C310B71B039E}.Debug|x86.Build.0 = Debug|x86
-		{5EA96826-3A18-4A26-9553-C310B71B039E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5EA96826-3A18-4A26-9553-C310B71B039E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5EA96826-3A18-4A26-9553-C310B71B039E}.Release|x86.ActiveCfg = Release|Any CPU
-		{5EA96826-3A18-4A26-9553-C310B71B039E}.Release|x86.Build.0 = Release|Any CPU
 		{5061DFC0-7F16-43E2-8A19-88380C904600}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5061DFC0-7F16-43E2-8A19-88380C904600}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5061DFC0-7F16-43E2-8A19-88380C904600}.Debug|x86.ActiveCfg = Debug|x86

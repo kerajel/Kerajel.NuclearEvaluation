@@ -4,8 +4,7 @@ namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IStemPreviewService : IAsyncDisposable
 {
-    Task<OperationResult> DeleteFileData(Guid stemSessionId, Guid fileId);
-    Task<OperationResult> EnqueueStemPreviewForProcessing(
+    Task<OperationResult> UploadStemPreviewFile(
         Guid sessionId,
         Stream stream,
         Guid fileId,
@@ -13,11 +12,6 @@ public interface IStemPreviewService : IAsyncDisposable
         CancellationToken? externalCt = null);
 
     Task<OperationResult> RefreshIndexes(Guid stemSessionId);
+    Task<OperationResult> DeleteFileData(Guid stemSessionId, Guid fileId);
 
-    Task<OperationResult> UploadStemPreviewFile(
-        Guid sessionId,
-        Stream stream,
-        Guid fileId,
-        string fileName,
-        CancellationToken? ct = default);
 }

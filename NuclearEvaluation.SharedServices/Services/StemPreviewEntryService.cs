@@ -4,7 +4,7 @@ using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Contexts;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.Kernel.Models.DataManagement;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using NuclearEvaluation.Kernel.Models.Views;
 using Polly;
 using Polly.Bulkhead;

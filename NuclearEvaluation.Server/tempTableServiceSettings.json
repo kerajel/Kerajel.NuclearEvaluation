@@ -1,0 +1,5 @@
+{
+  "TempTableService": {
+    "RetainTables": false
+  }
+}

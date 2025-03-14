@@ -1,5 +1,5 @@
 ﻿using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Models.DataManagement;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using NuclearEvaluation.Kernel.Models.Views;
 
 namespace NuclearEvaluation.Kernel.Interfaces;

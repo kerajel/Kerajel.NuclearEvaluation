@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.Server.Models.Settings;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using NuclearEvaluation.Server.Models.Upload;
 using NuclearEvaluation.Server.Shared.Grids;
 using NuclearEvaluation.Server.Shared.Misc;
@@ -130,7 +130,7 @@ public partial class StemPreview : IDisposable
                 try
                 {
                     using Stream stream = browserFile.OpenReadStream(browserFile.Size);
-                    OperationResult result = await StemPreviewService.EnqueueStemPreviewForProcessing(
+                    OperationResult result = await StemPreviewService.UploadStemPreviewFile(
                           sessionId,
                           stream,
                           file.Id,

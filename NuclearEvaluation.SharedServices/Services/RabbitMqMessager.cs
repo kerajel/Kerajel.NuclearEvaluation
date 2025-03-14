@@ -4,7 +4,7 @@ using NuclearEvaluation.Kernel.Models.Messaging;
 using RabbitMQ.Client;
 using System.Text.Json;
 
-namespace NuclearEvaluation.Server.Services;
+namespace NuclearEvaluation.SharedServices.Services;
 
 public class RabbitMQPublisher : IMessager
 {

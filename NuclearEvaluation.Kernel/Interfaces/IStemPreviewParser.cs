@@ -1,9 +1,9 @@
 ﻿using Kerajel.Primitives.Models;
-using NuclearEvaluation.Kernel.Models.DataManagement;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
 namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IStemPreviewParser
 {
-    Task<OperationResult<IReadOnlyCollection<StemPreviewEntry>>> Parse(Stream stream, string fileName, CancellationToken ct = default);
+    IAsyncEnumerable<StemPreviewEntry> Parse(Stream stream, string fileName, CancellationToken ct = default);
 }

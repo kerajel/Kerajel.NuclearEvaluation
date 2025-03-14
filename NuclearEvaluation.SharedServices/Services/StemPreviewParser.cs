@@ -1,61 +1,41 @@
-﻿using CsvHelper;
-using CsvHelper.Configuration;
-using CsvHelper.TypeConversion;
-using Kerajel.Primitives.Enums;
+﻿using CsvHelper.Configuration;
+using CsvHelper;
 using Kerajel.Primitives.Models;
-using Kerajel.TabularDataReader;
-using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.Kernel.Models.DataManagement;
-using NuclearEvaluation.Kernel.Models.Files;
-using NuclearEvaluation.Kernel.Models.Messaging.StemPreview;
 using System.Globalization;
+using CsvHelper.TypeConversion;
+using NuclearEvaluation.Kernel.Interfaces;
+using Kerajel.TabularDataReader;
+using Kerajel.Primitives.Enums;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
+using System.Runtime.CompilerServices;
 
-namespace NuclearEvaluation.StemPreviewProcessor;
+namespace NuclearEvaluation.SharedServices.Services;
 
-public class StemPreviewProcessor
+public class StemPreviewParser : IStemPreviewParser
 {
-    private readonly IEfsFileService _fileService;
-    private readonly IStemPreviewEntryService _entryService;
-    private readonly ILogger<StemPreviewProcessor> _logger;
-
-    public StemPreviewProcessor(
-        IEfsFileService fileService,
-        IStemPreviewEntryService entryService,
-        ILogger<StemPreviewProcessor> logger)
+    public async IAsyncEnumerable<StemPreviewEntry> Parse(
+        Stream stream,
+        string fileName,
+        [EnumeratorCancellation] CancellationToken ct = default)
     {
-        _fileService = fileService;
-        _entryService = entryService;
-        _logger = logger;
-    }
-
-    public async Task<OperationResult> Process(ProcessStemPreviewMessage message, CancellationToken ct)
-    {
-        OperationResult<GetFilePathResponse> getFilePathResult = await _fileService.GetPath(message.FileId, ct);
-
-        if (!getFilePathResult.Succeeded)
-        {
-            return OperationResult.FromFaulted(getFilePathResult);
-        }
-
-        string filePath = getFilePathResult.Content!.FilePath;
-
-        using TabularDataReader reader = new();
-        using FileStream fs = File.OpenRead(filePath);
-        CsvReader csvReader = reader.GetCsvReader(fs, filePath);
+        TabularDataReader reader = new TabularDataReader();
+        CsvReader csvReader = reader.GetCsvReader(stream, fileName);
         csvReader.Context.RegisterClassMap<StemPreviewEntryMap>();
 
-        //TODO handle validation errors
-        IAsyncEnumerable<StemPreviewEntry> entries = csvReader.GetRecordsAsync<StemPreviewEntry>(ct);
-
-        await _entryService.InsertStemPreviewEntries(message.SessionId, entries, ct);
-
-        //TODO wrap in OperationResult
-        //TODO clean up
-
-        return new OperationResult(OperationStatus.Succeeded);
+        try
+        {
+            await foreach (StemPreviewEntry entry in csvReader.GetRecordsAsync<StemPreviewEntry>(ct))
+            {
+                yield return entry;
+            }
+        }
+        finally
+        {
+            csvReader.Dispose();
+            reader.Dispose();
+        }
     }
 
-    //TODO extract
     private sealed class StemPreviewEntryMap : ClassMap<StemPreviewEntry>
     {
         public StemPreviewEntryMap()
@@ -110,4 +90,3 @@ public class StemPreviewProcessor
         }
     }
 }
-

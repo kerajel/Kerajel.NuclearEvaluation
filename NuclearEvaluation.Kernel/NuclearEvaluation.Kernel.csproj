@@ -27,9 +27,4 @@
 		<ProjectReference Include="..\..\..\..\Desktop\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<Folder Include="Models\Temporary\" />
-		<Folder Include="DbContext\" />
-	</ItemGroup>
-
 </Project>

@@ -1,36 +1,33 @@
-﻿using Microsoft.EntityFrameworkCore;
-using NuclearEvaluation.Kernel.Commands;
+﻿using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Contexts;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Views;
-using NuclearEvaluation.Kernel.Models.Plotting;
-using NuclearEvaluation.Server.Data;
-using NuclearEvaluation.SharedServices.Services;
 
-namespace NuclearEvaluation.Server.Services;
+namespace NuclearEvaluation.SharedServices.Services;
 
-public class ParticleService : DbServiceBase, IParticleService
+public class ApmService : DbServiceBase, IApmService
 {
-    public ParticleService(NuclearEvaluationServerDbContext _dbContext) : base(_dbContext)
+    public ApmService(NuclearEvaluationServerDbContext _dbContext) : base(_dbContext)
     {
     }
 
-    public async Task<FilterDataResponse<ParticleView>> GetParticleViews(FilterDataCommand<ParticleView> command)
+    public async Task<FilterDataResponse<ApmView>> GetApmViews(FilterDataCommand<ApmView> command)
     {
-        IQueryable<ParticleView> baseQuery;
+        IQueryable<ApmView> baseQuery;
         int? projectId;
 
         switch (command.QueryKind)
         {
             case QueryKind.DecayCorrected:
                 projectId = command.GetRequiredArgument<int>(FilterDataCommand.ArgKeys.ProjectId);
-                baseQuery = _dbContext.ProjectDecayCorrectedParticleView
+                baseQuery = _dbContext.ProjectDecayCorrectedApmView
                             .Where(x => x.ProjectId == projectId);
                 break;
 
             default:
                 projectId = command.TryGetArgumentOrDefault<int?>(FilterDataCommand.ArgKeys.ProjectId);
-                baseQuery = _dbContext.ParticleView;
+                baseQuery = _dbContext.ApmView;
                 if (projectId.HasValue)
                 {
                     baseQuery = baseQuery.Where(x => x.SubSample.Sample.Series.ProjectSeries.Any(x => x.ProjectId == projectId.Value));

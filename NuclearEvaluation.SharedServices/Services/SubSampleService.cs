@@ -1,10 +1,9 @@
 ﻿using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Contexts;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Views;
-using NuclearEvaluation.Server.Data;
-using NuclearEvaluation.SharedServices.Services;
 
-namespace NuclearEvaluation.Server.Services;
+namespace NuclearEvaluation.SharedServices.Services;
 
 public class SubSampleService : DbServiceBase, ISubSampleService
 {

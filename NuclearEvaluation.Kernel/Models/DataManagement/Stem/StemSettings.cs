@@ -1,4 +1,4 @@
-﻿namespace NuclearEvaluation.Server.Models.Settings;
+﻿namespace NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
 public class StemSettings
 {

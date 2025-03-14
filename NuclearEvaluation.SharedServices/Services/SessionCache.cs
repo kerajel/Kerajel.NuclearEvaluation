@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using NuclearEvaluation.Kernel.Interfaces;
 
-namespace NuclearEvaluation.Server.Services;
+namespace NuclearEvaluation.SharedServices.Services;
 
 public class SessionCache : ISessionCache
 {

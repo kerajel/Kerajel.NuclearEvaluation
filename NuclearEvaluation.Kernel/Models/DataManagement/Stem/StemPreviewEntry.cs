@@ -1,7 +1,7 @@
 ﻿using LinqToDB;
 using LinqToDB.Mapping;
 
-namespace NuclearEvaluation.Kernel.Models.DataManagement;
+namespace NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
 
 public class StemPreviewEntry

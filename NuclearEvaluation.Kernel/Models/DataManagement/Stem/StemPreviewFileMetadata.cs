@@ -1,9 +1,16 @@
 ﻿using LinqToDB.Mapping;
 
-namespace NuclearEvaluation.Kernel.Models.DataManagement;
+namespace NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
 public class StemPreviewFileMetadata
 {
+
+    public StemPreviewFileMetadata(Guid id, string name)
+    {
+        Id = id;
+        Name = name;
+    }
+
     [PrimaryKey]
     public Guid Id { get; set; }
 

@@ -14,9 +14,9 @@ public class EfsFileService : IEfsFileService
     private const string _subFolder = "NuclearEvaluationStorage";
     private const int _bufferSize = 81920;
 
-    public async Task<OperationResult> Write(WriteFileCommand command, CancellationToken ct = default)
+    public async Task<OperationResult<FileInfo>> Write(WriteFileCommand command, CancellationToken ct = default)
     {
-        OperationResult result;
+        OperationResult<FileInfo> result;
 
         try
         {
@@ -28,18 +28,18 @@ public class EfsFileService : IEfsFileService
 
             FileInfo fileInfo = new(Path.Combine(fileDirectory.FullName, command.FileName));
 
+            await WriteToFile(fileInfo, command.FileContent, ct);
+
             if (command.IsTemporary)
             {
                 fileInfo.Attributes = FileAttributes.Temporary;
             }
 
-            await WriteToFile(fileInfo, command.FileContent, ct);
-
-            result = new(OperationStatus.Succeeded);
+            result = new(OperationStatus.Succeeded, fileInfo);
         }
         catch (Exception ex)
         {
-            result = new(OperationStatus.Faulted, "Could write file", ex);
+            result = new(OperationStatus.Faulted, "Could not write file", ex);
         }
 
         return result;
@@ -58,9 +58,9 @@ public class EfsFileService : IEfsFileService
         await stream.CopyToAsync(fileStream, _bufferSize, ct);
     }
 
-    public Task<OperationResult<GetFilePathResponse>> GetPath(Guid fileGuid, CancellationToken ct = default)
+    public Task<OperationResult<FileInfo>> GetFileInfo(Guid fileGuid, CancellationToken ct = default)
     {
-        OperationResult<GetFilePathResponse> result;
+        OperationResult<FileInfo> result;
 
         try
         {
@@ -72,8 +72,7 @@ public class EfsFileService : IEfsFileService
             }
 
             FileInfo fileInfo = fileDirectory.GetFiles()[0];
-            GetFilePathResponse response = new(fileInfo.FullName);
-            result = new(OperationStatus.Succeeded, response);
+            result = new(OperationStatus.Succeeded, fileInfo);
         }
         catch (Exception ex)
         {
@@ -106,34 +105,6 @@ public class EfsFileService : IEfsFileService
 
         return result;
     }
-
-    public Task<OperationResult<string>> GetExtension(Guid fileGuid, CancellationToken ct = default)
-    {
-        OperationResult<string> result;
-
-        try
-        {
-            DirectoryInfo fileDirectory = GetFileDirectory(fileGuid);
-            if (fileDirectory.Exists)
-            {
-                FileInfo[] files = fileDirectory.GetFiles();
-                if (files.Length == 1)
-                {
-                    string extension = files[0].Extension;
-                    result = new (OperationStatus.Succeeded, extension);
-                    return Task.FromResult(result);
-                }
-            }
-            result = new(OperationStatus.Faulted, "File not found");
-        }
-        catch (Exception ex)
-        {
-            result = new(OperationStatus.Faulted, "Error accessing file", ex);
-        }
-
-        return Task.FromResult(result);
-    }
-
     static DirectoryInfo GetStorageDirectory()
     {
         string currentDirectory = Directory.GetCurrentDirectory();

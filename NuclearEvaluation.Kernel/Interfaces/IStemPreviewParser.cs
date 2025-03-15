@@ -1,5 +1,4 @@
-﻿using Kerajel.Primitives.Models;
-using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
+﻿using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
 namespace NuclearEvaluation.Kernel.Interfaces;
 

@@ -1,11 +1,9 @@
 ﻿using CsvHelper.Configuration;
 using CsvHelper;
-using Kerajel.Primitives.Models;
 using System.Globalization;
 using CsvHelper.TypeConversion;
 using NuclearEvaluation.Kernel.Interfaces;
 using Kerajel.TabularDataReader;
-using Kerajel.Primitives.Enums;
 using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using System.Runtime.CompilerServices;
 

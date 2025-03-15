@@ -150,6 +150,7 @@ public partial class StemPreview : IDisposable
                     }
                     else
                     {
+                        await StemPreviewService.RefreshIndexes(sessionId);
                         await InvokeAsync(stemPreviewEntryGrid.Refresh);
                     }
                 }
@@ -164,8 +165,6 @@ public partial class StemPreview : IDisposable
                     await Task.Yield();
                 }
             });
-
-            _ = await StemPreviewService.RefreshIndexes(sessionId);
 
             Logger.LogInformation("Processing complete");
         }

@@ -1,6 +1,5 @@
 ﻿using Kerajel.Primitives.Enums;
 using Kerajel.Primitives.Models;
-using Microsoft.JSInterop;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Files;
 

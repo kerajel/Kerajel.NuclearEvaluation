@@ -1,6 +1,7 @@
 ﻿using LinqToDB;
 using LinqToDB.Data;
 using LinqToDB.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NuclearEvaluation.Kernel.Contexts;
 using NuclearEvaluation.Kernel.Extensions;
@@ -10,7 +11,7 @@ using System.Linq.Expressions;
 
 namespace NuclearEvaluation.SharedServices.Services;
 
-public class TempTableService : DbServiceBase, ITempTableService
+public class TempTableService : ITempTableService
 {
     const TableOptions tableOptions = TableOptions.IsGlobalTemporaryStructure;
     const int maxBatchSize = 10_000;
@@ -19,12 +20,18 @@ public class TempTableService : DbServiceBase, ITempTableService
     readonly Dictionary<string, dynamic> tables = [];
 
     readonly TempTableServiceSettings _settings;
+    readonly IDbContextFactory<NuclearEvaluationServerDbContext> _dbContextFactory;
+    readonly NuclearEvaluationServerDbContext _dbContext;
+    readonly DataConnection _dataConnection;
 
     public TempTableService(
-        NuclearEvaluationServerDbContext dbContext,
-        IOptions<TempTableServiceSettings> serviceOptions) : base(dbContext)
+        IDbContextFactory<NuclearEvaluationServerDbContext> dbContextFactory,
+        IOptions<TempTableServiceSettings> serviceOptions) 
     {
         _settings = serviceOptions.Value;
+        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContextFactory.CreateDbContext();
+        _dataConnection = _dbContext.CreateLinqToDBConnectionDetached();
     }
 
     public async Task<IQueryable<T>> EnsureCreated<T>(string tableName) where T : class
@@ -57,14 +64,12 @@ public class TempTableService : DbServiceBase, ITempTableService
             BulkCopyTimeout = bulkCopyTimeout,
             MaxBatchSize = maxBatchSize,
         };
-        using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
-        await dataConnection.BulkCopyAsync(options, entries, cancellationToken: ct);
+        await _dataConnection.BulkCopyAsync(options, entries, cancellationToken: ct);
     }
 
     public async Task InsertWithoutIdentity<T>(string tableName, T entry, CancellationToken ct = default) where T : class
     {
-        using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
-        _ = await dataConnection.InsertAsync(entry, GetFormattedTableName(tableName), token: ct);
+        _ = await _dataConnection.InsertAsync(entry, GetFormattedTableName(tableName), token: ct);
     }
 
     public async Task EnsureIndex<T, K>(string tableName, Expression<Func<T, K>> propertyExpression) where T : class
@@ -75,8 +80,7 @@ public class TempTableService : DbServiceBase, ITempTableService
             fieldName = propertyExpression.GetPropertyName(),
         };
 
-        using DataConnection dc = _dbContext.CreateLinqToDBConnection();
-        await dc.ExecuteProcAsync("[DBO].EnsureIndexOnTempTableField", @params);
+        await _dataConnection.ExecuteProcAsync("[DBO].EnsureIndexOnTempTableField", @params);
     }
 
     private async Task<ITable<T>> GetOrAddInternal<T>(string tableName) where T : class
@@ -90,8 +94,7 @@ public class TempTableService : DbServiceBase, ITempTableService
                 : throw new Exception($"Type mismatch for temporary table '{formattedTableName}'");
         }
 
-        DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
-        ITable<T> table = await dataConnection.CreateTableAsync<T>(
+        ITable<T> table = await _dataConnection.CreateTableAsync<T>(
             tableName: formattedTableName,
             tableOptions: tableOptions);
         tables.Add(formattedTableName, table);
@@ -105,15 +108,17 @@ public class TempTableService : DbServiceBase, ITempTableService
 
     public async ValueTask DisposeAsync()
     {
+        //TODO remove RetainTables
         if (tables.Count != 0 && !_settings.RetainTables)
         {
-            using DataConnection dc = _dbContext.CreateLinqToDBConnection();
             foreach (string tableName in tables.Keys)
             {
-                _ = dc.DropTableAsync<object>(tableName: GetFormattedTableName(tableName), tableOptions: tableOptions);
+                await _dataConnection.DropTableAsync<object>(tableName: GetFormattedTableName(tableName), tableOptions: tableOptions);
                 tables.Remove(tableName);
             }
         }
+        _dbContext.Dispose();
+        _dataConnection.Dispose();
         GC.SuppressFinalize(this);
     }
 }

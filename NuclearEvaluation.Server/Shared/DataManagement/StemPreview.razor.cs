@@ -39,8 +39,11 @@ public partial class StemPreview : IDisposable
 
     List<UploadedFile> files = [];
 
-    private InputFile fileInput = null!;
-    private StemSettings stemSettings = null!;
+    static readonly HashSet<FileStatus> inProgressStatuses = [FileStatus.Pending, FileStatus.Uploading];
+
+    InputFile fileInput = null!;
+    StemSettings stemSettings = null!;
+    int currentUploadBatchId = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -104,9 +107,16 @@ public partial class StemPreview : IDisposable
 
     private async Task ProcessUpload()
     {
+        currentUploadBatchId++;
+
         UploadedFile[] pendingFiles = files
               .Where((UploadedFile f) => f.Status == FileStatus.Pending)
               .ToArray();
+
+        foreach (UploadedFile file in pendingFiles)
+        {
+            file.UploadBatchId = currentUploadBatchId;
+        }
 
         foreach (UploadedFile file in pendingFiles)
         {
@@ -148,11 +158,6 @@ public partial class StemPreview : IDisposable
                     {
                         file.ErrorMessage = result.ErrorMessage;
                     }
-                    else
-                    {
-                        await StemPreviewService.RefreshIndexes(sessionId);
-                        await InvokeAsync(stemPreviewEntryGrid.Refresh);
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -168,6 +173,9 @@ public partial class StemPreview : IDisposable
 
             Logger.LogInformation("Processing complete");
         }
+
+        await StemPreviewService.RefreshIndexes(sessionId);
+        await InvokeAsync(stemPreviewEntryGrid.Refresh);
     }
 
     private async Task RemoveFile(UploadedFile file)
@@ -208,9 +216,21 @@ public partial class StemPreview : IDisposable
         await Task.Yield();
     }
 
-    private async Task TriggerFileInputClick()
+    async Task TriggerFileInputClick()
     {
         await JsRuntime.InvokeVoidAsync("clickElement", fileInput.Element);
+    }
+
+    private bool ShowStemPreviewEntryGrid()
+    {
+        return files.Where((f) => f.Status != FileStatus.Removed)
+                .GroupBy((f) => f.UploadBatchId)
+                .Any(batch =>
+                {
+                    bool batchHasUploaded = batch.Any((f) => f.Status == FileStatus.Uploaded);
+                    bool batchHasInProgress = batch.Any((f) => inProgressStatuses.Contains(f.Status));
+                    return batchHasUploaded && !batchHasInProgress;
+                });
     }
 
     public void Dispose()

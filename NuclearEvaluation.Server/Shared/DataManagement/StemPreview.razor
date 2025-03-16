@@ -38,6 +38,6 @@
 
     <StemPreviewEntryGrid @ref="stemPreviewEntryGrid"
                           StemSessionId="@sessionId"
-                          Visible="@files.Any(x => x.Status == FileStatus.Uploaded)" />
+                          Visible="@ShowStemPreviewEntryGrid()" />
 
 </RadzenCard>

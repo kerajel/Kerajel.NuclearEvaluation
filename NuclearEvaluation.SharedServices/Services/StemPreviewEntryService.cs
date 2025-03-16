@@ -175,7 +175,10 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
 
     public async ValueTask DisposeAsync()
     {
-        _ = _tempTableService?.DisposeAsync();
+        if (_tempTableService != null)
+        {
+            await _tempTableService.DisposeAsync();
+        }
         GC.SuppressFinalize(this);
     }
 }

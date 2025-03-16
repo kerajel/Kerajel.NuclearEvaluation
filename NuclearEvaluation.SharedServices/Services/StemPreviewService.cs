@@ -146,7 +146,10 @@ public class StemPreviewService(
 
     public async ValueTask DisposeAsync()
     {
-        _ = stemPreviewEntryService.DisposeAsync();
+        if (stemPreviewEntryService != null)
+        {
+            await stemPreviewEntryService.DisposeAsync();
+        }
         GC.SuppressFinalize(this);
     }
 }

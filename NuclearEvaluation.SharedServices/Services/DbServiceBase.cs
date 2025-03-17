@@ -16,7 +16,7 @@ namespace NuclearEvaluation.SharedServices.Services;
 public class DbServiceBase
 {
     protected NuclearEvaluationServerDbContext _dbContext;
-    private static readonly ConcurrentDictionary<Type, PropertyInfo> _keyPropertyCache = new();
+    static readonly ConcurrentDictionary<Type, PropertyInfo> _keyPropertyCache = new();
 
     public DbServiceBase(NuclearEvaluationServerDbContext dbContext)
     {

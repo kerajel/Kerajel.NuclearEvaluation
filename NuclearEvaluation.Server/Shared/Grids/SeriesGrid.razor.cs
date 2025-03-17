@@ -2,7 +2,6 @@
 using Radzen.Blazor;
 using Radzen;
 using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Models.Domain;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Models.Views;
@@ -11,8 +10,7 @@ using NuclearEvaluation.Kernel.Enums;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
-public partial class SeriesGrid
-    : BaseGrid
+public partial class SeriesGrid : BaseGrid
 {
     [Parameter]
     public bool EnableDecayCorrection { get; set; }

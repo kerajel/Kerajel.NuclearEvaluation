@@ -21,36 +21,6 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
 
     static readonly ConcurrentDictionary<Guid, AsyncBulkheadPolicy> _bulkheadPolicies = new();
 
-    static AsyncBulkheadPolicy GetBulkheadPolicy(Guid stemSessionId)
-    {
-        AsyncBulkheadPolicy policy = _bulkheadPolicies.GetOrAdd(stemSessionId, id =>
-            Policy.BulkheadAsync(
-                maxParallelization: 1,
-                maxQueuingActions: 64,
-                onBulkheadRejectedAsync: async context =>
-                {
-                    await Task.CompletedTask;
-                }));
-        return policy;
-    }
-
-    static async Task ExecuteWithBulkheadPolicy(Guid stemSessionId, Func<Task> action)
-    {
-        AsyncBulkheadPolicy policy = GetBulkheadPolicy(stemSessionId);
-        await policy.ExecuteAsync(action);
-    }
-
-    static async Task<T> ExecuteWithBulkheadPolicy<T>(Guid stemSessionId, Func<Task<T>> action)
-    {
-        T result = default!;
-        AsyncBulkheadPolicy policy = GetBulkheadPolicy(stemSessionId);
-        await policy.ExecuteAsync(async () =>
-        {
-            result = await action();
-        });
-        return result;
-    }
-
     public StemPreviewEntryService(
         NuclearEvaluationServerDbContext dbContext,
         ITempTableService tempTableService)
@@ -63,17 +33,27 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
     {
         await ExecuteWithBulkheadPolicy(stemSessionId, async () =>
         {
-            string entryTable = GetEntryTableName(stemSessionId);
             string fileNameTable = GetFileNameTableName(stemSessionId);
 
-            IQueryable<StemPreviewEntry>? entryQueryable = _tempTableService.Get<StemPreviewEntry>(entryTable);
             IQueryable<StemPreviewFileMetadata>? fileQueryable = _tempTableService.Get<StemPreviewFileMetadata>(fileNameTable);
 
-            if (entryQueryable != null)
-                await entryQueryable.Where(x => x.FileId == fileId).DeleteAsync();
-
             if (fileQueryable != null)
-                await fileQueryable.Where(x => x.Id == fileId).DeleteAsync();
+            {
+                await fileQueryable.Where(x => x.Id == fileId)
+                    .Set(x => x.IsDeleted, true)
+                    .UpdateAsync();
+            }
+
+            _ = QueueDeletionOfStemFile();
+
+            //TODO implement messaging to dispatch this operation to a dedicated worker service
+            static Task QueueDeletionOfStemFile()
+            {
+                return Task.Run(async () =>
+                {
+                    await Task.Yield();
+                });
+            }
         });
     }
 
@@ -92,7 +72,7 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
             IQueryable<StemPreviewEntryView> baseQuery =
                 from entry in entryTableQuery
                 join file in fileTableQuery on entry.FileId equals file.Id
-                where file.IsFullyUploaded == true
+                where file.IsFullyUploaded == true && file.IsDeleted == false
                 select new StemPreviewEntryView
                 {
                     Id = entry.Id,
@@ -171,6 +151,36 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
     static string GetFileNameTableName(Guid sessionId)
     {
         return string.Format("{0}-{1}", sessionId, fileNameTableSuffix);
+    }
+
+    static AsyncBulkheadPolicy GetBulkheadPolicy(Guid stemSessionId)
+    {
+        AsyncBulkheadPolicy policy = _bulkheadPolicies.GetOrAdd(stemSessionId, id =>
+            Policy.BulkheadAsync(
+                maxParallelization: 1,
+                maxQueuingActions: 64,
+                onBulkheadRejectedAsync: async context =>
+                {
+                    await Task.CompletedTask;
+                }));
+        return policy;
+    }
+
+    static async Task ExecuteWithBulkheadPolicy(Guid stemSessionId, Func<Task> action)
+    {
+        AsyncBulkheadPolicy policy = GetBulkheadPolicy(stemSessionId);
+        await policy.ExecuteAsync(action);
+    }
+
+    static async Task<T> ExecuteWithBulkheadPolicy<T>(Guid stemSessionId, Func<Task<T>> action)
+    {
+        T result = default!;
+        AsyncBulkheadPolicy policy = GetBulkheadPolicy(stemSessionId);
+        await policy.ExecuteAsync(async () =>
+        {
+            result = await action();
+        });
+        return result;
     }
 
     public async ValueTask DisposeAsync()

@@ -1,6 +1,5 @@
 ﻿using Kerajel.Primitives.Enums;
 using Kerajel.Primitives.Models;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
@@ -42,8 +41,6 @@ public class StemPreviewService(
             : internalCts;
 
         OperationResult result = new(OperationStatus.Succeeded);
-
-
 
         try
         {

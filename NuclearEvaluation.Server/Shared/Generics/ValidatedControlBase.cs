@@ -11,16 +11,19 @@ using NuclearEvaluation.Kernel.Helpers;
 
 namespace NuclearEvaluation.Server.Shared.Generics;
 
-public class ValidatedControlBase<TModel> : ComponentBase
+public class ValidatedTextControlBase<TModel, K> : ComponentBase
 {
     [Parameter]
     public TModel Model { get; set; } = default!;
 
     [Parameter]
+    public K? Type { get; set; } = default!;
+
+    [Parameter]
     public string Id { get; set; } = string.Empty;
 
     [Parameter]
-    public Expression<Func<TModel, string>> PropertyExpression { get; set; } = default!;
+    public Expression<Func<TModel, K?>> PropertyExpression { get; set; } = default!;
 
     [Parameter]
     public IValidator<TModel> Validator { get; set; } = default!;
@@ -58,7 +61,7 @@ public class ValidatedControlBase<TModel> : ComponentBase
     [Parameter]
     public int TooltipOffsetY { get; set; } = 0;
 
-    public FormComponent<string> _textInputRef = null!;
+    public IRadzenFormComponent _textInputRef = null!;
 
     protected bool _hasValidationErrors;
     protected string? _validationMessage;
@@ -69,11 +72,11 @@ public class ValidatedControlBase<TModel> : ComponentBase
 
     protected Debouncer<ValidationResult> _validationDebounce = null!;
 
-    protected string? _initialValue = null;
-    protected string? _boundValue = null;
+    protected K? _initialValue = default;
+    protected K? _boundValue = default;
 
     protected PropertyInfo _propertyInfo = null!;
-    protected Func<TModel, string> _getter = null!;
+    protected Func<TModel, K?> _getter = null!;
 
     protected override void OnInitialized()
     {
@@ -94,8 +97,19 @@ public class ValidatedControlBase<TModel> : ComponentBase
 
     public bool ValueHasChanged()
     {
-        return _initialValue != PropertyValue;
+        if (_initialValue == null && PropertyValue == null)
+        {
+            return false;
+        }
+
+        if (_initialValue == null || PropertyValue == null)
+        {
+            return true;
+        }
+
+        return !_initialValue.Equals(PropertyValue);
     }
+
 
     public async Task<bool> IsReadyToCommit()
     {
@@ -117,23 +131,30 @@ public class ValidatedControlBase<TModel> : ComponentBase
 
         if (_textInputRef != null && Visible)
         {
-            await _textInputRef.Element.FocusAsync();
+            await _textInputRef.FocusAsync();
         }
     }
 
-    public async Task OnTextBoxInput(ChangeEventArgs e)
+    public async Task OnInput(ChangeEventArgs e)
     {
-        string value = e.Value?.ToString() ?? string.Empty;
+        object? value = e.Value is null ? default : Convert.ChangeType(e.Value, typeof(K));
 
-        SetPropertyValue(value);
+        SetPropertyValue((K?)value);
         await ValidateWithDebounce();
+    }
+
+    protected async Task OnValueChanged(K? newValue)
+    {
+        _boundValue = newValue;
+        SetPropertyValue(newValue);
+        _ = ValidateWithDebounce();
     }
 
     public string PropertyName => _propertyInfo.Name;
 
-    public string PropertyValue
+    public K? PropertyValue
     {
-        get => _getter(Model) ?? string.Empty;
+        get => _getter(Model) ?? default;
         set
         {
             SetPropertyValue(value);
@@ -144,7 +165,7 @@ public class ValidatedControlBase<TModel> : ComponentBase
     {
         HasValidationErrors = false;
         _validationDebounce.Cancel();
-        PropertyValue = _initialValue ?? string.Empty;
+        PropertyValue = _initialValue ?? default;
         _boundValue = _initialValue;
         _validationMessage = string.Empty;
         StateHasChanged();
@@ -174,8 +195,8 @@ public class ValidatedControlBase<TModel> : ComponentBase
         if (_initialValue != null)
         {
             SetPropertyValue(_initialValue);
-            _initialValue = null;
-            _boundValue = null;
+            _initialValue = default;
+            _boundValue = default;
             await Task.Yield();
         }
     }
@@ -189,7 +210,7 @@ public class ValidatedControlBase<TModel> : ComponentBase
     }
 
 
-    void SetPropertyValue(string value)
+    void SetPropertyValue(K? value)
     {
         _propertyInfo.SetValue(Model, value);
         StateHasChanged();
@@ -218,5 +239,8 @@ public class ValidatedControlBase<TModel> : ComponentBase
                 _validationMessage = string.Empty;
             }
         }
+
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
     }
 }

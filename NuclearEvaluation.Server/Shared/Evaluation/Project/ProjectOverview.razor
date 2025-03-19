@@ -14,8 +14,7 @@
 
 <div style="margin-top: 20px;">
     <RadzenLabel Text="Conclusions" Style="font-weight:bold;" />
-    <ValidatedTextArea TModel="ProjectView"
-                       @ref="_projectConclusionsInputRef"
+    <ValidatedTextArea @ref="_projectConclusionsInputRef"
                        Model="@ProjectView"
                        PropertyExpression="@(x => x.Conclusions)"
                        Validator="ProjectViewValidator"

@@ -1,6 +1,6 @@
 ﻿@typeparam TModel
 
-@inherits ValidatedControlBase<TModel>
+@inherits ValidatedTextControlBase<TModel, string>
 
 <div class="validated-textarea-container" style="position: relative;">
     <RadzenTextBox id="@Id"
@@ -8,7 +8,7 @@
                    @bind-Value="_boundValue"
                    Style="@ComputedStyle"
                    Placeholder="@Placeholder"
-                   @oninput="OnTextBoxInput"
+                   @oninput="OnInput"
                    AutoCompleteType="@AutoCompleteType"
                    Visible="@Visible"
                    Name="@Name" />

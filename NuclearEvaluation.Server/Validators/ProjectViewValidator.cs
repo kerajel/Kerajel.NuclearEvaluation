@@ -1,5 +1,4 @@
 ﻿using FluentValidation;
-using NuclearEvaluation.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Kernel.Contexts;

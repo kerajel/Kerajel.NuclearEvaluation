@@ -77,6 +77,7 @@ internal class Program
 
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();
+        builder.Services.AddScoped<PmiReportSubmissionValidator>();
 
         builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>
         {

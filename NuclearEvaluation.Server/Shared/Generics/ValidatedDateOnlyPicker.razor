@@ -1,14 +1,13 @@
 ﻿@typeparam TModel
 
-@inherits ValidatedTextControlBase<TModel, string>
+@inherits ValidatedTextControlBase<TModel, DateOnly?>
 
 <div class="validated-textarea-container" style="position: relative;">
-    <RadzenTextArea id="@Id"
+    <RadzenDatePicker id="@Id"
                     @ref="_textInputRef"
-                    @bind-Value="_boundValue"
                     Style="@ComputedStyle"
                     Placeholder="@Placeholder"
-                    @oninput="OnInput"
+                    ValueChanged="new EventCallback<DateOnly?>(this, OnValueChanged)"
                     Visible="@Visible"
                     Rows="Rows"
                     @onblur="HandleOnBlur"

@@ -16,12 +16,12 @@ public class PresetFilterValidator : AbstractValidator<PresetFilter>
         int minLength = 5;
         int maxLength = 25;
 
-        RuleFor(x => x.Name).Must((name) =>
+        RuleFor(x => x.Name).Must((value) =>
         {
-            return !string.IsNullOrWhiteSpace(name) && name.Length >= minLength && name.Length <= maxLength;
+            return !string.IsNullOrWhiteSpace(value) && value.Length >= minLength && value.Length <= maxLength;
         }).WithMessage($"Name must be between {minLength} and {maxLength} characters long");
 
-        RuleFor(x => x.Name).MustAsync(async (filter, name, ct) =>
+        RuleFor(x => x.Name).MustAsync(async (filter, value, ct) =>
         {
             using NuclearEvaluationServerDbContext dbContext = _dbContextFactory.CreateDbContext();
             bool exists = await dbContext.PresetFilter.AnyAsync(d => d.Name == filter.Name && d.Id != filter.Id, ct);

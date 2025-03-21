@@ -4,21 +4,33 @@
 
 <div class="validated-textarea-container" style="position: relative;">
     <RadzenDatePicker id="@Id"
-                    @ref="_textInputRef"
-                    Style="@ComputedStyle"
-                    Placeholder="@Placeholder"
-                    ValueChanged="new EventCallback<DateOnly?>(this, OnValueChanged)"
-                    Visible="@Visible"
-                    Rows="Rows"
-                    @onblur="HandleOnBlur"
-                    Name="@Name" />
+                      @ref="_textInputRef"
+                      Style="@ComputedStyle"
+                      Placeholder="@Placeholder"
+                      ValueChanged="new EventCallback<DateOnly?>(this, OnValueChanged)"
+                      Visible="@Visible"
+                      Rows="Rows"
+                      @onblur="HandleOnBlur"
+                      Inline="true"
+                      Name="@Name" />
 
     @if (_hasValidationErrors && !string.IsNullOrEmpty(_validationMessage))
     {
         <div class="validation-tooltip"
-             style="--tooltip-offset-x:@TooltipOffsetXpx; --tooltip-offset-y:@TooltipOffsetYpx;">
+        style="--tooltip-offset-x:@TooltipOffsetXpx; --tooltip-offset-y:@TooltipOffsetYpx;">
             @(_validationMessage)
         </div>
     }
 </div>
 
+
+@code {
+    // protected override void OnInitialized()
+    // {
+    //     base.OnInitialized();
+
+    //     
+    //     _initialValue = DateOnly.FromDateTime(DateTime.UtcNow);
+    //     PropertyValue = _initialValue;
+    // }
+}

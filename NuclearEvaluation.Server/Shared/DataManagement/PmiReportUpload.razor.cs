@@ -35,7 +35,11 @@ public partial class PmiReportUpload : ComponentBase
 
     protected InputFile? fileInput;
     protected ValidatedDateOnlyPicker<PmiReportSubmission> reportDatePicker = null!;
-    protected PmiReportSubmission reportSubmission = new();
+    protected PmiReportSubmission reportSubmission = new()
+    {
+        //TODO Pass DateTime provider to reflect browser local time
+        ReportDate = DateOnly.FromDateTime(DateTime.UtcNow),
+    };
 
     protected override void OnInitialized()
     {
@@ -48,7 +52,7 @@ public partial class PmiReportUpload : ComponentBase
         await JsRuntime.InvokeVoidAsync("clickElement", fileInput!.Element);
     }
 
-    protected void OnFileChange(InputFileChangeEventArgs e)
+    protected async void OnFileChange(InputFileChangeEventArgs e)
     {
         IBrowserFile file = e.File;
 
@@ -61,7 +65,7 @@ public partial class PmiReportUpload : ComponentBase
             return;
         }
 
-        if (Path.GetExtension(file.Name) == ".docx")
+        if (Path.GetExtension(file.Name) != ".docx")
         {
             ValidationMessage = "File must be a .docx document.";
             return;
@@ -75,25 +79,12 @@ public partial class PmiReportUpload : ComponentBase
 
         SelectedFile = file;
 
-        UpdateFormValidity();
+        await UpdateFormValidity();
     }
 
-    protected void OnSubmit()
+    protected async Task OnSubmit()
     {
-        ValidationMessage = string.Empty;
-
-        if (ReportDate is null)
-        {
-            ValidationMessage = "Please select a report date.";
-        }
-        else if (SelectedFile is null)
-        {
-            ValidationMessage = "Please select a .docx file.";
-        }
-
-        UpdateFormValidity();
-
-        if (!string.IsNullOrEmpty(ValidationMessage))
+        if (!IsFormValid)
         {
             return;
         }
@@ -101,10 +92,20 @@ public partial class PmiReportUpload : ComponentBase
         Logger.LogInformation("PMI Report upload would happen here.");
     }
 
-    private void UpdateFormValidity()
+    async Task OnReportNameValidationChanged()
     {
-        IsFormValid = (ReportDate is not null
+        await UpdateFormValidity();
+    }
+
+    private async Task UpdateFormValidity()
+    {
+        bool isReportDateValid = !reportDatePicker.HasValidationErrors;
+
+        IsFormValid =     ReportDate is not null
                        && SelectedFile is not null
-                       && string.IsNullOrEmpty(ValidationMessage));
+                       && isReportDateValid;
+
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
     }
 }

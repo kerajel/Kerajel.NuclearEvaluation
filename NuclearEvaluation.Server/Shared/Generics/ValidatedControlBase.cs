@@ -118,8 +118,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
             return false;
         }
 
-        ValidationResult validationResult = await Validator
-            .ValidateAsync(Model, options => options.IncludeProperties(PropertyName));
+        ValidationResult validationResult = await Validate(false);
 
         return validationResult.IsValid;
     }
@@ -140,14 +139,14 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
         object? value = e.Value is null ? default : Convert.ChangeType(e.Value, typeof(K));
 
         SetPropertyValue((K?)value);
-        await ValidateWithDebounce();
+        await Validate();
     }
 
     protected async Task OnValueChanged(K? newValue)
     {
         _boundValue = newValue;
         SetPropertyValue(newValue);
-        _ = ValidateWithDebounce();
+        _ = Validate();
     }
 
     public string PropertyName => _propertyInfo.Name;
@@ -216,10 +215,10 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
         StateHasChanged();
     }
 
-    async Task ValidateWithDebounce()
+    async Task<ValidationResult> Validate(bool debounce = true)
     {
-        ValidationResult validationResult = await _validationDebounce
-            .ExecuteAsync(() => Validator.ValidateAsync(Model, options => options.IncludeProperties(PropertyName)));
+        Task<ValidationResult> validate() => Validator.ValidateAsync(Model, options => options.IncludeProperties(PropertyName));
+        ValidationResult validationResult = await (debounce ? _validationDebounce.ExecuteAsync(validate) : validate());
 
         if (validationResult.IsValid)
         {
@@ -242,5 +241,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
 
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
+
+        return validationResult;
     }
 }

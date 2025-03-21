@@ -12,6 +12,7 @@
                                  AutoCompleteType="AutoCompleteType.Off"
                                  Style="width: 100%; resize:none;"
                                  Rows="5"
+                                 OnValidationStateChanged="@OnReportNameValidationChanged"
                                  DebounceTimeout="TimeSpan.Zero"
                                  TooltipOffsetX="-194" />
 
@@ -38,7 +39,7 @@
                       Style="margin-top: 10px;" />
     </RadzenFieldset>
 
-    @if (!string.IsNullOrEmpty(ValidationMessage))
+    @if (!IsFormValid)
     {
         <RadzenAlert Text="@ValidationMessage"
                      Severity="AlertSeverity.Warning"

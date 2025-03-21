@@ -1,49 +1,51 @@
 ﻿@using NuclearEvaluation.Kernel.Models.DataManagement.PMI
+
 <RadzenCard Variant="Variant.Outlined" style="padding: 1rem;">
-    <h3>PMI Report Upload</h3>
+    <RadzenLabel Text="Easily upload your Project Management Insights (PMI) reports here." Style="font-weight: bold; display: block; margin-bottom: 10px;" />
+    <RadzenLabel Text="Acceptable format: .docx | Max file size: 50 MB" Style="display: block; margin-bottom: 10px;" />
 
-    <RadzenFieldset Text="PMI Report">
-        <RadzenLabel Text="Report Date:" Component="DatePicker" Style="margin-right: 10px; display: block; margin-bottom: 10px;" />
+    <RadzenLabel Text="Report Date:" Component="DatePicker" Style="margin-right: 10px; display: block; margin-bottom: 10px;" />
+    <ValidatedDateOnlyPicker @ref="reportDatePicker"
+                             Model="@reportSubmission"
+                             PropertyExpression="@(x => x.ReportDate)"
+                             Validator="@PmiReportSubmissionValidator"
+                             AutoCompleteType="AutoCompleteType.Off"
+                             Style="width: 100%; resize:none;"
+                             Rows="5"
+                             OnValidationStateChanged="@OnReportNameValidationChanged"
+                             DebounceTimeout="TimeSpan.Zero"
+                             TooltipOffsetX="-194" />
 
-        <ValidatedDateOnlyPicker @ref="reportDatePicker"
-                                 Model="@reportSubmission"
-                                 PropertyExpression="@(x => x.ReportDate)"
-                                 Validator="@PmiReportSubmissionValidator"
-                                 AutoCompleteType="AutoCompleteType.Off"
-                                 Style="width: 100%; resize:none;"
-                                 Rows="5"
-                                 OnValidationStateChanged="@OnReportNameValidationChanged"
-                                 DebounceTimeout="TimeSpan.Zero"
-                                 TooltipOffsetX="-194" />
+    <RadzenButton Text="Select report file in .docx format"
+                  Icon="folder_open"
+                  Style="margin-right: 10px; margin-bottom: 10px;"
+                  Click="TriggerFileInputClick" />
 
-        <RadzenButton Text="Select report file in .docx format"
-                      Icon="folder_open"
-                      Style="margin-right: 10px; margin-bottom: 10px;"
-                      Click="TriggerFileInputClick" />
+    <InputFile @ref="fileInput"
+               OnChange="OnFileChange"
+               accept=".docx"
+               style="display:none" />
 
-        <InputFile @ref="fileInput"
-                   OnChange="OnFileChange"
-                   accept=".docx"
-                   style="display:none" />
-
-        @if (SelectedFile is not null)
-        {
-            <RadzenLabel Text=@($"{SelectedFile.Name} - {(SelectedFile.Size.AsMegabytes()):F2} MB")
-                         Style="margin-left: 10px; display: block; margin-bottom: 10px;" />
-        }
-
-        <RadzenButton Text="Submit"
-                      Icon="save"
-                      Click="OnSubmit"
-                      Disabled="@(!IsFormValid)"
-                      Style="margin-top: 10px;" />
-    </RadzenFieldset>
-
-    @if (!IsFormValid)
+    @if (SelectedFile is not null)
     {
-        <RadzenAlert Text="@ValidationMessage"
+        <RadzenLabel Text=@($"{SelectedFile.Name} - {(SelectedFile.Size.AsMegabytes()):F2} MB")
+                     Style="margin-left: 10px; display: block; margin-bottom: 10px;" />
+    }
+
+    <RadzenButton Text="Submit"
+                  Icon="save"
+                  Click="OnSubmit"
+                  Disabled="@(!IsFormValid)"
+                  Style="margin-top: 10px;" />
+
+    @if (!string.IsNullOrWhiteSpace(Message))
+    {
+        <RadzenAlert Text="@Message"
                      Severity="AlertSeverity.Warning"
                      Closeable="true"
                      Style="margin-top: 10px;" />
     }
+
+    <RadzenLabel Text="Once submitted, your report will be processed and securely distributed to designated locations such as corporate email and shared file storage platforms. This automatic dissemination ensures that key stakeholders are promptly updated with vital project management insights."
+                 Style="font-style: italic; color: gray; display: block; margin-top: 20px;" />
 </RadzenCard>

@@ -8,7 +8,6 @@ using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Server.Validators;
 using NuclearEvaluation.Server.Data;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using NuclearEvaluation.Server.Models.Identity;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using LinqToDB.EntityFrameworkCore;
@@ -16,6 +15,7 @@ using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.SharedServices.Services;
 using NuclearEvaluation.Kernel.Contexts;
 using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
+using NuclearEvaluation.Kernel.Models.Identity;
 
 internal class Program
 {

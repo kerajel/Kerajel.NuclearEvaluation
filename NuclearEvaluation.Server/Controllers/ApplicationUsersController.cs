@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.AspNetCore.OData.Results;
 using NuclearEvaluation.Server.Data;
-using NuclearEvaluation.Server.Models.Identity;
+using NuclearEvaluation.Kernel.Models.Identity;
 
 namespace NuclearEvaluation.Server.Controllers;
 

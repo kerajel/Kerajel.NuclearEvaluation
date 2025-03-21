@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
-using NuclearEvaluation.Server.Models.Identity;
+using NuclearEvaluation.Kernel.Models.Identity;
 
 namespace NuclearEvaluation.Server.Data
 {

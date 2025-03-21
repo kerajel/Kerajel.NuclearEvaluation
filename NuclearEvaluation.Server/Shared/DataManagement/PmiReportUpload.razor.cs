@@ -29,7 +29,7 @@ public partial class PmiReportUpload : ComponentBase
 
     protected IBrowserFile? SelectedFile { get; set; }
 
-    protected string? ValidationMessage { get; set; }
+    protected string? Message { get; set; }
 
     protected bool IsFormValid { get; set; }
 
@@ -57,7 +57,7 @@ public partial class PmiReportUpload : ComponentBase
         IBrowserFile file = e.File;
 
         SelectedFile = null;
-        ValidationMessage = string.Empty;
+        Message = string.Empty;
         IsFormValid = false;
 
         if (file is null)
@@ -67,13 +67,13 @@ public partial class PmiReportUpload : ComponentBase
 
         if (Path.GetExtension(file.Name) != ".docx")
         {
-            ValidationMessage = "File must be a .docx document.";
+            Message = "File must be a .docx document.";
             return;
         }
 
         if (file.Size > MaxFileSize)
         {
-            ValidationMessage = "File size exceeds 50 MB limit.";
+            Message = "File size exceeds 50 MB limit.";
             return;
         }
 
@@ -90,6 +90,13 @@ public partial class PmiReportUpload : ComponentBase
         }
 
         Logger.LogInformation("PMI Report upload would happen here.");
+
+        Message = $"{SelectedFile.Name} has been submitted";
+        reportDatePicker.ReInitialize();
+        SelectedFile = null;
+
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
     }
 
     async Task OnReportNameValidationChanged()

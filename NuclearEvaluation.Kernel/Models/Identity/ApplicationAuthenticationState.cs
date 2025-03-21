@@ -1,4 +1,4 @@
-namespace NuclearEvaluation.Server.Models.Identity;
+namespace NuclearEvaluation.Kernel.Models.Identity;
 
 public class ApplicationClaim
 {

@@ -11,9 +11,9 @@ public class PmiReport
 
     public string AuthorId { get; set; } = string.Empty;
 
-    public ApplicationUser User { get; set; } = null!;
-
-    public DateTime PublishedDate { get; set; }
+    public DateTime CreatedDate { get; set; }
 
     public PmiReportStatus Status { get; set; } = PmiReportStatus.Unknown;
+
+    public List<PmiReportDistributionEntry> PmiReportDistributionEntries { get; set; } = [];
 }

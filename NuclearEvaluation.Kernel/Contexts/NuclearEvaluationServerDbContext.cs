@@ -3,11 +3,18 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using NuclearEvaluation.Kernel.Models.Filters;
 using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Kernel.Models.Domain;
+using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 
 namespace NuclearEvaluation.Kernel.Contexts;
 
 public class NuclearEvaluationServerDbContext : DbContext
 {
+
+    public NuclearEvaluationServerDbContext()
+    {
+            
+    }
+
     public NuclearEvaluationServerDbContext(DbContextOptions<NuclearEvaluationServerDbContext> options) : base(options) { }
 
     // Domain Entities
@@ -31,6 +38,8 @@ public class NuclearEvaluationServerDbContext : DbContext
     public DbSet<ProjectViewSeriesView> ProjectViewSeriesView { get; set; }
     public DbSet<ProjectDecayCorrectedParticleView> ProjectDecayCorrectedParticleView { get; set; }
     public DbSet<ProjectDecayCorrectedApmView> ProjectDecayCorrectedApmView { get; set; }
+    public DbSet<PmiReport> PmiReport { get; set; }
+    public DbSet<PmiReportDistributionEntry> PmiReportDistributionEntry { get;set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -89,6 +98,22 @@ public class NuclearEvaluationServerDbContext : DbContext
             entity.HasOne(pvs => pvs.Series)
                   .WithMany(sv => sv.ProjectSeries)
                   .HasForeignKey(pvs => pvs.SeriesId);
+        });
+
+        modelBuilder.Entity<PmiReport>(entity =>
+        {
+            entity.HasKey(pr => pr.Id);
+            entity.HasMany(pr => pr.PmiReportDistributionEntries)
+                  .WithOne(de => de.PmiReport)
+                  .HasForeignKey(de => de.PmiReportId);
+        });
+
+        modelBuilder.Entity<PmiReportDistributionEntry>(entity =>
+        {
+            entity.HasKey(de => de.Id);
+            entity.HasOne(de => de.PmiReport) 
+                  .WithMany(pr => pr.PmiReportDistributionEntries)
+                  .HasForeignKey(de => de.PmiReportId);
         });
 
         modelBuilder.Entity<SampleView>(entity =>

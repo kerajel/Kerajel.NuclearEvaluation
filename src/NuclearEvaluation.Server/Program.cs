@@ -69,6 +69,7 @@ internal class Program
         builder.Services.AddTransient<IStemPreviewEntryService, StemPreviewEntryService>();
         builder.Services.AddTransient<IStemPreviewService, StemPreviewService>();
         builder.Services.AddTransient<IStemPreviewParser, StemPreviewParser>();
+        builder.Services.AddTransient<IPmiReportService, PmiReportService>();
 
         builder.Services.AddScoped<ITempTableService, TempTableService>();
         builder.Services.AddScoped<IEfsFileService, EfsFileService>();

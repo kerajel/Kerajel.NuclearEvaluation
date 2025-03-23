@@ -1,10 +1,12 @@
-﻿using NuclearEvaluation.Kernel.Enums;
+﻿using LinqToDB.Mapping;
+using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Models.Identity;
 
 namespace NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 
 public class PmiReport
 {
+    [PrimaryKey, Identity]
     public int Id { get; set; }
 
     public string Name { get; set; } = string.Empty;
@@ -13,7 +15,7 @@ public class PmiReport
 
     public ApplicationUser Author { get; set; } = null!;
 
-    public DateTime CreatedDate { get; set; }
+    public DateOnly CreatedDate { get; set; }
 
     public PmiReportStatus Status { get; set; } = PmiReportStatus.Unknown;
 

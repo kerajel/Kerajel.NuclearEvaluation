@@ -1,10 +1,17 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
+using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Kernel.Helpers;
+using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 using NuclearEvaluation.Server.Shared.Generics;
 using NuclearEvaluation.Shared.Validators;
 using Radzen;
+using System.Security.Claims;
+using System.Transactions;
 
 namespace NuclearEvaluation.Server.Shared.DataManagement;
 
@@ -20,7 +27,13 @@ public partial class PmiReportUpload : ComponentBase
     protected IJSRuntime JsRuntime { get; set; } = null!;
 
     [Inject]
+    private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
+
+    [Inject]
     protected PmiReportSubmissionValidator PmiReportSubmissionValidator { get; set; } = null!;
+
+    [Inject]
+    protected IPmiReportService PmiReportService { get; set; } = null!;
 
     [Inject]
     public DialogService DialogService { get; set; } = null!;
@@ -41,10 +54,11 @@ public partial class PmiReportUpload : ComponentBase
         ReportDate = DateOnly.FromDateTime(DateTime.UtcNow),
     };
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         base.OnInitialized();
         IsFormValid = false;
+        reportSubmission.AuthorId = await AuthenticationStateProvider.GetCurrentUserId();
     }
 
     protected async void TriggerFileInputClick()
@@ -59,6 +73,7 @@ public partial class PmiReportUpload : ComponentBase
         SelectedFile = null;
         Message = string.Empty;
         IsFormValid = false;
+        reportSubmission.ReportName = Path.GetFileName(e.File.Name);
 
         if (file is null)
         {
@@ -89,6 +104,10 @@ public partial class PmiReportUpload : ComponentBase
             return;
         }
 
+        PmiReport pmiReport = PreparePmiReport();
+
+        await PmiReportService.Insert(pmiReport);
+
         Logger.LogInformation("PMI Report upload would happen here.");
 
         Message = $"{SelectedFile!.Name} has been submitted";
@@ -99,7 +118,32 @@ public partial class PmiReportUpload : ComponentBase
         await Task.Yield();
     }
 
-    async Task OnReportNameValidationChanged()
+    private PmiReport PreparePmiReport()
+    {
+        PmiReport pmiReport = new()
+        {
+            //TODO add name picker
+            Name = reportSubmission.ReportName,
+            AuthorId = reportSubmission.AuthorId,
+            CreatedDate = reportSubmission.ReportDate!.Value,
+            Status = PmiReportStatus.DistributionPending,
+        };
+
+        foreach (PmiReportDistributionChannel channel in Enum.GetValues<PmiReportDistributionChannel>())
+        {
+            PmiReportDistributionEntry entry = new()
+            {
+                PmiReport = pmiReport,
+                PmiReportDistributionChannel = channel,
+                PmiReportDistributionStatus = PmiReportDistributionStatus.Pending,
+            };
+            pmiReport.PmiReportDistributionEntries.Add(entry);
+        }
+
+        return pmiReport;
+    }
+
+    protected async Task OnReportNameValidationChanged()
     {
         await UpdateFormValidity();
     }
@@ -108,11 +152,22 @@ public partial class PmiReportUpload : ComponentBase
     {
         bool isReportDateValid = !reportDatePicker.HasValidationErrors;
 
-        IsFormValid =     ReportDate is not null
+        IsFormValid = ReportDate is not null
                        && SelectedFile is not null
                        && isReportDateValid;
 
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
+    }
+
+    protected string GetCurrentUserId()
+    {
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated ?? false)
+        {
+            return user.FindFirst(c => c.Type.Equals(ClaimTypes.NameIdentifier))?.Value ?? string.Empty;
+        }
+        return string.Empty;
     }
 }

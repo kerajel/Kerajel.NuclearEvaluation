@@ -2,7 +2,8 @@
 
 public enum PmiReportDistributionStatus
 {
-    Email = 1,
-    SharePoint = 2,
-    Efs = 3,
+    Unknown = 1,
+    Pending = 2,
+    Completed = 3,
+    Failed = 4,
 }

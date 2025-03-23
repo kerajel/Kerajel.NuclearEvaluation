@@ -1,20 +1,10 @@
-﻿using LinqToDB;
-using LinqToDB.Data;
-using LinqToDB.EntityFrameworkCore;
-using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Kernel.Helpers;
+﻿using NuclearEvaluation.Kernel.Data.Context;
+using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Transactions;
 
 namespace NuclearEvaluation.Shared.Services;
 
-public class PmiReportService : DbServiceBase
+public class PmiReportService : DbServiceBase, IPmiReportService
 {
     public PmiReportService(NuclearEvaluationServerDbContext dbContext) : base(dbContext)
     {
@@ -23,15 +13,7 @@ public class PmiReportService : DbServiceBase
 
     public async Task Insert(PmiReport pmiReport)
     {
-        using TransactionScope ts = TransactionProvider.CreateScope();
-
-        using DataConnection dc = _dbContext.CreateLinqToDBConnection();
-
-        await dc.InsertAsync(pmiReport);
-    }
-
-    public async Task QueueForDistributionAsync(PmiReport pmiReport)
-    {
-
+        _dbContext.Add(pmiReport);
+        await _dbContext.SaveChangesAsync();
     }
 }

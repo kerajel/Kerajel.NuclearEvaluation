@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\NuclearEvaluation.SharedServices\NuclearEvaluation.Shared.csproj" />
+    <ProjectReference Include="..\..\src\NuclearEvaluation.Shared\NuclearEvaluation.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

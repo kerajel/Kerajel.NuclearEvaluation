@@ -4,6 +4,9 @@
     <RadzenLabel Text="Easily upload your Project Management Insights (PMI) reports here." Style="font-weight: bold; display: block; margin-bottom: 10px;" />
     <RadzenLabel Text="Acceptable format: .docx | Max file size: 50 MB" Style="display: block; margin-bottom: 10px;" />
 
+    <RadzenLabel Text="Warning: This feature is in early alpha stage and may not work as expected."
+                 Style="color: red; font-weight: bold; display: block; margin-bottom: 10px;" />
+
     <RadzenLabel Text="Report Date:" Component="DatePicker" Style="margin-right: 10px; display: block; margin-bottom: 10px;" />
     <ValidatedDateOnlyPicker @ref="reportDatePicker"
                              Model="@reportSubmission"

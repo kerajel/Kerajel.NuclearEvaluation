@@ -91,7 +91,7 @@ public partial class PmiReportUpload : ComponentBase
 
         Logger.LogInformation("PMI Report upload would happen here.");
 
-        Message = $"{SelectedFile.Name} has been submitted";
+        Message = $"{SelectedFile!.Name} has been submitted";
         reportDatePicker.ReInitialize();
         SelectedFile = null;
 

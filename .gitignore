@@ -371,3 +371,5 @@ FodyWeavers.xsd
 /NuclearEvaluation.Server/rabbitMqSettings.json
 /NuclearEvaluationStorage
 /Kerajel.StemPreviewProcessor/rabbitMqSettings.json
+/Kerajel.NuclearEvaluation/src/NuclearEvaluationStorage/
+/src/NuclearEvaluation.Server/appsettings.Development.json

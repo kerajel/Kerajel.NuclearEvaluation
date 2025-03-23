@@ -1,0 +1,255 @@
+@inherits BaseGrid
+
+<div style="display:@(Visible ? "block" : "none");">
+
+    <RadzenCard Visible="@(AllowEdit || Visible)" Style="padding: 10px;">
+        <RadzenRow>
+            <RadzenColumn Size="6">
+                <RadzenButton ButtonStyle="ButtonStyle.Success"
+                              Visible="@(AllowEdit && Visible)"
+                              Click="@InsertRow"
+                              Disabled="@(_editMode == DataGridEditMode.Single && _seriesToInsert.Count() > 0)"
+                              Icon="add_circle"
+                              Text="Add New Series"
+                              Style="width: 33%; padding: 5px 10px;" />
+            </RadzenColumn>
+            <RadzenColumn Size="6" Style="text-align: right;">
+                <ResetGridButton Click="@(() => this.Reset())" />
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenCard>
+
+    <RadzenDataGrid @bind-SelectedItems="SelectedEntryIds"
+                    @bind-Settings="GridSettings"
+                    @ref="grid"
+                    RowSelect="OnEntriesSelected"
+                    RowDeselect="OnEntriesDeselected"
+                    AllowAlternatingRows="false"
+                    AllowColumnResize="true"
+                    AllowFiltering="true"
+                    AllowPaging="true"
+                    AllowSorting="true"
+                    ShowExpandColumn="AllowExpand"
+                    ColumnWidth="150px"
+                    Count="@totalCount"
+                    Data="@entries"
+                    KeyProperty="@nameof(SeriesView.Id)"
+                    LoadData="LoadData"
+                    IsLoading="@isLoading"
+                    LogicalFilterOperator="LogicalFilterOperator.And"
+                    PagerHorizontalAlign="HorizontalAlign.Left"
+                    PageSize="10"
+                    RowCreate="OnCreateRow"
+                    RowUpdate="OnUpdateRow"
+                    SelectionMode="DataGridSelectionMode.Multiple"
+                    ShowPagingSummary="true"
+                    TItem="SeriesView"
+                    RowExpand="OnExpandRow"
+                    RowRender="RowRender"
+                    FilterPopupRenderMode="PopupRenderMode.OnDemand"
+                    FilterMode="FilterMode.Advanced"
+                    ExpandMode="DataGridExpandMode.Multiple"
+                    PagingSummaryFormat="@("Displaying page {0:N0} of {1:N0} <b>(total {2:N0} records)</b>")">
+
+        <Template Context="series">
+            <div style="max-width:1000px; overflow-x: auto; margin-left: 23px;">
+                <RadzenDataGrid AllowFiltering="true" AllowPaging="true" AllowSorting="true" Data="@series.Samples" FilterMode="FilterMode.SimpleWithMenu">
+                <Columns>
+                    <RadzenDataGridColumn Property="@nameof(SampleView.Sequence)" Title="Sequence" />
+                    <RadzenDataGridColumn Property="@nameof(SampleView.ExternalCode)" Title="External Code" />
+                    <RadzenDataGridColumn Property="@nameof(SampleView.SampleType)" Title="Type" />
+                    <RadzenDataGridColumn Property="@nameof(SampleView.SampleClass)" Title="Class" />
+                    <RadzenDataGridColumn Property="@nameof(SampleView.SamplingDate)" Title="Sampling Date" FormatString="@DateOnlyFormat" />
+                </Columns>
+            </RadzenDataGrid>
+            </div>
+        </Template>
+
+        <Columns>
+
+            <RadzenDataGridColumn Width="60px" Sortable="false" Filterable="false" Visible="AllowSelect">
+                <HeaderTemplate>
+                    <RadzenCheckBox TabIndex="-1"
+                                    TriState="false"
+                                    TValue="bool?"
+                                    InputAttributes="@(new Dictionary<string, object>(){ { "aria-label", "Select all items" }})"
+                                    Value="@(SelectedEntryIds.Count == entries.Count() && entries.Count() > 0 ? true : false)"
+                                    Change="@(async args => {
+                if (args == true)
+                {
+                    SelectedEntryIds.Clear();
+                    foreach (int id in entries.Select(x => x.Id))
+                    {
+                        SelectedEntryIds.Add(id);
+                    }
+                    await OnEntriesSelected.InvokeAsync();
+                }
+                else
+                {
+                    SelectedEntryIds.Clear();
+                    await OnEntriesDeselected.InvokeAsync();
+                }
+            })" />
+                </HeaderTemplate>
+                <Template Context="entry">
+                    <RadzenCheckBox TabIndex="-1"
+                                    TriState="false"
+                                    Value="@(SelectedEntryIds.Contains(entry.Id))"
+                                    InputAttributes="@(new Dictionary<string, object>(){ { "aria-label", "Select item" }})"
+                                    TValue="bool"
+                                    Change="@(args => {
+                if (args)
+                {
+                    SelectedEntryIds.Add(entry.Id);
+                }
+                else
+                {
+                    SelectedEntryIds.Remove(entry.Id);
+                }
+            })" />
+                </Template>
+            </RadzenDataGridColumn>
+
+
+            <RadzenDataGridColumn Property="@nameof(SeriesView.Id)"
+                                  Title="Id"
+                                  TextAlign="TextAlign.Center" />
+
+            <RadzenDataGridColumn Property="@nameof(SeriesView.SeriesType)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="Series Type"
+                                  FilterOperator="FilterOperator.Custom"
+                                  Sortable="true">
+                <EditTemplate Context="series">
+                    <RadzenDropDown Data="Enum.GetValues<SeriesType>()"
+                                    Style="width:100%;"
+                                    @bind-Value="series.SeriesType" />
+                </EditTemplate>
+                <FilterTemplate Context="column">
+                    <GenericEnumColumnFilter T="SeriesType" K="SeriesView" Command="currentCommand"
+                                             Column="column"
+                                             PropertyName="@(nameof(SeriesView.SeriesType))" />
+                </FilterTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Property="@nameof(SeriesView.CreatedAt)"
+                                  TextAlign="TextAlign.Left"
+                                  FormatString="@DateOnlyFormat"
+                                  Title="Created At" />
+
+            <RadzenDataGridColumn Property="@nameof(SeriesView.SgasComment)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="Sgas Comment" />
+
+            <RadzenDataGridColumn Property="@nameof(SeriesView.WorkingPaperLink)"
+                                  Title="Working Paper Link"
+                                  TextAlign="TextAlign.Left">
+                <EditTemplate Context="series">
+                    <RadzenTextBox @bind-Value="series.WorkingPaperLink"
+                                   Name="Working Paper Link"
+                                   Style="width:200px; display: block"
+                                   aria-label="Enter workng paper link" />
+                    <RadzenRequiredValidator Component="Working Paper Link"
+                                             Popup="true"
+                                             Text="Working Paper Link is required" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Property="@nameof(SeriesView.IsDu)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="Is Du">
+                <EditTemplate Context="series">
+                    <RadzenCheckBox @bind-Value="series.IsDu" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Property="@nameof(SeriesView.IsNu)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="Is Nu">
+                <EditTemplate Context="series">
+                    <RadzenCheckBox @bind-Value="series.IsNu" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Property="@nameof(SeriesView.AnalysisCompleteDate)"
+                                  TextAlign="TextAlign.Left"
+                                  FormatString="@DateOnlyFormat"
+                                  Title="Analysis Complete Date">
+                <EditTemplate Context="series">
+                    <RadzenDatePicker @bind-Value="series.AnalysisCompleteDate" DateFormat="MM/dd/yyyy" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Property="@nameof(SeriesView.SampleCount)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="Sample Count" />
+
+            <RadzenDataGridColumn Property="@nameof(SeriesView.SampleExternalCodes)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="External Codes" />
+
+            @if (AllowEdit)
+            {
+                <RadzenDataGridColumn Context="series"
+                                      Filterable="false"
+                                      Frozen="true"
+                                      FrozenPosition="FrozenColumnPosition.Right"
+                                      Sortable="false"
+                                      TextAlign="TextAlign.Right"
+                                      Width="90px">
+                    <Template Context="series">
+                        <RadzenButton ButtonStyle="ButtonStyle.Light"
+                                      Click="@(args => EditRow(series))"
+                                      Icon="edit"
+                                      Size="ButtonSize.Medium"
+                                      Variant="Variant.Flat"
+                                      @onclick:stopPropagation="true" />
+                        <RadzenButton ButtonStyle="ButtonStyle.Danger"
+                                      Click="@(args => DeleteRow(series))"
+                                      Icon="delete"
+                                      Disabled="@(!CanDeleteSeries(series))"
+                                      MouseEnter="@(args => HandleDeleteSeriesButtonMouseover(args, series))" Size="ButtonSize.Medium"
+                                      Variant="Variant.Flat"
+                                      class="rz-my-1 rz-ms-1"
+                                      @onclick:stopPropagation="true" />
+                    </Template>
+                    <EditTemplate Context="series">
+                        <RadzenButton ButtonStyle="ButtonStyle.Success"
+                                      Click="@((args) => SaveRow(series))"
+                                      Icon="check"
+                                      Size="ButtonSize.Medium"
+                                      Variant="Variant.Flat"
+                                      aria-label="Save" />
+                        <RadzenButton ButtonStyle="ButtonStyle.Light"
+                                      Click="@((args) => CancelEdit(series))"
+                                      Icon="close"
+                                      Size="ButtonSize.Medium"
+                                      Variant="Variant.Flat"
+                                      class="rz-my-1 rz-ms-1"
+                                      aria-label="Cancel" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+            }
+        </Columns>
+    </RadzenDataGrid>
+
+</div>
+
+@code {
+    void HandleDeleteSeriesButtonMouseover(ElementReference elementReference, SeriesView seriesView)
+    {
+        if (CanDeleteSeries(seriesView))
+        {
+            return;
+        }
+
+        TooltipOptions tooltipOptions = new TooltipOptions
+            {
+                Position = TooltipPosition.Left,
+                Text = "Series contains samples",
+                Style = "background-color: rgba(255, 165, 0, 0.9); color: white",
+            };
+
+        TooltipService.Open(elementReference, "Series contains samples", tooltipOptions);
+    }
+}

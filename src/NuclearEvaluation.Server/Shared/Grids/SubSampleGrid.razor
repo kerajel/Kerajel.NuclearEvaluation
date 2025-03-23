@@ -1,0 +1,60 @@
+@inherits BaseGrid
+
+<div style="display:@(Visible ? "block" : "none");">
+
+    <GridButtonRibbon>
+        <ResetGridButton Click="@(() => Reset())" />
+    </GridButtonRibbon>
+
+    <RadzenDataGrid @bind-Settings="@GridSettings"
+                    @ref="grid"
+                    AllowAlternatingRows="false"
+                    AllowColumnResize="true"
+                    AllowFiltering="true"
+                    AllowPaging="true"
+                    AllowSorting="true"
+                    ColumnWidth="150px"
+                    Count="@totalCount"
+                    Data="@entries"
+                    KeyProperty="@nameof(SubSampleView.Sequence)"
+                    LoadData="@((args) => LoadData(args))"
+                    IsLoading="@isLoading"
+                    LogicalFilterOperator="LogicalFilterOperator.And"
+                    PagerHorizontalAlign="HorizontalAlign.Left"
+                    ShowPagingSummary="true"
+                    TItem="SubSampleView"
+                    FilterPopupRenderMode="PopupRenderMode.OnDemand"
+                    PagingSummaryFormat="@("Displaying page {0:N0} of {1:N0} <b>(total {2:N0} records)</b>")"
+                    FilterMode="FilterMode.Advanced">
+
+        <Columns>
+            <RadzenDataGridColumn Property="@nameof(SubSampleView.Sequence)"
+                                  Title="Sequence"
+                                  TextAlign="TextAlign.Center" />
+
+            <RadzenDataGridColumn Property="@nameof(SubSampleView.ScreeningDate)"
+                                  TextAlign="TextAlign.Left"
+                                  FormatString="@DateOnlyFormat"
+                                  Title="Screening Date" />
+
+            <RadzenDataGridColumn Property="@nameof(SubSampleView.UploadResultDate)"
+                                  TextAlign="TextAlign.Left"
+                                  FormatString="@DateOnlyFormat"
+                                  Title="Upload Result Date" />
+
+            <RadzenDataGridColumn Property="@nameof(SubSampleView.IsFromLegacySystem)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="Is From Legacy System" />
+
+            <RadzenDataGridColumn Property="@nameof(SubSampleView.ActivityNotes)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="Activity Notes" />
+
+            <RadzenDataGridColumn Property="@nameof(SubSampleView.TrackingNumber)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="Tracking Number" />
+
+        </Columns>
+    </RadzenDataGrid>
+
+</div>

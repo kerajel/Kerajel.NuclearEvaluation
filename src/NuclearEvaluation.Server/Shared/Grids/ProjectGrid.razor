@@ -1,0 +1,69 @@
+@inherits BaseGrid
+
+<div style="display:@(Visible ? "block" : "none");">
+
+    <GridButtonRibbon>
+        <ResetGridButton Click="@(() => Reset())" />
+    </GridButtonRibbon>
+
+    <RadzenDataGrid @bind-Settings="@GridSettings"
+                    @ref="grid"
+                    AllowAlternatingRows="false"
+                    AllowColumnResize="true"
+                    AllowFiltering="true"
+                    AllowPaging="true"
+                    AllowSorting="true"
+                    ColumnWidth="150px"
+                    Count="@totalCount"
+                    Data="@entries"
+                    KeyProperty="@nameof(ProjectView.Id)"
+                    LoadData="@LoadData"
+                    IsLoading="@isLoading"
+                    LogicalFilterOperator="LogicalFilterOperator.And"
+                    PagerHorizontalAlign="HorizontalAlign.Left"
+                    ShowPagingSummary="true"
+                    TItem="ProjectView"
+                    FilterPopupRenderMode="PopupRenderMode.OnDemand"
+                    PagingSummaryFormat="Displaying page {0:N0} of {1:N0} <b>(total {2:N0} records)</b>"
+                    FilterMode="FilterMode.Advanced">
+
+        <Columns>
+            <RadzenDataGridColumn Property="@nameof(ProjectView.Id)"
+                                  Title="ID"
+                                  Width="50px"
+                                  TextAlign="TextAlign.Center" />
+
+            <RadzenDataGridColumn Property="@nameof(ProjectView.Name)"
+                                  Title="Name"
+                                  TextAlign="TextAlign.Left">
+                <Template Context="project">
+                    <a href="/projects/@project.Id">
+                        @project.Name
+                    </a>
+                </Template>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Property="@nameof(ProjectView.SeriesIds)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="Series" />
+
+            <RadzenDataGridColumn Property="@nameof(ProjectView.SampleCount)"
+                                  TextAlign="TextAlign.Left"
+                                  Width="65px"
+                                  Title="Sample Count" />
+
+            <RadzenDataGridColumn Property="@nameof(ProjectView.CreatedAt)"
+                                  TextAlign="TextAlign.Left"
+                                  FormatString="@DateOnlyFormat"
+                                  Width="65px"
+                                  Title="Created At" />
+
+            <RadzenDataGridColumn Property="@nameof(ProjectView.UpdatedAt)"
+                                  TextAlign="TextAlign.Left"
+                                  FormatString="@DateOnlyFormat"
+                                  Width="65px"
+                                  Title="Updated At" />
+        </Columns>
+    </RadzenDataGrid>
+
+</div>

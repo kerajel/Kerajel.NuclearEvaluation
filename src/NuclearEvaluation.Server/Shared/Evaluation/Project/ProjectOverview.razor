@@ -1,0 +1,42 @@
+﻿<RadzenRow Style="align-items: flex-start; margin-bottom: 0px; font-style: italic;">
+    <RadzenColumn xs="10" sm="10" md="10" lg="10">
+        <RadzenLabel Text="Created At:" />
+        <RadzenLabel Text="@ProjectView.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")" />
+    </RadzenColumn>
+</RadzenRow>
+
+<RadzenRow Style="align-items: flex-start; margin-bottom: 0px; font-style: italic;">
+    <RadzenColumn xs="10" sm="10" md="10" lg="10">
+        <RadzenLabel Text="Updated At:" />
+        <RadzenLabel Text="@ProjectView.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss")" />
+    </RadzenColumn>
+</RadzenRow>
+
+<div style="margin-top: 20px;">
+    <RadzenLabel Text="Conclusions" Style="font-weight:bold;" />
+    <ValidatedTextArea @ref="_projectConclusionsInputRef"
+                       Model="@ProjectView"
+                       PropertyExpression="@(x => x.Conclusions)"
+                       Validator="ProjectViewValidator"
+                       AutoCompleteType="AutoCompleteType.Off"
+                       Style="width: 100%; resize:none;"
+                       Rows="5"
+                       DebounceTimeout="TimeSpan.Zero"
+                       TooltipOffsetX="-247"
+                       @onblur="OnConclusionsBlur" />
+</div>
+
+<div style="margin-top: 20px;">
+    <RadzenLabel Text="Follow up actions recommended" Style="font-weight:bold;" />
+    <ValidatedTextArea TModel="ProjectView"
+                       @ref="_projectFollowUpActionsRecommendedInputRef"
+                       Model="@ProjectView"
+                       PropertyExpression="@(x => x.FollowUpActionsRecommended)"
+                       Validator="ProjectViewValidator"
+                       AutoCompleteType="AutoCompleteType.Off"
+                       Style="width: 100%; resize:none;"
+                       Rows="5"
+                       DebounceTimeout="TimeSpan.Zero"
+                       TooltipOffsetX="-247"
+                       @onblur="OnFollowUpActionsRecommendedBlur" />
+</div>

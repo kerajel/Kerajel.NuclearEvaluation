@@ -1,0 +1,55 @@
+@page "/"
+@using Microsoft.AspNetCore.Components.Web
+@using Radzen.Blazor
+@namespace NuclearEvaluation.Server.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@inject Radzen.ThemeService ThemeService
+
+@{
+    string theme = HttpContext.Request.Cookies["NuclearEvaluationTheme"];
+
+    if (!string.IsNullOrEmpty(theme))
+    {
+        ThemeService.SetTheme(theme, true);
+    }
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="~/" />
+
+    <link href="/_content/Radzen.Blazor/css/software-dark-base.css?v=5.3.5.0" rel="stylesheet" />
+    <link rel="preload" href="/_content/Radzen.Blazor/fonts/SourceSans3VF-Upright.ttf.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://secure.gravatar.com/avatar/d41d8cd98f00b204e9800998ecf8427e?d=retro&s=36" as="image">
+    <link rel="preload" href="/images/nuclear-logo.png" as="image">
+    <link rel="preload" href="/_content/Radzen.Blazor/fonts/MaterialSymbolsOutlined.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="icon" href="favicon.ico?v=2" />
+    <link href="~/css/site.css" rel="stylesheet" />
+    <link href="~/css/validation.css" rel="stylesheet" />
+
+    <component type="typeof(RadzenTheme)" render-mode="Server" param-Theme="@("software-dark")" />
+    <component type="typeof(HeadOutlet)" render-mode="Server" />
+</head>
+<body>
+    <component type="typeof(App)" render-mode="Server" />
+
+    <div id="blazor-error-ui">
+        <environment include="Staging,Production">
+            An error has occurred. This application may no longer respond until reloaded.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="~/scripts/scripts.js?v=1.02"></script>
+    <script src="_framework/blazor.server.js"></script>
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js?v=@(typeof(Radzen.Colors).Assembly.GetName().Version)"></script>
+    <persist-component-state />
+</body>
+</html>

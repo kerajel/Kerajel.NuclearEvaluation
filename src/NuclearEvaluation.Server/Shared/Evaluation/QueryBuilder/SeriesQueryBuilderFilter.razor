@@ -1,0 +1,21 @@
+﻿@implements IPresetFilterComponent
+@inherits BaseQueryBuilderFilter<SeriesViewPresetFilter>
+
+<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="false" Style="width: 65%;" TItem="SeriesViewPresetFilter" FilterDateFormat="{0:yyyy-MM-dd}">
+    <Properties>
+        <RadzenDataFilterProperty Property="Series.Id" Title="Series Id" />
+        <RadzenDataFilterProperty Property="Series.SeriesType" Title="Series Type" />
+        <RadzenDataFilterProperty Property="Series.CreatedAt" Title="Created At" FormatString="@DateOnlyFormat" />
+        <RadzenDataFilterProperty Property="Series.SgasComment" Title="Sgas Comment" />
+        <RadzenDataFilterProperty Property="Series.WorkingPaperLink" Title="Working Paper Link" />
+        <RadzenDataFilterProperty Property="Series.IsDu" Title="Is Du" />
+        <RadzenDataFilterProperty Property="Series.IsNu" Title="Is Nu" />
+        <RadzenDataFilterProperty Property="Series.AnalysisCompleteDate" Title="Analysis Complete Date" FormatString="@DateOnlyFormat" />
+        <RadzenDataFilterProperty Property="Series.SampleExternalCodes" Title="Sample External Codes" />
+        <RadzenDataFilterProperty Property="Series.SampleCount" Title="Sample Count" />
+    </Properties>
+</RadzenDataFilter>
+
+@code {
+    public override PresetFilterEntryType EntryType => PresetFilterEntryType.Series;
+}

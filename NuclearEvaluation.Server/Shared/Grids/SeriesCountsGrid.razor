@@ -1,9 +1,0 @@
-<RadzenDataGrid Data="@_countSummary" AllowFiltering="false" AllowColumnResize="false" AllowSorting="false" AllowPaging="false" ColumnWidth="200px">
-    <Columns>
-        <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.SeriesCount)" Title="Total Series" TextAlign="TextAlign.Center" FormatString="{0:N0}" />
-        <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.SampleCount)" Title="Total Samples" TextAlign="TextAlign.Center" FormatString="{0:N0}" />
-        <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.SubSampleCount)" Title="Total SubSamples" TextAlign="TextAlign.Center" FormatString="{0:N0}" />
-        <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.ApmCount)" Title="Total Apm" TextAlign="TextAlign.Center" FormatString="{0:N0}" />
-        <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.ParticleCount)" Title="Total Particles" TextAlign="TextAlign.Center" FormatString="{0:N0}" />
-    </Columns>
-</RadzenDataGrid>

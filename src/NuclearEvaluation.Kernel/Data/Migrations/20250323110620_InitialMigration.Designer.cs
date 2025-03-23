@@ -12,7 +12,7 @@ using NuclearEvaluation.Kernel.Data.Context;
 namespace NuclearEvaluation.Kernel.Data.Migrations
 {
     [DbContext(typeof(NuclearEvaluationServerDbContext))]
-    [Migration("20250323103623_InitialMigration")]
+    [Migration("20250323110620_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />

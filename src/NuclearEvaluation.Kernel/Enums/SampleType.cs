@@ -1,6 +1,6 @@
 ﻿namespace NuclearEvaluation.Kernel.Enums;
 
-public enum SampleType : byte
+public enum SampleType
 {
     None = 1,
     Field,

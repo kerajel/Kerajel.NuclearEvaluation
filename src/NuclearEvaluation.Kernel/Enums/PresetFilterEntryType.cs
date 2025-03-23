@@ -1,6 +1,6 @@
 ﻿namespace NuclearEvaluation.Kernel.Enums;
 
-public enum PresetFilterEntryType : byte
+public enum PresetFilterEntryType
 {
     Series = 1,
     Sample,

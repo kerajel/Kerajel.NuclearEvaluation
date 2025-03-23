@@ -1,6 +1,6 @@
 ﻿namespace NuclearEvaluation.Kernel.Enums;
 
-public enum SeriesType : byte
+public enum SeriesType
 {
     Regular = 1,
     Medium = 2,

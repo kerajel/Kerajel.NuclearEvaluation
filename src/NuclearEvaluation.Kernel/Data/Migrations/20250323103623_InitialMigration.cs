@@ -101,7 +101,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "10000, 1"),
-                    SeriesType = table.Column<byte>(type: "tinyint", nullable: false),
+                    SeriesType = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     SgasComment = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
                     WorkingPaperLink = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
@@ -241,7 +241,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AuthorId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false)
+                    Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -262,7 +262,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    PresetFilterEntryType = table.Column<byte>(type: "tinyint", nullable: false),
+                    PresetFilterEntryType = table.Column<int>(type: "int", nullable: false),
                     LogicalFilterOperator = table.Column<int>(type: "int", nullable: false),
                     IsEnabled = table.Column<bool>(type: "bit", nullable: false),
                     PresetFilterId = table.Column<int>(type: "int", nullable: false),
@@ -342,8 +342,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PmiReportId = table.Column<int>(type: "int", nullable: false),
-                    PmiReportDistributionChannel = table.Column<byte>(type: "tinyint", nullable: false),
-                    PmiReportDistributionStatus = table.Column<byte>(type: "tinyint", nullable: false)
+                    PmiReportDistributionChannel = table.Column<int>(type: "int", nullable: false),
+                    PmiReportDistributionStatus = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {

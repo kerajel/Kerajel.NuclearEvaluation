@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NuclearEvaluation.Kernel.Data.Context;
 
@@ -11,9 +12,11 @@ using NuclearEvaluation.Kernel.Data.Context;
 namespace NuclearEvaluation.Kernel.Data.Migrations
 {
     [DbContext(typeof(NuclearEvaluationServerDbContext))]
-    partial class NuclearEvaluationServerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250323104627_ChangeEnumsToInt16")]
+    partial class ChangeEnumsToInt16
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -147,8 +150,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint");
 
                     b.HasKey("Id");
 
@@ -165,11 +168,11 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("PmiReportDistributionChannel")
-                        .HasColumnType("int");
+                    b.Property<short>("PmiReportDistributionChannel")
+                        .HasColumnType("smallint");
 
-                    b.Property<int>("PmiReportDistributionStatus")
-                        .HasColumnType("int");
+                    b.Property<short>("PmiReportDistributionStatus")
+                        .HasColumnType("smallint");
 
                     b.Property<int>("PmiReportId")
                         .HasColumnType("int");
@@ -407,8 +410,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Property<bool>("IsNu")
                         .HasColumnType("bit");
 
-                    b.Property<int>("SeriesType")
-                        .HasColumnType("int");
+                    b.Property<short>("SeriesType")
+                        .HasColumnType("smallint");
 
                     b.Property<string>("SgasComment")
                         .IsRequired()
@@ -499,8 +502,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Property<int>("LogicalFilterOperator")
                         .HasColumnType("int");
 
-                    b.Property<int>("PresetFilterEntryType")
-                        .HasColumnType("int");
+                    b.Property<short>("PresetFilterEntryType")
+                        .HasColumnType("smallint");
 
                     b.Property<int>("PresetFilterId")
                         .HasColumnType("int");
@@ -909,8 +912,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("SampleType")
-                        .HasColumnType("int");
+                    b.Property<short>("SampleType")
+                        .HasColumnType("smallint");
 
                     b.Property<DateTime>("SamplingDate")
                         .HasColumnType("datetime2");
@@ -958,8 +961,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("SeriesType")
-                        .HasColumnType("int");
+                    b.Property<short>("SeriesType")
+                        .HasColumnType("smallint");
 
                     b.Property<string>("SgasComment")
                         .IsRequired()

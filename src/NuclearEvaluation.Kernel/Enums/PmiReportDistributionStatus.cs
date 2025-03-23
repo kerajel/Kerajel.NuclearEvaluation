@@ -1,6 +1,6 @@
 ﻿namespace NuclearEvaluation.Kernel.Enums;
 
-public enum PmiReportDistributionStatus : byte
+public enum PmiReportDistributionStatus
 {
     Email = 1,
     SharePoint = 2,

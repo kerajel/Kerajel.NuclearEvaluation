@@ -12,7 +12,7 @@ using NuclearEvaluation.Kernel.Data.Context;
 namespace NuclearEvaluation.Kernel.Data.Migrations
 {
     [DbContext(typeof(NuclearEvaluationServerDbContext))]
-    [Migration("20250323015405_InitialMigration")]
+    [Migration("20250323103623_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -150,8 +150,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -168,11 +168,11 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<byte>("PmiReportDistributionChannel")
-                        .HasColumnType("tinyint");
+                    b.Property<int>("PmiReportDistributionChannel")
+                        .HasColumnType("int");
 
-                    b.Property<byte>("PmiReportDistributionStatus")
-                        .HasColumnType("tinyint");
+                    b.Property<int>("PmiReportDistributionStatus")
+                        .HasColumnType("int");
 
                     b.Property<int>("PmiReportId")
                         .HasColumnType("int");
@@ -410,8 +410,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Property<bool>("IsNu")
                         .HasColumnType("bit");
 
-                    b.Property<byte>("SeriesType")
-                        .HasColumnType("tinyint");
+                    b.Property<int>("SeriesType")
+                        .HasColumnType("int");
 
                     b.Property<string>("SgasComment")
                         .IsRequired()
@@ -502,8 +502,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Property<int>("LogicalFilterOperator")
                         .HasColumnType("int");
 
-                    b.Property<byte>("PresetFilterEntryType")
-                        .HasColumnType("tinyint");
+                    b.Property<int>("PresetFilterEntryType")
+                        .HasColumnType("int");
 
                     b.Property<int>("PresetFilterId")
                         .HasColumnType("int");
@@ -912,8 +912,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<byte>("SampleType")
-                        .HasColumnType("tinyint");
+                    b.Property<int>("SampleType")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("SamplingDate")
                         .HasColumnType("datetime2");
@@ -961,8 +961,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<byte>("SeriesType")
-                        .HasColumnType("tinyint");
+                    b.Property<int>("SeriesType")
+                        .HasColumnType("int");
 
                     b.Property<string>("SgasComment")
                         .IsRequired()

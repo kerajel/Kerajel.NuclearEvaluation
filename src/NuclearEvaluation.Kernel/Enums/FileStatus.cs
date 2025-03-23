@@ -1,6 +1,6 @@
 ﻿namespace NuclearEvaluation.Kernel.Enums;
 
-public enum FileStatus : byte
+public enum FileStatus
 {
     Pending,
     Uploading,

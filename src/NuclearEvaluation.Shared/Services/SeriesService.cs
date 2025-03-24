@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.Logging;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Interfaces;
@@ -11,15 +12,27 @@ namespace NuclearEvaluation.Shared.Services;
 
 public class SeriesService : DbServiceBase, ISeriesService
 {
-    public SeriesService(NuclearEvaluationServerDbContext _dbContext) : base(_dbContext)
+    readonly ILogger<SeriesView> _logger;
+
+    public SeriesService(
+        NuclearEvaluationServerDbContext _dbContext,
+        ILogger<SeriesView> logger) : base(_dbContext)
     {
+        _logger = logger;
     }
 
-    public async Task<FilterDataResponse<SeriesView>> GetSeriesViews(FilterDataCommand<SeriesView> command)
+    public async Task<FilterDataResult<SeriesView>> GetSeriesViews(FilterDataCommand<SeriesView> command)
     {
-        IQueryable<SeriesView> baseQuery = _dbContext.SeriesView;
-
-        return await ExecuteQuery(baseQuery, command);
+        try
+        {
+            IQueryable<SeriesView> baseQuery = _dbContext.SeriesView;
+            return await ExecuteQuery(baseQuery, command);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "");
+            return FilterDataResult<SeriesView>.Faulted(ex);
+        }
     }
 
     public async Task<SeriesCountsView> GetSeriesCounts(FilterDataCommand<SeriesView> command)

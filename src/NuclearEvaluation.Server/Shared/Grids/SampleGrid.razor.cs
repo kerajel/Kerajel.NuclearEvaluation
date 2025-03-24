@@ -6,10 +6,11 @@ using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Models.Domain;
 using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Shared.Services;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
-public partial class SampleGrid : BaseGrid
+public partial class SampleGrid : BaseGridGeneric<SampleView>
 {
     [Parameter]
     public bool EnableDecayCorrection { get; set; }
@@ -23,7 +24,6 @@ public partial class SampleGrid : BaseGrid
     public override string EntityDisplayName => nameof(Sample);
 
     protected RadzenDataGrid<SampleView> grid = null!;
-    protected IEnumerable<SampleView> entries = Enumerable.Empty<SampleView>();
     protected FilterDataCommand<SampleView>? currentCommand;
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
@@ -37,10 +37,7 @@ public partial class SampleGrid : BaseGrid
             PresetFilterBox = this.GetPresetFilterBox?.Invoke(),
         };
 
-        FilterDataResponse<SampleView> response = await this.SampleService.GetSampleViews(command);
-
-        entries = response.Entries;
-        totalCount = response.TotalCount;
+        await FetchData(() => SampleService.GetSampleViews(command));
 
         currentCommand = command;
 

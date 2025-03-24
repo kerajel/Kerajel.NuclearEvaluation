@@ -5,10 +5,11 @@ using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Kernel.Models.Domain;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Shared.Services;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
-public partial class ProjectGrid : BaseGrid
+public partial class ProjectGrid : BaseGridGeneric<ProjectView>
 {
     [Inject]
     public IProjectService ProjectService { get; set; } = null!;
@@ -16,7 +17,6 @@ public partial class ProjectGrid : BaseGrid
     public override string EntityDisplayName => nameof(Project);
 
     protected RadzenDataGrid<ProjectView> grid = null!;
-    protected IEnumerable<ProjectView> entries = Enumerable.Empty<ProjectView>();
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
@@ -27,10 +27,9 @@ public partial class ProjectGrid : BaseGrid
             LoadDataArgs = loadDataArgs,
         };
         
-        FilterDataResponse<ProjectView> response = await this.ProjectService.GetProjectViews(command);
+        FilterDataResult<ProjectView> response = await this.ProjectService.GetProjectViews(command);
 
-        entries = response.Entries;
-        totalCount = response.TotalCount;
+        await FetchData(() => ProjectService.GetProjectViews(command));
 
         base.isLoading = false;
     }

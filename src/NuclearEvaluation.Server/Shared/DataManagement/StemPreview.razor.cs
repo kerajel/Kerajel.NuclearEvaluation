@@ -149,12 +149,12 @@ public partial class StemPreview : IDisposable
                     );
 
 
-                    file.Status = result.Succeeded ? FileStatus.Uploaded : FileStatus.UploadError;
+                    file.Status = result.IsSuccessful ? FileStatus.Uploaded : FileStatus.UploadError;
 
                     await InvokeAsync(StateHasChanged);
                     await Task.Yield();
 
-                    if (!result.Succeeded)
+                    if (!result.IsSuccessful)
                     {
                         file.ErrorMessage = result.ErrorMessage;
                     }

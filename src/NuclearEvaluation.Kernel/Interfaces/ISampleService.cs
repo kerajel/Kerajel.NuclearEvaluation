@@ -5,5 +5,5 @@ namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface ISampleService
 {
-    Task<FilterDataResponse<SampleView>> GetSampleViews(FilterDataCommand<SampleView> command);
+    Task<FilterDataResult<SampleView>> GetSampleViews(FilterDataCommand<SampleView> command);
 }

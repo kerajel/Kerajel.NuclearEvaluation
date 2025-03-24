@@ -5,5 +5,5 @@ namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IParticleService
 {
-    Task<FilterDataResponse<ParticleView>> GetParticleViews(FilterDataCommand<ParticleView> command);
+    Task<FilterDataResult<ParticleView>> GetParticleViews(FilterDataCommand<ParticleView> command);
 }

@@ -9,7 +9,7 @@ using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
-public partial class StemPreviewEntryGrid : BaseGrid
+public partial class StemPreviewEntryGrid : BaseGridGeneric<StemPreviewEntryView>
 {
     [Parameter]
     public Guid StemSessionId { get; set; }
@@ -23,7 +23,6 @@ public partial class StemPreviewEntryGrid : BaseGrid
     public override string EntityDisplayName => nameof(StemPreviewEntry);
 
     protected RadzenDataGrid<StemPreviewEntryView> grid = null!;
-    protected IEnumerable<StemPreviewEntryView> entries = [];
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
@@ -41,10 +40,9 @@ public partial class StemPreviewEntryGrid : BaseGrid
             PresetFilterBox = this.GetPresetFilterBox?.Invoke(),
         };
 
-        FilterDataResponse<StemPreviewEntryView> response = await this.StemPreviewEntryService.GetStemPreviewEntryViews(StemSessionId, command);
+        FilterDataResult<StemPreviewEntryView> response = await this.StemPreviewEntryService.GetStemPreviewEntryViews(StemSessionId, command);
 
-        entries = response.Entries;
-        totalCount = response.TotalCount;
+        await FetchData(() => StemPreviewEntryService.GetStemPreviewEntryViews(StemSessionId, command));
 
         base.isLoading = false;
     }

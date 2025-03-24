@@ -9,7 +9,7 @@ using NuclearEvaluation.Kernel.Models.Views;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
-public partial class ApmGrid : BaseGrid
+public partial class ApmGrid : BaseGridGeneric<ApmView>
 {
     [Parameter]
     public bool EnableDecayCorrection { get; set; }
@@ -21,12 +21,11 @@ public partial class ApmGrid : BaseGrid
     public Expression<Func<ApmView, bool>>? TopLevelFilterExpression { get; set; }
 
     [Inject]
-    public IApmService ApmService { get; set; } = null!;
+    protected IApmService ApmService { get; set; } = null!;
 
     public override string EntityDisplayName => nameof(Apm);
 
     protected RadzenDataGrid<ApmView> grid = null!;
-    protected IEnumerable<ApmView> entries = Enumerable.Empty<ApmView>();
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
@@ -35,16 +34,13 @@ public partial class ApmGrid : BaseGrid
         FilterDataCommand<ApmView> command = new()
         {
             LoadDataArgs = loadDataArgs,
-            TopLevelFilterExpression = this.TopLevelFilterExpression,
-            PresetFilterBox = this.GetPresetFilterBox?.Invoke(),
+            TopLevelFilterExpression = TopLevelFilterExpression,
+            PresetFilterBox = GetPresetFilterBox?.Invoke(),
         };
         command.AddArgument(FilterDataCommand.ArgKeys.EnableDecayCorrection, EnableDecayCorrection);
         command.AddArgument(FilterDataCommand.ArgKeys.ProjectId, ProjectId);
 
-        FilterDataResponse<ApmView> response = await this.ApmService.GetApmViews(command);
-
-        entries = response.Entries;
-        totalCount = response.TotalCount;
+        await FetchData(() => ApmService.GetApmViews(command));
 
         base.isLoading = false;
     }

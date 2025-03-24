@@ -92,7 +92,7 @@ public class StemPreviewService(
 
             OperationResult deleteFileResult = await efsFileService.Delete(fileId);
 
-            if (!deleteFileResult.Succeeded)
+            if (!deleteFileResult.IsSuccessful)
             {
                 logger.LogError("Failed to delete file '{fileId}' from the EFS", fileId);
             }

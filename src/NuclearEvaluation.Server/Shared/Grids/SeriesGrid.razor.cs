@@ -10,7 +10,7 @@ using NuclearEvaluation.Kernel.Enums;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
-public partial class SeriesGrid : BaseGrid
+public partial class SeriesGrid : BaseGridGeneric<SeriesView>
 {
     [Parameter]
     public bool EnableDecayCorrection { get; set; }
@@ -42,7 +42,6 @@ public partial class SeriesGrid : BaseGrid
     public override string EntityDisplayName => nameof(Series);
 
     protected RadzenDataGrid<SeriesView> grid = null!;
-    protected List<SeriesView> entries = [];
     protected FilterDataCommand<SeriesView>? currentCommand;
 
     readonly DataGridEditMode _editMode = DataGridEditMode.Single;
@@ -65,10 +64,9 @@ public partial class SeriesGrid : BaseGrid
             command.TopLevelOrderExpression = item => SelectedEntryIds.Contains(item.Id) ? 0 : 1;
         }
 
-        FilterDataResponse<SeriesView> response = await this.SeriesService.GetSeriesViews(command);
+        FilterDataResult<SeriesView> response = await this.SeriesService.GetSeriesViews(command);
 
-        entries = response.Entries.ToList();
-        totalCount = response.TotalCount;
+        await FetchData(() => SeriesService.GetSeriesViews(command));
 
         currentCommand = command;
 

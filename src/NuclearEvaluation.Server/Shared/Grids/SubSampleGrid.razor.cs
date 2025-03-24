@@ -9,7 +9,7 @@ using NuclearEvaluation.Kernel.Interfaces;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
-public partial class SubSampleGrid : BaseGrid
+public partial class SubSampleGrid : BaseGridGeneric<SubSampleView>
 {
     [Parameter]
     public Expression<Func<SubSampleView, bool>>? TopLevelFilterExpression { get; set; }
@@ -20,7 +20,6 @@ public partial class SubSampleGrid : BaseGrid
     public override string EntityDisplayName => nameof(SubSample);
 
     protected RadzenDataGrid<SubSampleView> grid = null!;
-    protected IEnumerable<SubSampleView> entries = Enumerable.Empty<SubSampleView>();
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
@@ -33,10 +32,9 @@ public partial class SubSampleGrid : BaseGrid
             PresetFilterBox = this.GetPresetFilterBox?.Invoke(),
         };
 
-        FilterDataResponse<SubSampleView> response = await this.SubSampleService.GetSubSampleViews(command);
+        FilterDataResult<SubSampleView> response = await this.SubSampleService.GetSubSampleViews(command);
 
-        entries = response.Entries;
-        totalCount = response.TotalCount;
+        await FetchData(() => SubSampleService.GetSubSampleViews(command));
 
         base.isLoading = false;
     }

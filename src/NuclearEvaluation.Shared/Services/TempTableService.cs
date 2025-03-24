@@ -20,7 +20,6 @@ public class TempTableService : ITempTableService
     readonly Dictionary<string, dynamic> tables = [];
 
     readonly TempTableServiceSettings _settings;
-    readonly IDbContextFactory<NuclearEvaluationServerDbContext> _dbContextFactory;
     readonly NuclearEvaluationServerDbContext _dbContext;
     readonly DataConnection _dataConnection;
 
@@ -29,7 +28,6 @@ public class TempTableService : ITempTableService
         IOptions<TempTableServiceSettings> serviceOptions)
     {
         _settings = serviceOptions.Value;
-        _dbContextFactory = dbContextFactory;
         _dbContext = dbContextFactory.CreateDbContext();
         _dataConnection = _dbContext.CreateLinqToDBConnectionDetached();
     }

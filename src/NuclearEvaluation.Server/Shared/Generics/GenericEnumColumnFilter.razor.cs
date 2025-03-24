@@ -38,7 +38,7 @@ public partial class GenericEnumColumnFilter<T, K>
             StateHasChanged();
             await Task.Yield();
 
-            FilterDataResponse<dynamic> filterResponse = await GenericService.GetFilterOptions(Command, PropertyName);
+            FilterDataResult<dynamic> filterResponse = await GenericService.GetFilterOptions(Command, PropertyName);
 
             items = filterResponse.Entries.Select(x => (T)x).ToArray();
         }

@@ -15,17 +15,18 @@ namespace NuclearEvaluation.Shared.Services;
 
 public class DbServiceBase
 {
-    protected NuclearEvaluationServerDbContext _dbContext;
     static readonly ConcurrentDictionary<Type, PropertyInfo> _keyPropertyCache = new();
+
+    protected readonly NuclearEvaluationServerDbContext _dbContext;
 
     public DbServiceBase(NuclearEvaluationServerDbContext dbContext)
     {
         _dbContext = dbContext;
     }
 
-    public async Task<FilterDataResponse<T>> ExecuteQuery<T>(IQueryable<T> query, FilterDataCommand<T> cmd) where T : class
+    public async Task<FilterDataResult<T>> ExecuteQuery<T>(IQueryable<T> query, FilterDataCommand<T> cmd) where T : class
     {
-        FilterDataResponse<T> result = new();
+        FilterDataResult<T> result = FilterDataResult<T>.Succeeded([]);
 
         bool enableVirtualTracking = cmd.AsNoTracking && cmd.Includes.Any();
 
@@ -45,7 +46,7 @@ public class DbServiceBase
             dataQuery = QueryIncludeOptimizedExtensions.IncludeOptimized(dataQuery, include);
         }
 
-        if (cmd.TableKind == TableKind.Persisted)
+        if (cmd.TableKind == TableKind.Persisted && false)
         {
             QueryFutureEnumerable<T> futureEntries = dataQuery.Future();
 

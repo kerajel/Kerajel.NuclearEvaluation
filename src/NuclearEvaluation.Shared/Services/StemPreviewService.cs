@@ -73,7 +73,7 @@ public class StemPreviewService(
 
             OperationResult<FileInfo> writeFileResult = await efsFileService.Write(writeFileCommand, linkedCts.Token);
 
-            if (!writeFileResult.Succeeded)
+            if (!writeFileResult.IsSuccessful)
             {
                 return OperationResult.FromFaulted(writeFileResult);
             }

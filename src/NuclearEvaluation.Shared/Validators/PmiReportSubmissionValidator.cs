@@ -12,6 +12,7 @@ public class PmiReportSubmissionValidator : AbstractValidator<PmiReportSubmissio
         int nameMinLength = 10;
         int nameMaxLength = 50;
 
+        //TODO add uniqueness check
         RuleFor(x => x.ReportName)
             .Must(value => !string.IsNullOrWhiteSpace(value) && value.Length >= nameMinLength && value.Length <= nameMaxLength)
             .WithMessage($"Name must be between {nameMinLength} and {nameMaxLength} characters long");

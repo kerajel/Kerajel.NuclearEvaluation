@@ -56,10 +56,10 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
     public EventCallback<bool> OnValidationStateChanged { get; set; }
 
     [Parameter]
-    public int TooltipOffsetX { get; set; } = 0;
+    public decimal TooltipOffsetX { get; set; } = 0;
 
     [Parameter]
-    public int TooltipOffsetY { get; set; } = 0;
+    public decimal TooltipOffsetY { get; set; } = 0;
 
     public IRadzenFormComponent _textInputRef = null!;
 

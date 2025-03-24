@@ -40,6 +40,7 @@ public partial class PmiReportUpload : ComponentBase
     protected bool IsFormValid { get; set; }
     protected InputFile? fileInput;
     protected ValidatedDateOnlyPicker<PmiReportSubmission> reportDatePicker = null!;
+    protected ValidatedTextBox<PmiReportSubmission> validatedTextBoxRef = null!;
 
     protected PmiReportSubmission reportSubmission = new()
     {
@@ -64,7 +65,7 @@ public partial class PmiReportUpload : ComponentBase
         SelectedFile = null;
         Message = string.Empty;
         IsFormValid = false;
-        reportSubmission.ReportName = Path.GetFileName(e.File.Name);
+        reportSubmission.ReportName = Path.GetFileNameWithoutExtension(e.File.Name);
         if (file is null)
         {
             return;
@@ -100,6 +101,9 @@ public partial class PmiReportUpload : ComponentBase
             Message = $"{SelectedFile!.Name} has been submitted";
             MessageStyle = "margin-top: 10px;";
         }
+        
+        //TODO add loader
+
         reportDatePicker.ReInitialize();
         SelectedFile = null;
         await InvokeAsync(StateHasChanged);

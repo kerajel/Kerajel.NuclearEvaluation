@@ -79,6 +79,7 @@ internal class Program
         builder.Services.AddScoped<ProjectViewValidator>();
         builder.Services.AddScoped<PmiReportSubmissionValidator>();
 
+        //using Transient registration due to the nature of server-side Blazor
         builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>
         {
             options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));

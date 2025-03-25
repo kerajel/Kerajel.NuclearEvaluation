@@ -120,11 +120,17 @@ public partial class PmiReportUpload : ComponentBase
 
     private async Task UpdateFormValidity()
     {
-        ValidationResult repordDateValidationResult = await reportDatePicker.Validate();
-        ValidationResult reportNameValidationResult = await reportNamePicker.Validate();
+        Task<ValidationResult> reportDateValidationTask = reportDatePicker.Validate();
+        Task<ValidationResult> reportNameValidationTask = reportNamePicker.Validate();
 
-        IsFormValid = repordDateValidationResult.IsValid
-                       && reportNameValidationResult.IsValid;
+        await Task.WhenAll(reportDateValidationTask, reportNameValidationTask);
+
+        ValidationResult reportDateValidationResult = reportDateValidationTask.Result;
+        ValidationResult reportNameValidationResult = reportNameValidationTask.Result;
+
+        IsFormValid = reportDateValidationResult.IsValid
+                      && reportNameValidationResult.IsValid;
+
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }

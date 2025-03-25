@@ -162,7 +162,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
 
     public void CancelValidation()
     {
-        HasValidationErrors = false;
+        IsValid = false;
         _validationDebounce.Cancel();
         PropertyValue = _initialValue ?? default;
         _boundValue = _initialValue;
@@ -170,7 +170,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
         StateHasChanged();
     }
 
-    public bool HasValidationErrors
+    public bool IsValid
     {
         get => _hasValidationErrors;
         set
@@ -222,7 +222,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
 
         if (validationResult.IsValid)
         {
-            HasValidationErrors = false;
+            IsValid = false;
             _validationMessage = string.Empty;
         }
         else
@@ -230,11 +230,11 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
             if (validationResult.Errors.Count != 0)
             {
                 _validationMessage = string.Join(Environment.NewLine, validationResult.Errors.Select(e => e.ErrorMessage));
-                HasValidationErrors = true;
+                IsValid = true;
             }
             else
             {
-                HasValidationErrors = false;
+                IsValid = false;
                 _validationMessage = string.Empty;
             }
         }

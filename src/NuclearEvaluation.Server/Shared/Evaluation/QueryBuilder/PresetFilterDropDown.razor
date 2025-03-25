@@ -22,7 +22,7 @@
     <RadzenButton ButtonStyle="ButtonStyle.Light"
                   Icon="@_submitIcon"
                   Style="margin: 0 5px; padding: 5px 10px;"
-                  Disabled="@(_validatedTextBoxRef?.HasValidationErrors ?? false)"
+                  Disabled="@(_validatedTextBoxRef?.IsValid ?? false)"
                   Click="@SubmitAction" />
     <RadzenButton ButtonStyle="ButtonStyle.Light"
                   Icon="@_cancelIcon"

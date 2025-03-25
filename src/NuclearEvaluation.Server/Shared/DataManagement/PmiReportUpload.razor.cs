@@ -63,15 +63,19 @@ public partial class PmiReportUpload : ComponentBase
     protected async void OnFileChange(InputFileChangeEventArgs e)
     {
         IBrowserFile file = e.File;
-        SelectedFile = null;
-        Message = string.Empty;
-        IsFormValid = false;
-        reportSubmission.ReportName = Path.GetFileNameWithoutExtension(e.File.Name);
-        reportNamePicker.ReInitialize();
+
         if (file is null)
         {
             return;
         }
+
+        SelectedFile = null;
+        Message = string.Empty;
+        IsFormValid = false;
+
+        reportSubmission.ReportName = Path.GetFileNameWithoutExtension(e.File.Name);
+        reportNamePicker.ReInitialize();
+
         if (Path.GetExtension(file.Name) != ".docx")
         {
             Message = "File must be a .docx document.";
@@ -84,7 +88,7 @@ public partial class PmiReportUpload : ComponentBase
         }
         SelectedFile = file;
 
-        await UpdateFormValidity();
+        await UpdateFormValidity(true);
     }
 
     protected async Task OnSubmit()
@@ -113,23 +117,36 @@ public partial class PmiReportUpload : ComponentBase
         await Task.Yield();
     }
 
-    protected async Task OnReportNameValidationChanged()
+    protected async Task OnReportSubmissionChanged()
     {
-        await UpdateFormValidity();
+        await UpdateFormValidity(false);
     }
 
-    private async Task UpdateFormValidity()
+    private async Task UpdateFormValidity(bool validate = false)
     {
-        Task<ValidationResult> reportDateValidationTask = reportDatePicker.Validate();
-        Task<ValidationResult> reportNameValidationTask = reportNamePicker.Validate();
+        bool reportDateValid = false;
+        bool reportNameValid = false;
 
-        await Task.WhenAll(reportDateValidationTask, reportNameValidationTask);
+        if (validate)
+        {
+            Task<ValidationResult> reportDateValidationTask = reportDatePicker.Validate();
+            Task<ValidationResult> reportNameValidationTask = reportNamePicker.Validate();
 
-        ValidationResult reportDateValidationResult = reportDateValidationTask.Result;
-        ValidationResult reportNameValidationResult = reportNameValidationTask.Result;
+            await Task.WhenAll(reportDateValidationTask, reportNameValidationTask);
 
-        IsFormValid = reportDateValidationResult.IsValid
-                      && reportNameValidationResult.IsValid;
+            ValidationResult reportDateValidationResult = reportDateValidationTask.Result;
+            ValidationResult reportNameValidationResult = reportNameValidationTask.Result;
+
+            reportDateValid = !reportDateValidationResult.IsValid;
+            reportNameValid = !reportNameValidationResult.IsValid;
+        }
+        else
+        {
+            reportDateValid = !reportDatePicker.IsValid;
+            reportNameValid = !reportNamePicker.IsValid;
+        }
+
+        IsFormValid = reportDateValid && reportNameValid;
 
         await InvokeAsync(StateHasChanged);
         await Task.Yield();

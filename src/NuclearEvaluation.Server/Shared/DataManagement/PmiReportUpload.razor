@@ -16,7 +16,7 @@
                              Validator="@PmiReportSubmissionValidator"
                              AutoCompleteType="AutoCompleteType.Off"
                              Style="width: 325px; margin-bottom: 20px;"
-                             OnValidationStateChanged="@OnReportNameValidationChanged"
+                             OnValidationStateChanged="@OnReportSubmissionChanged"
                              TooltipOffsetX="-1000"
                              DebounceTimeout="TimeSpan.Zero" />
 
@@ -48,6 +48,7 @@
                       Validator="@PmiReportSubmissionValidator"
                       DebounceTimeout="TimeSpan.FromMilliseconds(500)"
                       AutoCompleteType="AutoCompleteType.Off"
+                      OnValidationStateChanged="@OnReportSubmissionChanged"
                       TooltipOffsetX="-680"
                       TooltipOffsetY="38"
                       Style="width: 450px; margin-bottom: 20px;" />

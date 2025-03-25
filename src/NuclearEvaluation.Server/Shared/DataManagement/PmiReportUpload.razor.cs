@@ -1,4 +1,5 @@
-﻿using Kerajel.Primitives.Models;
+﻿using FluentValidation.Results;
+using Kerajel.Primitives.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
@@ -40,7 +41,7 @@ public partial class PmiReportUpload : ComponentBase
     protected bool IsFormValid { get; set; }
     protected InputFile? fileInput;
     protected ValidatedDateOnlyPicker<PmiReportSubmission> reportDatePicker = null!;
-    protected ValidatedTextBox<PmiReportSubmission> validatedTextBoxRef = null!;
+    protected ValidatedTextBox<PmiReportSubmission> reportNamePicker = null!;
 
     protected PmiReportSubmission reportSubmission = new()
     {
@@ -66,6 +67,7 @@ public partial class PmiReportUpload : ComponentBase
         Message = string.Empty;
         IsFormValid = false;
         reportSubmission.ReportName = Path.GetFileNameWithoutExtension(e.File.Name);
+        reportNamePicker.ReInitialize();
         if (file is null)
         {
             return;
@@ -81,6 +83,7 @@ public partial class PmiReportUpload : ComponentBase
             return;
         }
         SelectedFile = file;
+
         await UpdateFormValidity();
     }
 
@@ -101,7 +104,7 @@ public partial class PmiReportUpload : ComponentBase
             Message = $"{SelectedFile!.Name} has been submitted";
             MessageStyle = "margin-top: 10px;";
         }
-        
+
         //TODO add loader
 
         reportDatePicker.ReInitialize();
@@ -117,10 +120,11 @@ public partial class PmiReportUpload : ComponentBase
 
     private async Task UpdateFormValidity()
     {
-        bool isReportDateValid = !reportDatePicker.HasValidationErrors;
-        IsFormValid = ReportDate is not null
-                       && SelectedFile is not null
-                       && isReportDateValid;
+        ValidationResult repordDateValidationResult = await reportDatePicker.Validate();
+        ValidationResult reportNameValidationResult = await reportNamePicker.Validate();
+
+        IsFormValid = repordDateValidationResult.IsValid
+                       && reportNameValidationResult.IsValid;
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }

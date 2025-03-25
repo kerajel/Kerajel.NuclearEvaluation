@@ -215,7 +215,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
         StateHasChanged();
     }
 
-    async Task<ValidationResult> Validate(bool debounce = true)
+    public async Task<ValidationResult> Validate(bool debounce = true)
     {
         Task<ValidationResult> validate() => Validator.ValidateAsync(Model, options => options.IncludeProperties(PropertyName));
         ValidationResult validationResult = await (debounce ? _validationDebounce.ExecuteAsync(validate) : validate());

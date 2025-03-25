@@ -7,26 +7,25 @@ namespace NuclearEvaluation.Shared.Validators;
 
 public class PresetFilterValidator : AbstractValidator<PresetFilter>
 {
-    private readonly IDbContextFactory<NuclearEvaluationServerDbContext> _dbContextFactory;
-
     public PresetFilterValidator(IDbContextFactory<NuclearEvaluationServerDbContext> dbContextFactory)
     {
-        _dbContextFactory = dbContextFactory;
-
         int minLength = 5;
         int maxLength = 25;
 
         RuleFor(x => x.Name).Must((value) =>
         {
             return !string.IsNullOrWhiteSpace(value) && value.Length >= minLength && value.Length <= maxLength;
-        }).WithMessage($"Name must be between {minLength} and {maxLength} characters long");
-
-        RuleFor(x => x.Name).MustAsync(async (filter, value, ct) =>
+        })
+        .WithMessage($"Name must be between {minLength} and {maxLength} characters long")
+        .DependentRules(() =>
         {
-            using NuclearEvaluationServerDbContext dbContext = _dbContextFactory.CreateDbContext();
-            bool exists = await dbContext.PresetFilter.AnyAsync(d => d.Name == filter.Name && d.Id != filter.Id, ct);
-            return !exists;
-        }).WithMessage("Name is already in use");
-        _dbContextFactory = dbContextFactory;
+            RuleFor(x => x.Name).MustAsync(async (entry, value, ct) =>
+            {
+                using NuclearEvaluationServerDbContext dbContext = dbContextFactory.CreateDbContext();
+                bool exists = await dbContext.PresetFilter.AnyAsync(d => d.Name == entry.Name && d.Id != entry.Id, ct);
+                return !exists;
+            }).WithMessage("Name is already in use");
+
+        });
     }
 }

@@ -39,17 +39,19 @@
     {
         <RadzenLabel Text="Report Name:"
                      Style="display: block; margin-bottom: 5px;" />
-        <ValidatedTextBox TModel="PmiReportSubmission"
-                          @ref="validatedTextBoxRef"
-                          Model="@reportSubmission"
-                          PropertyExpression="@(x => x.ReportName)"
-                          Validator="@PmiReportSubmissionValidator"
-                          DebounceTimeout="TimeSpan.FromMilliseconds(500)"
-                          AutoCompleteType="AutoCompleteType.Off"
-                          TooltipOffsetX="-680"
-                          TooltipOffsetY="38"
-                          Style="width: 450px; margin-bottom: 20px;" />
     }
+    <ValidatedTextBox TModel="PmiReportSubmission"
+                      @ref="reportNamePicker"
+                      Model="@reportSubmission"
+                      Visible="@(SelectedFile is not null)"
+                      PropertyExpression="@(x => x.ReportName)"
+                      Validator="@PmiReportSubmissionValidator"
+                      DebounceTimeout="TimeSpan.FromMilliseconds(500)"
+                      AutoCompleteType="AutoCompleteType.Off"
+                      TooltipOffsetX="-680"
+                      TooltipOffsetY="38"
+                      Style="width: 450px; margin-bottom: 20px;" />
+
 
     <RadzenButton Text="Submit"
                   Icon="save"

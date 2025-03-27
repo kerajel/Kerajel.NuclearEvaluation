@@ -1,5 +1,10 @@
 using Hangfire;
 using Hangfire.SqlServer;
+using Microsoft.EntityFrameworkCore;
+using NuclearEvaluation.HangfireJobs.Interfaces;
+using NuclearEvaluation.HangfireJobs.Jobs;
+using NuclearEvaluation.Kernel.Data.Context;
+using NuclearEvaluation.Kernel.Models.Domain;
 
 namespace NuclearEvaluation.HangfireJobs;
 
@@ -7,42 +12,39 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        WebApplicationBuilder webApplicationBuilder = WebApplication.CreateBuilder(args);
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-        webApplicationBuilder.Services.AddHangfire(configuration =>
+        builder.Services.AddHangfire(configuration =>
         {
             configuration
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
                 .UseSimpleAssemblyNameTypeSerializer()
                 .UseRecommendedSerializerSettings()
-                .UseSqlServerStorage(
-                    "Server=localhost;Connection Timeout=30;Command Timeout=30;Persist Security Info=False;TrustServerCertificate=True;Integrated Security=True;Initial Catalog=NuclearEvaluationServer;MultipleActiveResultSets=True;",
+                .UseSqlServerStorage(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"),
                     new SqlServerStorageOptions
                     {
-                        SchemaName = "HANGFIRE",
-
+                        SchemaName = builder.Configuration["HangfireSettings:DbSchemaName"],
                     }
                 );
         });
 
-        webApplicationBuilder.Services.AddHangfireServer();
+        builder.Services.AddTransient<IEnqueueStemReportForPublishingJob, EnqueueStemReportForPublishingJob>();
 
-        WebApplication app = webApplicationBuilder.Build();
+        builder.Services.AddHangfireServer();
+
+        builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>
+        {
+            options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
+        }, ServiceLifetime.Scoped);
+
+        WebApplication app = builder.Build();
 
         app.MapHangfireDashboard();
+
+
 
         JobScheduler.RegisterJobs();
 
         app.Run();
-    }
-}
-
-public class DemoJob
-{
-    public void RunDemoTask(string message)
-    {
-        Console.WriteLine($"Running DemoJob with message: {message}");
-        Thread.Sleep(1000);
-        Console.WriteLine("DemoJob done.");
     }
 }

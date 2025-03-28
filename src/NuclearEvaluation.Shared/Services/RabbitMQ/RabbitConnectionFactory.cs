@@ -1,11 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NuclearEvaluation.Kernel.Interfaces.RabbitMQ;
 using NuclearEvaluation.Kernel.Models.Messaging;
 using RabbitMQ.Client;
 
 namespace NuclearEvaluation.Shared.Services.RabbitMQ;
 
-public class ResilientConnectionFactory : IDisposable
+public class ResilientConnectionFactory : IAmqpConnectionFactory
 {
     readonly ConnectionFactory _connectionFactory;
     readonly SemaphoreSlim _semaphore = new(1, 1);

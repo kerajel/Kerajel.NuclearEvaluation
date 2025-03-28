@@ -18,6 +18,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+		<PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
 		<PackageReference Include="Radzen.Blazor" Version="5.9.8" />
 	</ItemGroup>
 

@@ -1,31 +1,27 @@
-﻿using Microsoft.Extensions.Options;
-using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.Kernel.Models.Messaging;
+﻿using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Interfaces.RabbitMQ;
 using RabbitMQ.Client;
 using System.Text.Json;
 
 namespace NuclearEvaluation.Shared.Services.RabbitMQ;
 
-public class RabbitMQPublisher : IMessager
+public class RabbitMessager : IMessager
 {
-    private readonly ConnectionFactory _connectionFactory;
+    private readonly IAmqpConnectionFactory _connectionFactory;
 
-    public RabbitMQPublisher(IOptions<RabbitMQSettings> rabbitMqSettings)
+    public RabbitMessager(IAmqpConnectionFactory connectionFactory)
     {
-        RabbitMQSettings settings = rabbitMqSettings.Value;
-        _connectionFactory = new()
-        {
-            HostName = settings.HostName,
-            UserName = settings.UserName,
-            Password = settings.Password,
-            Port = settings.Port,
-            VirtualHost = settings.VirtualHost,
-        };
+        _connectionFactory = connectionFactory;
     }
 
-    public async Task PublishMessageAsync<T>(IEnumerable<T> messages, string exchangeName, string routingKey)
+    public async Task PublishMessageAsync<T>(string exchangeName, string routingKey, params T[] messages)
     {
-        using IConnection connection = await _connectionFactory.CreateConnectionAsync();
+        await PublishMessageAsync(exchangeName, routingKey, messages);
+    }
+
+    public async Task PublishMessageAsync<T>(string exchangeName, string routingKey, IEnumerable<T> messages)
+    {
+        using IConnection connection = await _connectionFactory.GetConnection();
         using IChannel channel = await connection.CreateChannelAsync();
 
         foreach (T? message in messages)

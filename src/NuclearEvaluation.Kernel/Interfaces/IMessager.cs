@@ -2,5 +2,7 @@
 
 public interface IMessager
 {
-    Task PublishMessageAsync<T>(T message, string exchangeName, string routingKey);
+    Task PublishMessageAsync<T>(string exchangeName, string routingKey, params T[] messages);
+
+    Task PublishMessageAsync<T>(string exchangeName, string routingKey, IEnumerable<T> messages);
 }

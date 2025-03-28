@@ -45,7 +45,7 @@ public class PmiReportService : DbServiceBase, IPmiReportService
             PmiReportDistributionEntry entry = new()
             {
                 PmiReport = pmiReport,
-                PmiReportDistributionChannel = channel,
+                DistributionChannel = channel,
                 PmiReportDistributionStatus = PmiReportDistributionStatus.Pending,
             };
             pmiReport.PmiReportDistributionEntries.Add(entry);

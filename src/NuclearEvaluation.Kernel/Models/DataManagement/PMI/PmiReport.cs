@@ -7,7 +7,7 @@ namespace NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 public class PmiReport
 {
     [PrimaryKey, Identity]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     public string Name { get; set; } = string.Empty;
 

@@ -1,4 +1,5 @@
 ﻿using Kerajel.Primitives.Models;
+using LinqToDB;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Interfaces;
@@ -26,7 +27,6 @@ public class PmiReportService : DbServiceBase, IPmiReportService
         {
             return OperationResult<PmiReport>.Faulted(ex);
         }
-
     }
 
     private static PmiReport PreparePmiReport(PmiReportSubmission reportSubmission)
@@ -36,7 +36,7 @@ public class PmiReportService : DbServiceBase, IPmiReportService
             Name = reportSubmission.ReportName,
             AuthorId = reportSubmission.AuthorId,
             CreatedDate = reportSubmission.ReportDate!.Value,
-            Status = PmiReportStatus.DistributionPending,
+            Status = PmiReportStatus.Uploaded,
         };
 
         //TODO add options to control which channels are active

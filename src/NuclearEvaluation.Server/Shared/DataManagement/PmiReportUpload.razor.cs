@@ -98,6 +98,9 @@ public partial class PmiReportUpload : ComponentBase
             return;
         }
         OperationResult<PmiReport> createReportResult = await PmiReportService.Create(reportSubmission);
+
+        //TODO persist report to EFS
+
         if (!createReportResult.IsSuccessful)
         {
             Message = "There was an error - dwarfs and leprecons are already underway to figure it out";

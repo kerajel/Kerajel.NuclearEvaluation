@@ -4,7 +4,7 @@ using NuclearEvaluation.Kernel.Models.Messaging;
 using RabbitMQ.Client;
 using System.Text.Json;
 
-namespace NuclearEvaluation.Shared.Services;
+namespace NuclearEvaluation.Shared.Services.RabbitMQ;
 
 public class RabbitMQPublisher : IMessager
 {
@@ -23,13 +23,15 @@ public class RabbitMQPublisher : IMessager
         };
     }
 
-    public async Task PublishMessageAsync<T>(T message, string exchangeName, string routingKey)
+    public async Task PublishMessageAsync<T>(IEnumerable<T> messages, string exchangeName, string routingKey)
     {
         using IConnection connection = await _connectionFactory.CreateConnectionAsync();
         using IChannel channel = await connection.CreateChannelAsync();
 
-        byte[] body = JsonSerializer.SerializeToUtf8Bytes(message);
-
-        await channel.BasicPublishAsync(exchange: exchangeName, routingKey: routingKey, body: body);
+        foreach (T? message in messages)
+        {
+            byte[] body = JsonSerializer.SerializeToUtf8Bytes(message);
+            await channel.BasicPublishAsync(exchange: exchangeName, routingKey: routingKey, body: body);
+        }
     }
 }

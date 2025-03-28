@@ -15,6 +15,7 @@ using NuclearEvaluation.Kernel.Models.Identity;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Shared.Validators;
 using NuclearEvaluation.Shared.Services;
+using NuclearEvaluation.Shared.Services.RabbitMQ;
 
 internal class Program
 {

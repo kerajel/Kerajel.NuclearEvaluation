@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.HangfireJobs.Interfaces;
 using NuclearEvaluation.HangfireJobs.Jobs;
 using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Kernel.Models.Domain;
 
 namespace NuclearEvaluation.HangfireJobs;
 
@@ -40,8 +39,6 @@ public class Program
         WebApplication app = builder.Build();
 
         app.MapHangfireDashboard();
-
-
 
         JobScheduler.RegisterJobs();
 

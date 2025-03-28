@@ -3,6 +3,7 @@
 public enum PmiReportStatus
 {
     Unknown = 1,
-    DistributionPending = 2,
-    Distributed = 3,
+    Uploaded = 2,
+    BeingDistributed =3,
+    Distributed = 4,
 }

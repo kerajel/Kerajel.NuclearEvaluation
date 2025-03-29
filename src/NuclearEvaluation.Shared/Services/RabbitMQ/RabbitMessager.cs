@@ -14,20 +14,19 @@ public class RabbitMessager : IMessager
         _connectionFactory = connectionFactory;
     }
 
-    public async Task PublishMessageAsync<T>(string exchangeName, string routingKey, params T[] messages)
+    public async Task PublishMessageAsync<T>(string exchangeName, string routingKey, IEnumerable<T> messages, CancellationToken ct = default)
     {
-        await PublishMessageAsync(exchangeName, routingKey, messages);
-    }
-
-    public async Task PublishMessageAsync<T>(string exchangeName, string routingKey, IEnumerable<T> messages)
-    {
-        using IConnection connection = await _connectionFactory.GetConnection();
-        using IChannel channel = await connection.CreateChannelAsync();
+        IConnection connection = await _connectionFactory.GetConnection(ct);
+        using IChannel channel = await connection.CreateChannelAsync(cancellationToken: ct);
 
         foreach (T? message in messages)
         {
+            if (ct is { IsCancellationRequested: true })
+            {
+                break;
+            }
             byte[] body = JsonSerializer.SerializeToUtf8Bytes(message);
-            await channel.BasicPublishAsync(exchange: exchangeName, routingKey: routingKey, body: body);
+            await channel.BasicPublishAsync(exchange: exchangeName, routingKey: routingKey, body: body, cancellationToken: ct);
         }
     }
 }

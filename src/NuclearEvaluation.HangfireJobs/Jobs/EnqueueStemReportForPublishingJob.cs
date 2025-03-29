@@ -3,7 +3,6 @@ using NuclearEvaluation.HangfireJobs.Interfaces;
 using NuclearEvaluation.HangfireJobs.Models;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Enums;
-using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 using Z.EntityFramework.Plus;
 
 namespace NuclearEvaluation.HangfireJobs.Jobs;
@@ -40,7 +39,7 @@ public partial class EnqueueStemReportForPublishingJob : IEnqueueStemReportForPu
 
         foreach (var entry in pendingEntries)
         {
-            entry.PmiReportDistributionStatus = PmiReportDistributionStatus.InProgress;
+            //entry.PmiReportDistributionStatus = PmiReportDistributionStatus.InProgress;
         }
     }
 }

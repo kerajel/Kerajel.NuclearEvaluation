@@ -30,18 +30,18 @@ public class ResilientConnectionFactory : IAmqpConnectionFactory
         _logger = logger;
     }
 
-    public async Task<IConnection> GetConnection()
+    public async Task<IConnection> GetConnection(CancellationToken ct = default)
     {
         if (ConnectionIsBroken())
         {
-            await EnsureConnection();
+            await EnsureConnection(ct);
         }
         return _connection!;
     }
 
-    private async Task EnsureConnection()
+    private async Task EnsureConnection(CancellationToken ct = default)
     {
-        await _semaphore.WaitAsync();
+        await _semaphore.WaitAsync(ct);
         try
         {
             if (ConnectionIsBroken())
@@ -58,7 +58,7 @@ public class ResilientConnectionFactory : IAmqpConnectionFactory
                     }
                 }
 
-                _connection = await _connectionFactory.CreateConnectionAsync();
+                _connection = await _connectionFactory.CreateConnectionAsync(ct);
             }
         }
         finally

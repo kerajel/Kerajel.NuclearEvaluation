@@ -1,0 +1,14 @@
+{
+  "PmiReportDistributionSettings": {
+    "DistributionMap": {
+      "Email": {
+        "Exchange": "PmiReportDistributionEmailExchange",
+        "RoutingKey": "99556936-b007-4f05-8637-d3940d91597b"
+      },
+      "SharePoint": {
+        "Exchange": "PmiReportDistributionSharePointExchange",
+        "RoutingKey": "5f65e089-933c-47e6-bf80-8ee425e8ea7a"
+      }
+    }
+  }
+}

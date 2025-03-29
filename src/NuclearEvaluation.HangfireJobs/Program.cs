@@ -3,6 +3,7 @@ using Hangfire.SqlServer;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.HangfireJobs.Interfaces;
 using NuclearEvaluation.HangfireJobs.Jobs;
+using NuclearEvaluation.HangfireJobs.Models.Settings;
 using NuclearEvaluation.Kernel.Data.Context;
 
 namespace NuclearEvaluation.HangfireJobs;
@@ -24,8 +25,10 @@ public class Program
                     {
                         SchemaName = builder.Configuration["HangfireSettings:DbSchemaName"],
                     }
-                );
+            );
         });
+
+        builder.Services.Configure<PmiReportDistributionSettings>(builder.Configuration.GetSection("PmiReportDistributionSettings"));
 
         builder.Services.AddTransient<IEnqueueStemReportForPublishingJob, EnqueueStemReportForPublishingJob>();
 

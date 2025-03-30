@@ -48,7 +48,7 @@ public class ProjectService : DbServiceBase, IProjectService
         }
     }
 
-    public async Task<FilterDataResult<ProjectView>> GetProjectViews(FilterDataCommand<ProjectView> command)
+    public async Task<FetchDataResult<ProjectView>> GetProjectViews(FetchDataCommand<ProjectView> command)
     {
         try
         {
@@ -58,7 +58,7 @@ public class ProjectService : DbServiceBase, IProjectService
         catch (Exception ex)
         {
             _logger.LogError(ex, "");
-            return FilterDataResult<ProjectView>.Faulted(ex);
+            return FetchDataResult<ProjectView>.Faulted(ex);
         }
 
     }

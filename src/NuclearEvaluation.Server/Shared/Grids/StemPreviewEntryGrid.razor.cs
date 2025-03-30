@@ -33,14 +33,14 @@ public partial class StemPreviewEntryGrid : BaseGridGeneric<StemPreviewEntryView
 
         base.isLoading = true;
 
-        FilterDataCommand<StemPreviewEntryView> command = new()
+        FetchDataCommand<StemPreviewEntryView> command = new()
         {
             LoadDataArgs = loadDataArgs,
             TopLevelFilterExpression = this.TopLevelFilterExpression,
             PresetFilterBox = this.GetPresetFilterBox?.Invoke(),
         };
 
-        FilterDataResult<StemPreviewEntryView> response = await this.StemPreviewEntryService.GetStemPreviewEntryViews(StemSessionId, command);
+        FetchDataResult<StemPreviewEntryView> response = await this.StemPreviewEntryService.GetStemPreviewEntryViews(StemSessionId, command);
 
         await FetchData(() => StemPreviewEntryService.GetStemPreviewEntryViews(StemSessionId, command));
 

@@ -3,13 +3,13 @@ using Kerajel.Primitives.Enums;
 
 namespace NuclearEvaluation.Kernel.Commands;
 
-public class FilterDataResult<T>() : OperationResultBase
+public class FetchDataResult<T>() : OperationResultBase
 {
     public IEnumerable<T> Entries { get; set; } = Enumerable.Empty<T>();
 
     public int TotalCount { get; set; } = 0;
 
-    public static FilterDataResult<T> Succeeded(IEnumerable<T> entries)
+    public static FetchDataResult<T> Succeeded(IEnumerable<T> entries)
     {
         return new()
         {
@@ -18,9 +18,9 @@ public class FilterDataResult<T>() : OperationResultBase
         };
     }
 
-    public static FilterDataResult<T> Faulted(Exception ex)
+    public static FetchDataResult<T> Faulted(Exception ex)
     {
-        return new FilterDataResult<T>
+        return new FetchDataResult<T>
         {
             Exception = ex,
             OperationStatus = OperationStatus.Faulted,

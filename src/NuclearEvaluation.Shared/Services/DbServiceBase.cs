@@ -24,9 +24,9 @@ public class DbServiceBase
         _dbContext = dbContext;
     }
 
-    public async Task<FilterDataResult<T>> ExecuteQuery<T>(IQueryable<T> query, FilterDataCommand<T> cmd) where T : class
+    public async Task<FetchDataResult<T>> ExecuteQuery<T>(IQueryable<T> query, FetchDataCommand<T> cmd) where T : class
     {
-        FilterDataResult<T> result = FilterDataResult<T>.Succeeded([]);
+        FetchDataResult<T> result = FetchDataResult<T>.Succeeded([]);
 
         bool enableVirtualTracking = cmd.AsNoTracking && cmd.Includes.Any();
 
@@ -75,7 +75,7 @@ public class DbServiceBase
         return result;
     }
 
-    protected IQueryable<T> GetFilteredQuery<T>(IQueryable<T> query, FilterDataCommand<T> command, bool enableVirtualTracking) where T : class
+    protected IQueryable<T> GetFilteredQuery<T>(IQueryable<T> query, FetchDataCommand<T> command, bool enableVirtualTracking) where T : class
     {
         IQueryable<T> filteredQuery = enableVirtualTracking ? query.AsNoTracking() : command.AsNoTracking ? query.AsNoTracking() : query;
 
@@ -105,7 +105,7 @@ public class DbServiceBase
         return filteredQuery;
     }
 
-    protected IQueryable<int> ApplyPresetFilterBox<T>(FilterDataCommand<T> command) where T : class
+    protected IQueryable<int> ApplyPresetFilterBox<T>(FetchDataCommand<T> command) where T : class
     {
         IQueryable<PresetFilterQueryObject> compositeQuery = GetBasePresetFilterQuery();
 

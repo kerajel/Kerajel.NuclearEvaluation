@@ -4,5 +4,5 @@ namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IGenericService
 {
-    Task<FilterDataResult<dynamic>> GetFilterOptions<T>(FilterDataCommand<T> command, string propertyName) where T : class;
+    Task<FetchDataResult<dynamic>> GetFilterOptions<T>(FetchDataCommand<T> command, string propertyName) where T : class;
 }

@@ -21,7 +21,7 @@ public class SeriesService : DbServiceBase, ISeriesService
         _logger = logger;
     }
 
-    public async Task<FilterDataResult<SeriesView>> GetSeriesViews(FilterDataCommand<SeriesView> command)
+    public async Task<FetchDataResult<SeriesView>> GetSeriesViews(FetchDataCommand<SeriesView> command)
     {
         try
         {
@@ -31,11 +31,11 @@ public class SeriesService : DbServiceBase, ISeriesService
         catch (Exception ex)
         {
             _logger.LogError(ex, "");
-            return FilterDataResult<SeriesView>.Faulted(ex);
+            return FetchDataResult<SeriesView>.Faulted(ex);
         }
     }
 
-    public async Task<SeriesCountsView> GetSeriesCounts(FilterDataCommand<SeriesView> command)
+    public async Task<SeriesCountsView> GetSeriesCounts(FetchDataCommand<SeriesView> command)
     {
         IQueryable<SeriesView> baseQuery = _dbContext.SeriesView;
 

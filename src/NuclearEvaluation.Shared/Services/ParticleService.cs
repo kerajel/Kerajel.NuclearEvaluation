@@ -18,7 +18,7 @@ public class ParticleService : DbServiceBase, IParticleService
         _logger = logger;
     }
 
-    public async Task<FilterDataResult<ParticleView>> GetParticleViews(FilterDataCommand<ParticleView> command)
+    public async Task<FetchDataResult<ParticleView>> GetParticleViews(FetchDataCommand<ParticleView> command)
     {
         IQueryable<ParticleView> baseQuery;
         int? projectId;
@@ -48,7 +48,7 @@ public class ParticleService : DbServiceBase, IParticleService
         catch (Exception ex)
         {
             _logger.LogError(ex, "");
-            return FilterDataResult<ParticleView>.Faulted(ex);
+            return FetchDataResult<ParticleView>.Faulted(ex);
         }
     }
 }

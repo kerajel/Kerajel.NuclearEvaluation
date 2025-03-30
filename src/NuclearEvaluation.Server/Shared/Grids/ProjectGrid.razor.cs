@@ -22,12 +22,12 @@ public partial class ProjectGrid : BaseGridGeneric<ProjectView>
     {
         base.isLoading = true;
 
-        FilterDataCommand<ProjectView> command = new()
+        FetchDataCommand<ProjectView> command = new()
         {
             LoadDataArgs = loadDataArgs,
         };
         
-        FilterDataResult<ProjectView> response = await this.ProjectService.GetProjectViews(command);
+        FetchDataResult<ProjectView> response = await this.ProjectService.GetProjectViews(command);
 
         await FetchData(() => ProjectService.GetProjectViews(command));
 

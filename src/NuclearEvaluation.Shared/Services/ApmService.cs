@@ -18,7 +18,7 @@ public class ApmService : DbServiceBase, IApmService
         _logger = logger;
     }
 
-    public async Task<FilterDataResult<ApmView>> GetApmViews(FilterDataCommand<ApmView> command)
+    public async Task<FetchDataResult<ApmView>> GetApmViews(FetchDataCommand<ApmView> command)
     {
         IQueryable<ApmView> baseQuery;
         int? projectId;
@@ -48,7 +48,7 @@ public class ApmService : DbServiceBase, IApmService
         catch (Exception ex)
         {
             _logger.LogError(ex, "");
-            return FilterDataResult<ApmView>.Faulted(ex);
+            return FetchDataResult<ApmView>.Faulted(ex);
         }
     }
 }

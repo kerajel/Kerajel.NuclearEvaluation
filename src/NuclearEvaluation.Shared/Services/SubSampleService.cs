@@ -17,7 +17,7 @@ public class SubSampleService : DbServiceBase, ISubSampleService
         _logger = logger;
     }
 
-    public async Task<FilterDataResult<SubSampleView>> GetSubSampleViews(FilterDataCommand<SubSampleView> command)
+    public async Task<FetchDataResult<SubSampleView>> GetSubSampleViews(FetchDataCommand<SubSampleView> command)
     {
         try
         {
@@ -27,7 +27,7 @@ public class SubSampleService : DbServiceBase, ISubSampleService
         catch (Exception ex)
         {
             _logger.LogError(ex, "");
-            return FilterDataResult<SubSampleView>.Faulted(ex);
+            return FetchDataResult<SubSampleView>.Faulted(ex);
         }
 
     }

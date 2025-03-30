@@ -12,7 +12,7 @@ public partial class SeriesCountsGrid
 
     SeriesCountsView[] _countSummary = [];
 
-    public async Task RefreshSummaryData(FilterDataCommand<SeriesView> command)
+    public async Task RefreshSummaryData(FetchDataCommand<SeriesView> command)
     {
         SeriesCountsView seriesCountsView = await SeriesService.GetSeriesCounts(command);
 

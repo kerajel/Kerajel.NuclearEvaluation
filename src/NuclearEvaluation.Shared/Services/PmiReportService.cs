@@ -29,6 +29,8 @@ public class PmiReportService : DbServiceBase, IPmiReportService
         }
     }
 
+    public async Task<Pmireport>
+
     private static PmiReport PreparePmiReport(PmiReportSubmission reportSubmission)
     {
         PmiReport pmiReport = new()

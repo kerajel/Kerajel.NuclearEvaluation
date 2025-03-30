@@ -6,5 +6,5 @@ namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface IApmService
 {
-    Task<FilterDataResult<ApmView>> GetApmViews(FilterDataCommand<ApmView> command);
+    Task<FetchDataResult<ApmView>> GetApmViews(FetchDataCommand<ApmView> command);
 }

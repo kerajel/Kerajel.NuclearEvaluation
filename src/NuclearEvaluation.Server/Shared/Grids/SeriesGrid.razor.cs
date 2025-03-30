@@ -28,7 +28,7 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
     public EventCallback OnEntriesDeselected { get; set; }
 
     [Parameter]
-    public EventCallback<FilterDataCommand<SeriesView>> OnSeriesSetChanged { get; set; }
+    public EventCallback<FetchDataCommand<SeriesView>> OnSeriesSetChanged { get; set; }
 
     [Inject]
     public ISeriesService SeriesService { get; set; } = null!;
@@ -42,7 +42,7 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
     public override string EntityDisplayName => nameof(Series);
 
     protected RadzenDataGrid<SeriesView> grid = null!;
-    protected FilterDataCommand<SeriesView>? currentCommand;
+    protected FetchDataCommand<SeriesView>? currentCommand;
 
     readonly DataGridEditMode _editMode = DataGridEditMode.Single;
     readonly List<SeriesView> _seriesToInsert = [];
@@ -52,7 +52,7 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
     {
         base.isLoading = true;
 
-        FilterDataCommand<SeriesView> command = new()
+        FetchDataCommand<SeriesView> command = new()
         {
             LoadDataArgs = loadDataArgs,
             TopLevelFilterExpression = this.TopLevelFilterExpression,
@@ -64,7 +64,7 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
             command.TopLevelOrderExpression = item => SelectedEntryIds.Contains(item.Id) ? 0 : 1;
         }
 
-        FilterDataResult<SeriesView> response = await this.SeriesService.GetSeriesViews(command);
+        FetchDataResult<SeriesView> response = await this.SeriesService.GetSeriesViews(command);
 
         await FetchData(() => SeriesService.GetSeriesViews(command));
 

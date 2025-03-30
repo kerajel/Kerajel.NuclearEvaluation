@@ -64,9 +64,9 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGrid
 
     public abstract Task Reset(bool resetColumnState = true, bool resetRowState = false);
 
-    protected async Task FetchData(Func<Task<FilterDataResult<T>>> fetchDataFunction)
+    protected async Task FetchData(Func<Task<FetchDataResult<T>>> fetchDataFunction)
     {
-        FilterDataResult<T> result = await fetchDataFunction();
+        FetchDataResult<T> result = await fetchDataFunction();
 
         if (result.IsSuccessful)
         {

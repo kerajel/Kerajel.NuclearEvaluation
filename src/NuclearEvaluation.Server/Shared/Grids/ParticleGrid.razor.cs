@@ -32,7 +32,7 @@ public partial class ParticleGrid : BaseGridGeneric<ParticleView>
     {
         base.isLoading = true;
 
-        FilterDataCommand<ParticleView> command = new()
+        FetchDataCommand<ParticleView> command = new()
         {
             LoadDataArgs = loadDataArgs,
             TopLevelFilterExpression = this.TopLevelFilterExpression,
@@ -41,7 +41,7 @@ public partial class ParticleGrid : BaseGridGeneric<ParticleView>
         command.AddArgument(FilterDataCommand.ArgKeys.EnableDecayCorrection, EnableDecayCorrection);
         command.AddArgument(FilterDataCommand.ArgKeys.ProjectId, ProjectId);
 
-        FilterDataResult<ParticleView> response = await this.ParticleService.GetParticleViews(command);
+        FetchDataResult<ParticleView> response = await this.ParticleService.GetParticleViews(command);
 
         await FetchData(() => ParticleService.GetParticleViews(command));
 

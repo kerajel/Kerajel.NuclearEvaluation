@@ -31,7 +31,7 @@ public partial class ApmGrid : BaseGridGeneric<ApmView>
     {
         base.isLoading = true;
 
-        FilterDataCommand<ApmView> command = new()
+        FetchDataCommand<ApmView> command = new()
         {
             LoadDataArgs = loadDataArgs,
             TopLevelFilterExpression = TopLevelFilterExpression,

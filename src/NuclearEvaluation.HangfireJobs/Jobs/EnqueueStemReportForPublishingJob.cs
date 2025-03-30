@@ -1,45 +1,46 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Kerajel.Primitives.Models;
 using NuclearEvaluation.HangfireJobs.Interfaces;
 using NuclearEvaluation.HangfireJobs.Models;
-using NuclearEvaluation.Kernel.Data.Context;
+using NuclearEvaluation.HangfireJobs.Services;
+using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Enums;
-using Z.EntityFramework.Plus;
 
 namespace NuclearEvaluation.HangfireJobs.Jobs;
 
 public partial class EnqueueStemReportForPublishingJob : IEnqueueStemReportForPublishingJob
 {
-    const int maxEntriesPerOperation = 32_767;
+    const int maxQueueItemsPerOperation = 3072;
 
+    readonly IPmiReportDistributionService _distributionService;
+    readonly ILogger<EnqueueStemReportForPublishingJob> _logger;
 
-    readonly NuclearEvaluationServerDbContext _dbContext;
-
-    public EnqueueStemReportForPublishingJob(NuclearEvaluationServerDbContext dbContext)
+    public EnqueueStemReportForPublishingJob(
+        IPmiReportDistributionService distributionService,
+        ILogger<EnqueueStemReportForPublishingJob> logger)
     {
-        _dbContext = dbContext;
+        _distributionService = distributionService;
+        _logger = logger;
     }
 
     public async Task Execute()
     {
-        //TODO return via service
-        PmiReportDistributionQueueItem[] pendingEntries = await _dbContext.PmiReportDistributionEntry
-            .Where(e => e.PmiReportDistributionStatus == PmiReportDistributionStatus.Pending
-                && e.PmiReport.Status == PmiReportStatus.Uploaded)
-            .OrderBy(x => x.PmiReport.CreatedDate)
-            .ThenBy(x => x.PmiReportId)
-            .Take(maxEntriesPerOperation)
-            .Select(x => new PmiReportDistributionQueueItem() 
-            {
-                PmiReportId = x.PmiReportId,
-                PmiReportDistributionEntryId = x.Id,
-                DistributionChannel = x.DistributionChannel
-            })
-            .ToArrayAsync();
+        FetchDataResult<PmiReportDistributionQueueItem> fetchItemsResult = await _distributionService.GetQueueItems(maxQueueItemsPerOperation);
 
-
-        foreach (var entry in pendingEntries)
+        if (!fetchItemsResult.IsSuccessful)
         {
-            //entry.PmiReportDistributionStatus = PmiReportDistributionStatus.InProgress;
+            _logger.LogError(fetchItemsResult.Exception, "Failed to fetch PMI report data for queueing");
+        }
+
+        //TODO dispatch messages
+
+        PmiReportDistributionStatus inProgressStatus = PmiReportDistributionStatus.InProgress;
+        IEnumerable<int> distributionItemIds = fetchItemsResult.Entries.Select(x => x.PmiReportDistributionEntryId);
+
+        OperationResult setStatusResult = await _distributionService.SetPmiReportDistributionEntryStatus(inProgressStatus, distributionItemIds);
+
+        if (!setStatusResult.IsSuccessful)
+        {
+            _logger.LogError(setStatusResult.Exception, "Failed to update status of PMI report distributiion entries to {status}", inProgressStatus);
         }
     }
 }

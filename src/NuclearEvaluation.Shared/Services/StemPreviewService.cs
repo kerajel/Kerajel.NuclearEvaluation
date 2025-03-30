@@ -75,7 +75,7 @@ public class StemPreviewService(
 
             if (!writeFileResult.IsSuccessful)
             {
-                return OperationResult.FromFaulted(writeFileResult);
+                return OperationResult.Faulted(writeFileResult);
             }
 
             StemPreviewFileMetadata fileMetadata = new(fileId, fileName);

@@ -24,13 +24,13 @@ public partial class SampleGrid : BaseGridGeneric<SampleView>
     public override string EntityDisplayName => nameof(Sample);
 
     protected RadzenDataGrid<SampleView> grid = null!;
-    protected FilterDataCommand<SampleView>? currentCommand;
+    protected FetchDataCommand<SampleView>? currentCommand;
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
         base.isLoading = true;
 
-        FilterDataCommand<SampleView> command = new()
+        FetchDataCommand<SampleView> command = new()
         {
             LoadDataArgs = loadDataArgs,
             TopLevelFilterExpression = this.TopLevelFilterExpression,

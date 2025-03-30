@@ -25,14 +25,14 @@ public partial class SubSampleGrid : BaseGridGeneric<SubSampleView>
     {
         base.isLoading = true;
 
-        FilterDataCommand<SubSampleView> command = new()
+        FetchDataCommand<SubSampleView> command = new()
         {
             LoadDataArgs = loadDataArgs,
             TopLevelFilterExpression = this.TopLevelFilterExpression,
             PresetFilterBox = this.GetPresetFilterBox?.Invoke(),
         };
 
-        FilterDataResult<SubSampleView> response = await this.SubSampleService.GetSubSampleViews(command);
+        FetchDataResult<SubSampleView> response = await this.SubSampleService.GetSubSampleViews(command);
 
         await FetchData(() => SubSampleService.GetSubSampleViews(command));
 

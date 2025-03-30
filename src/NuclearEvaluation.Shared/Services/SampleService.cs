@@ -17,7 +17,7 @@ public class SampleService : DbServiceBase, ISampleService
         _logger = logger;
     }
 
-    public async Task<FilterDataResult<SampleView>> GetSampleViews(FilterDataCommand<SampleView> command)
+    public async Task<FetchDataResult<SampleView>> GetSampleViews(FetchDataCommand<SampleView> command)
     {
         try
         {
@@ -27,7 +27,7 @@ public class SampleService : DbServiceBase, ISampleService
         catch (Exception ex)
         {
             _logger.LogError(ex, "");
-            return FilterDataResult<SampleView>.Faulted(ex);
+            return FetchDataResult<SampleView>.Faulted(ex);
         }
     }
 }

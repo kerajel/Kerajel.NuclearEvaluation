@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 
 namespace NuclearEvaluation.Kernel.Commands;
 
-public class FilterDataCommand<T>()
+public class FetchDataCommand<T>()
 {
     readonly List<dynamic> includes = [];
 

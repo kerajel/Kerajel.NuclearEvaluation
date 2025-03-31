@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NuclearEvaluation.Kernel.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class ChangePmiReportPKToGuid : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -342,7 +342,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PmiReportId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     DistributionChannel = table.Column<int>(type: "int", nullable: false),
-                    PmiReportDistributionStatus = table.Column<int>(type: "int", nullable: false)
+                    DistributionStatus = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {

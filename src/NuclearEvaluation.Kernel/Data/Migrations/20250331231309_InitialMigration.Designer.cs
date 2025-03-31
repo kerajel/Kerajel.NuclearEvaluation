@@ -12,8 +12,8 @@ using NuclearEvaluation.Kernel.Data.Context;
 namespace NuclearEvaluation.Kernel.Data.Migrations
 {
     [DbContext(typeof(NuclearEvaluationServerDbContext))]
-    [Migration("20250331130610_ChangePmiReportDistributionEntry")]
-    partial class ChangePmiReportDistributionEntry
+    [Migration("20250331231309_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

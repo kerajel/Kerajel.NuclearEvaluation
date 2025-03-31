@@ -1,50 +1,69 @@
 using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.EntityFrameworkCore;
-using NuclearEvaluation.HangfireJobs.Interfaces;
+using MassTransit;
 using NuclearEvaluation.HangfireJobs.Jobs;
+using NuclearEvaluation.HangfireJobs.Interfaces;
 using NuclearEvaluation.HangfireJobs.Models.Settings;
 using NuclearEvaluation.Kernel.Data.Context;
 
-namespace NuclearEvaluation.HangfireJobs;
-
-public class Program
+namespace NuclearEvaluation.HangfireJobs
 {
-    public static void Main(string[] args)
+    public class Program
     {
-        WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-
-        builder.Services.AddHangfire(configuration =>
+        public static void Main(string[] args)
         {
-            configuration
-                .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-                .UseSimpleAssemblyNameTypeSerializer()
-                .UseRecommendedSerializerSettings()
-                .UseSqlServerStorage(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"),
-                    new SqlServerStorageOptions
-                    {
-                        SchemaName = builder.Configuration["HangfireSettings:DbSchemaName"],
-                    }
-            );
-        });
+            WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.Configure<PmiReportDistributionSettings>(builder.Configuration.GetSection("PmiReportDistributionSettings"));
+            builder.Services.AddHangfire(configuration =>
+            {
+                configuration
+                    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+                    .UseSimpleAssemblyNameTypeSerializer()
+                    .UseRecommendedSerializerSettings()
+                    .UseSqlServerStorage(
+                        builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"),
+                        new SqlServerStorageOptions
+                        {
+                            SchemaName = builder.Configuration["HangfireSettings:DbSchemaName"],
+                        }
+                    );
+            });
+            builder.Services.AddHangfireServer();
 
-        builder.Services.AddTransient<IEnqueueStemReportForPublishingJob, EnqueueStemReportForPublishingJob>();
+            builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>
+            {
+                options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
+            }, ServiceLifetime.Scoped);
 
-        builder.Services.AddHangfireServer();
+            builder.Services.AddMassTransit((IBusRegistrationConfigurator busConfigurator) =>
+            {
+                busConfigurator.UsingRabbitMq((IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator rabbitMqConfigurator) =>
+                {
+                    rabbitMqConfigurator.Host(
+                        new Uri(builder.Configuration["RabbitMQSettings:HostUri"]!),
+                        hostConfigurator =>
+                        {
+                            hostConfigurator.Username(builder.Configuration["RabbitMQSettings:UserName"]!);
+                            hostConfigurator.Password(builder.Configuration["RabbitMQSettings:Password"]!);
+                        }
+                    );
+                });
+            });
 
-        builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>
-        {
-            options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
-        }, ServiceLifetime.Scoped);
+            builder.Services.Configure<PmiReportDistributionSettings>(
+                builder.Configuration.GetSection("PmiReportDistributionSettings"));
 
-        WebApplication app = builder.Build();
+            builder.Services.AddTransient<IEnqueueStemReportForPublishingJob, EnqueueStemReportForPublishingJob>();
+            builder.Services.AddTransient<NuclearEvaluation.HangfireJobs.Services.PmiReportDistributionMessageDispatcher>();
 
-        app.MapHangfireDashboard();
+            WebApplication app = builder.Build();
 
-        JobScheduler.RegisterJobs();
+            app.MapHangfireDashboard();
 
-        app.Run();
+            JobScheduler.RegisterJobs();
+
+            app.Run();
+        }
     }
 }

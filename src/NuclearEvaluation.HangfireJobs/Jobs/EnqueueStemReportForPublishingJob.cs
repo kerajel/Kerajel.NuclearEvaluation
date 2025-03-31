@@ -1,7 +1,6 @@
 ﻿using Kerajel.Primitives.Models;
 using NuclearEvaluation.HangfireJobs.Interfaces;
 using NuclearEvaluation.HangfireJobs.Models;
-using NuclearEvaluation.HangfireJobs.Services;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Enums;
 
@@ -11,15 +10,18 @@ public partial class EnqueueStemReportForPublishingJob : IEnqueueStemReportForPu
 {
     const int maxQueueItemsPerOperation = 3072;
 
+    readonly IPmiReportDistributionMessageDispatcher _pmiReportDistributionMessageDispatcher;
     readonly IPmiReportDistributionService _distributionService;
     readonly ILogger<EnqueueStemReportForPublishingJob> _logger;
 
     public EnqueueStemReportForPublishingJob(
         IPmiReportDistributionService distributionService,
-        ILogger<EnqueueStemReportForPublishingJob> logger)
+        ILogger<EnqueueStemReportForPublishingJob> logger,
+        IPmiReportDistributionMessageDispatcher pmiReportDistributionMessageDispatcher)
     {
         _distributionService = distributionService;
         _logger = logger;
+        _pmiReportDistributionMessageDispatcher = pmiReportDistributionMessageDispatcher;
     }
 
     public async Task Execute()
@@ -29,9 +31,10 @@ public partial class EnqueueStemReportForPublishingJob : IEnqueueStemReportForPu
         if (!fetchItemsResult.IsSuccessful)
         {
             _logger.LogError(fetchItemsResult.Exception, "Failed to fetch PMI report data for queueing");
+            return;
         }
 
-        //TODO dispatch messages
+        await _pmiReportDistributionMessageDispatcher.Send(fetchItemsResult.Entries);
 
         PmiReportDistributionStatus inProgressStatus = PmiReportDistributionStatus.InProgress;
         IEnumerable<int> distributionItemIds = fetchItemsResult.Entries.Select(x => x.PmiReportDistributionEntryId);

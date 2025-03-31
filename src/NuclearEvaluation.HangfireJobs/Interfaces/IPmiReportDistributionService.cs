@@ -3,7 +3,7 @@ using NuclearEvaluation.HangfireJobs.Models;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Enums;
 
-namespace NuclearEvaluation.HangfireJobs.Services;
+namespace NuclearEvaluation.HangfireJobs.Interfaces;
 
 public interface IPmiReportDistributionService
 {

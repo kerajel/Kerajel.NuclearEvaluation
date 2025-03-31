@@ -1,46 +1,47 @@
-﻿using NuclearEvaluation.HangfireJobs.Models;
+﻿using MassTransit;
+using Microsoft.Extensions.Options;
+using NuclearEvaluation.HangfireJobs.Interfaces;
+using NuclearEvaluation.HangfireJobs.Models;
 using NuclearEvaluation.HangfireJobs.Models.Settings;
-using NuclearEvaluation.Kernel.Enums;
-using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Messages.PMI;
 
 namespace NuclearEvaluation.HangfireJobs.Services;
 
-public class PmiReportDistributionMessageDispatcher
+public class PmiReportDistributionMessageDispatcher : IPmiReportDistributionMessageDispatcher
 {
-    readonly IMessager _messager;
+    readonly IBus _bus;
     readonly ILogger<PmiReportDistributionMessageDispatcher> _logger;
     readonly PmiReportDistributionSettings _distributionSettings;
 
     public PmiReportDistributionMessageDispatcher(
-        IMessager messager,
+        IBus bus,
         ILogger<PmiReportDistributionMessageDispatcher> logger,
-        PmiReportDistributionSettings distributionSettings)
+        IOptions<PmiReportDistributionSettings> distributionSettings)
     {
-        _messager = messager;
+        _bus = bus;
         _logger = logger;
-        _distributionSettings = distributionSettings;
+        _distributionSettings = distributionSettings.Value;
     }
-    public bool CanHandle(PmiReportDistributionChannel channel) => channel == PmiReportDistributionChannel.Email;
 
-    public async Task Send(IEnumerable<PmiReportDistributionQueueItem> queueItems, CancellationToken? ct = default)
+    public async Task Send(IEnumerable<PmiReportDistributionQueueItem> queueItems, CancellationToken ct = default)
     {
-        var groupedItems = queueItems.GroupBy(x => x.DistributionChannel);
-
-        foreach (IGrouping<PmiReportDistributionChannel, PmiReportDistributionQueueItem> group in groupedItems)
+        foreach (var group in queueItems.GroupBy(item => item.DistributionChannel))
         {
-            string channelTypeName = Enum.GetName(group.Key)!;
+            string channelTypeName = Enum.GetName(group.Key) ?? string.Empty;
+
             _ = _distributionSettings.DistributionMap.TryGetValue(channelTypeName, out ExchangeInfo? exchangeInfo);
 
-            if (exchangeInfo == null)
+            if (exchangeInfo is null)
             {
-                _logger.LogError("Exchange mapping undefined for '{channelType}'", channelTypeName);
+                _logger.LogError("Exchange mapping undefined for '{ChannelType}'", channelTypeName);
                 continue;
             }
 
-            string exchange = exchangeInfo.Exchange;
-            string routingKey = exchangeInfo.RoutingKey;
+            ISendEndpoint endpoint = await _bus.GetSendEndpoint(new Uri($"exchange:{exchangeInfo.Exchange}"));
 
-            await _messager.PublishMessageAsync(exchange, routingKey, group);
+            IEnumerable<PmiReportDistributionMessage> messages = group.Select(item => new PmiReportDistributionMessage(item.PmiReportId));
+
+            await endpoint.SendBatch(messages, ct);
         }
     }
 }

@@ -2,13 +2,13 @@
 using LinqToDB;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.HangfireJobs.Models;
-using NuclearEvaluation.HangfireJobs.Services;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Enums;
 using LinqToDB.EntityFrameworkCore;
+using NuclearEvaluation.HangfireJobs.Interfaces;
 
-namespace NuclearEvaluation.HangfireJobs.Interfaces;
+namespace NuclearEvaluation.HangfireJobs.Services;
 
 public class PmiReportDistributionService : IPmiReportDistributionService
 {

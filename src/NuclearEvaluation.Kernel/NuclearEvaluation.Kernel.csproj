@@ -26,4 +26,8 @@
 	  <ProjectReference Include="..\..\..\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Data\Migrations\" />
+	</ItemGroup>
+
 </Project>

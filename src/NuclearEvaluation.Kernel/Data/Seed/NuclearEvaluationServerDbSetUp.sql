@@ -709,10 +709,10 @@ BEGIN
 END
 GO
 
-ALTER DATABASE [db_aae90d_nuclearevaluation] SET RECOVERY SIMPLE;
+ALTER DATABASE [NuclearEvaluationServer] SET RECOVERY SIMPLE;
 GO
  
-DBCC SHRINKFILE (N'db_aae90d_nuclearevaluation_log' , 0, TRUNCATEONLY);
+DBCC SHRINKFILE (N'NuclearEvaluationServer_log' , 0, TRUNCATEONLY);
 GO
 
 CREATE OR ALTER PROCEDURE [DBO].EnsureIndexOnTempTableField

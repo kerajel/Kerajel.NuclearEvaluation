@@ -15,7 +15,6 @@ using NuclearEvaluation.Kernel.Models.Identity;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Shared.Validators;
 using NuclearEvaluation.Shared.Services;
-using NuclearEvaluation.Shared.Services.RabbitMQ;
 
 internal class Program
 {
@@ -74,7 +73,6 @@ internal class Program
 
         builder.Services.AddScoped<ITempTableService, TempTableService>();
         builder.Services.AddScoped<IEfsFileService, EfsFileService>();
-        builder.Services.AddScoped<IMessager, RabbitMQPublisher>();
 
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();

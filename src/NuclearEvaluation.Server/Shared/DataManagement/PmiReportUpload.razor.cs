@@ -140,13 +140,13 @@ public partial class PmiReportUpload : ComponentBase
             ValidationResult reportDateValidationResult = reportDateValidationTask.Result;
             ValidationResult reportNameValidationResult = reportNameValidationTask.Result;
 
-            reportDateValid = !reportDateValidationResult.IsValid;
-            reportNameValid = !reportNameValidationResult.IsValid;
+            reportDateValid = reportDateValidationResult.IsValid;
+            reportNameValid = reportNameValidationResult.IsValid;
         }
         else
         {
-            reportDateValid = !reportDatePicker.IsValid;
-            reportNameValid = !reportNamePicker.IsValid;
+            reportDateValid = reportDatePicker.IsValid;
+            reportNameValid = reportNamePicker.IsValid;
         }
 
         IsFormValid = reportDateValid && reportNameValid;

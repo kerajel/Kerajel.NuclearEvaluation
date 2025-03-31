@@ -4,5 +4,5 @@ namespace NuclearEvaluation.HangfireJobs.Interfaces;
 
 public interface IPmiReportDistributionMessageDispatcher
 {
-    Task Send(IEnumerable<PmiReportDistributionQueueItem> queueItems, CancellationToken cancellationToken = default);
+    Task Send(IEnumerable<PmiReportDistributionQueueItem> queueItems, CancellationToken ct = default);
 }

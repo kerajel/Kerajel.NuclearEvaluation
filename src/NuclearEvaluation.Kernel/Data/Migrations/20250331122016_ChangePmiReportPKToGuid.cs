@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NuclearEvaluation.Kernel.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class ChangePmiReportPKToGuid : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -236,11 +236,10 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 schema: "EVALUATION",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AuthorId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedDate = table.Column<DateOnly>(type: "date", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -341,8 +340,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    PmiReportId = table.Column<int>(type: "int", nullable: false),
-                    PmiReportDistributionChannel = table.Column<int>(type: "int", nullable: false),
+                    PmiReportId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DistributionChannel = table.Column<int>(type: "int", nullable: false),
                     PmiReportDistributionStatus = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>

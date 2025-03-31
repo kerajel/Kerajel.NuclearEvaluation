@@ -29,8 +29,6 @@ public class PmiReportService : DbServiceBase, IPmiReportService
         }
     }
 
-    public async Task<Pmireport>
-
     private static PmiReport PreparePmiReport(PmiReportSubmission reportSubmission)
     {
         PmiReport pmiReport = new()
@@ -48,7 +46,7 @@ public class PmiReportService : DbServiceBase, IPmiReportService
             {
                 PmiReport = pmiReport,
                 DistributionChannel = channel,
-                PmiReportDistributionStatus = PmiReportDistributionStatus.Pending,
+                DistributionStatus = PmiReportDistributionStatus.Pending,
             };
             pmiReport.PmiReportDistributionEntries.Add(entry);
         }

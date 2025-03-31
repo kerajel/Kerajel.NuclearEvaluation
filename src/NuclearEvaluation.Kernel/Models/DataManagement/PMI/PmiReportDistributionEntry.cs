@@ -12,5 +12,5 @@ public class PmiReportDistributionEntry
 
     public PmiReportDistributionChannel DistributionChannel { get; set; }
 
-    public PmiReportDistributionStatus PmiReportDistributionStatus { get; set; }
+    public PmiReportDistributionStatus DistributionStatus { get; set; }
 }

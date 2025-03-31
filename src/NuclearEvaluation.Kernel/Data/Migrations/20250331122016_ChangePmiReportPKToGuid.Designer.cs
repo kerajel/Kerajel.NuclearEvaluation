@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NuclearEvaluation.Kernel.Data.Context;
 
@@ -11,9 +12,11 @@ using NuclearEvaluation.Kernel.Data.Context;
 namespace NuclearEvaluation.Kernel.Data.Migrations
 {
     [DbContext(typeof(NuclearEvaluationServerDbContext))]
-    partial class NuclearEvaluationServerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250331122016_ChangePmiReportPKToGuid")]
+    partial class ChangePmiReportPKToGuid
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -166,7 +169,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Property<int>("DistributionChannel")
                         .HasColumnType("int");
 
-                    b.Property<int>("DistributionStatus")
+                    b.Property<int>("PmiReportDistributionStatus")
                         .HasColumnType("int");
 
                     b.Property<Guid>("PmiReportId")

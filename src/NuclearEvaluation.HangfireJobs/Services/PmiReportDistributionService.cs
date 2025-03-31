@@ -24,7 +24,7 @@ public class PmiReportDistributionService : IPmiReportDistributionService
         try
         {
             PmiReportDistributionQueueItem[] result = await _dbContext.PmiReportDistributionEntry
-                .Where(e => e.PmiReportDistributionStatus == PmiReportDistributionStatus.Pending
+                .Where(e => e.DistributionStatus == PmiReportDistributionStatus.Pending
                     && e.PmiReport.Status == PmiReportStatus.Uploaded)
                 .OrderBy(x => x.PmiReport.CreatedDate)
                 .ThenBy(x => x.PmiReportId)
@@ -52,7 +52,7 @@ public class PmiReportDistributionService : IPmiReportDistributionService
         try
         {
             await _dbContext.PmiReportDistributionEntry.Where(x => entryIds.Contains(x.Id))
-                .Set(x => x.PmiReportDistributionStatus, status)
+                .Set(x => x.DistributionStatus, status)
                 .UpdateAsync(ct);
 
             return OperationResult.Succeeded();

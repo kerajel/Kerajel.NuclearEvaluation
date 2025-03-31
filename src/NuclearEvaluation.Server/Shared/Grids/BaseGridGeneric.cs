@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Components;
+using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Filters;
 using Radzen;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
-public abstract class BaseGrid : ComponentBase, IDataGrid
+public abstract class BaseGridGeneric<T> : ComponentBase, IDataGrid
 {
     [Inject]
     protected ISessionCache SessionCache { get; set; } = null!;
@@ -28,8 +29,10 @@ public abstract class BaseGrid : ComponentBase, IDataGrid
     [Parameter]
     public Func<PresetFilterBox>? GetPresetFilterBox { get; set; }
 
-    protected int totalCount;
-    protected bool isLoading;
+    protected int totalCount = 0;
+    protected List<T> entries = [];
+    protected bool hasFetchDataError = false;
+    protected bool isLoading = false;
     protected DataGridSettings? dataGridSettings;
 
     protected virtual string DecimalFormat => "{0:0.##}";
@@ -60,4 +63,42 @@ public abstract class BaseGrid : ComponentBase, IDataGrid
     public abstract Task LoadData(LoadDataArgs args);
 
     public abstract Task Reset(bool resetColumnState = true, bool resetRowState = false);
-}
+
+    protected async Task FetchData(Func<Task<FetchDataResult<T>>> fetchDataFunction)
+    {
+        FetchDataResult<T> result = await fetchDataFunction();
+
+        if (result.IsSuccessful)
+        {
+            entries = result.Entries.ToList();
+            totalCount = result.TotalCount;
+            hasFetchDataError = false;
+        }
+        else
+        {
+            entries = [];
+            totalCount = 0;
+            hasFetchDataError = true;
+        }
+    }
+    protected RenderFragment EmptyTemplate => builder =>
+    {
+        //TODO use styles
+        string fontSettings = "font-family: 'Material Symbols Outlined', 'Arial', sans-serif;";
+
+        if (hasFetchDataError)
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "style", $"color: darkorange; {fontSettings}");
+            builder.AddContent(2, "An error occurred while fetching entries");
+            builder.CloseElement();
+        }
+        else
+        {
+            builder.OpenElement(3, "div");
+            builder.AddAttribute(4, "style", fontSettings);
+            builder.AddContent(5, "No records to display");
+            builder.CloseElement();
+        }
+    };
+};

@@ -13,7 +13,7 @@
                    Visible="@Visible"
                    Name="@Name" />
 
-    @if (_hasValidationErrors && !string.IsNullOrEmpty(_validationMessage))
+    @if (Visible && _hasValidationErrors && !string.IsNullOrEmpty(_validationMessage))
     {
         <div class="validation-tooltip"
              style="--tooltip-offset-x:@TooltipOffsetXpx; --tooltip-offset-y:@TooltipOffsetYpx;">

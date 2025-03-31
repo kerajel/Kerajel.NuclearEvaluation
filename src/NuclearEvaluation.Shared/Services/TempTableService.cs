@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Extensions;
 using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 using NuclearEvaluation.Kernel.Models.Temporary;
 using System.Linq.Expressions;
 
@@ -20,7 +21,6 @@ public class TempTableService : ITempTableService
     readonly Dictionary<string, dynamic> tables = [];
 
     readonly TempTableServiceSettings _settings;
-    readonly IDbContextFactory<NuclearEvaluationServerDbContext> _dbContextFactory;
     readonly NuclearEvaluationServerDbContext _dbContext;
     readonly DataConnection _dataConnection;
 
@@ -29,7 +29,6 @@ public class TempTableService : ITempTableService
         IOptions<TempTableServiceSettings> serviceOptions)
     {
         _settings = serviceOptions.Value;
-        _dbContextFactory = dbContextFactory;
         _dbContext = dbContextFactory.CreateDbContext();
         _dataConnection = _dbContext.CreateLinqToDBConnectionDetached();
     }

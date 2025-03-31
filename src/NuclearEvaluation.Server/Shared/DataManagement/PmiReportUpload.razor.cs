@@ -1,6 +1,11 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using FluentValidation.Results;
+using Kerajel.Primitives.Models;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
+using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 using NuclearEvaluation.Server.Shared.Generics;
 using NuclearEvaluation.Shared.Validators;
@@ -10,8 +15,7 @@ namespace NuclearEvaluation.Server.Shared.DataManagement;
 
 public partial class PmiReportUpload : ComponentBase
 {
-    //TODO options
-    private const long MaxFileSize = 50L * 1024L * 1024L; // 50 MB
+    private const long MaxFileSize = 50L * 1024L * 1024L;
 
     [Inject]
     public ILogger<PmiReportUpload> Logger { get; set; } = null!;
@@ -20,31 +24,35 @@ public partial class PmiReportUpload : ComponentBase
     protected IJSRuntime JsRuntime { get; set; } = null!;
 
     [Inject]
+    private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
+
+    [Inject]
     protected PmiReportSubmissionValidator PmiReportSubmissionValidator { get; set; } = null!;
 
     [Inject]
+    protected IPmiReportService PmiReportService { get; set; } = null!;
+
+    [Inject]
     public DialogService DialogService { get; set; } = null!;
-
     protected DateOnly? ReportDate { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
-
     protected IBrowserFile? SelectedFile { get; set; }
-
     protected string? Message { get; set; }
-
+    protected string MessageStyle { get; set; } = "margin-top: 10px;";
     protected bool IsFormValid { get; set; }
-
     protected InputFile? fileInput;
     protected ValidatedDateOnlyPicker<PmiReportSubmission> reportDatePicker = null!;
+    protected ValidatedTextBox<PmiReportSubmission> reportNamePicker = null!;
+
     protected PmiReportSubmission reportSubmission = new()
     {
-        //TODO Pass DateTime provider to reflect browser local time
         ReportDate = DateOnly.FromDateTime(DateTime.UtcNow),
     };
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         base.OnInitialized();
         IsFormValid = false;
+        reportSubmission.AuthorId = await AuthenticationStateProvider.GetCurrentUserId();
     }
 
     protected async void TriggerFileInputClick()
@@ -56,30 +64,31 @@ public partial class PmiReportUpload : ComponentBase
     {
         IBrowserFile file = e.File;
 
-        SelectedFile = null;
-        Message = string.Empty;
-        IsFormValid = false;
-
         if (file is null)
         {
             return;
         }
+
+        SelectedFile = null;
+        Message = string.Empty;
+        IsFormValid = false;
+
+        reportSubmission.ReportName = Path.GetFileNameWithoutExtension(e.File.Name);
+        reportNamePicker.ReInitialize();
 
         if (Path.GetExtension(file.Name) != ".docx")
         {
             Message = "File must be a .docx document.";
             return;
         }
-
         if (file.Size > MaxFileSize)
         {
             Message = "File size exceeds 50 MB limit.";
             return;
         }
-
         SelectedFile = file;
 
-        await UpdateFormValidity();
+        await UpdateFormValidity(true);
     }
 
     protected async Task OnSubmit()
@@ -88,29 +97,59 @@ public partial class PmiReportUpload : ComponentBase
         {
             return;
         }
+        OperationResult<PmiReport> createReportResult = await PmiReportService.Create(reportSubmission);
 
-        Logger.LogInformation("PMI Report upload would happen here.");
+        //TODO persist report to EFS
 
-        Message = $"{SelectedFile!.Name} has been submitted";
+        if (!createReportResult.IsSuccessful)
+        {
+            Message = "There was an error - dwarfs and leprecons are already underway to figure it out";
+            MessageStyle = "color: darkorange; font-weight: bold; margin-top: 10px;";
+        }
+        else
+        {
+            Message = $"{SelectedFile!.Name} has been submitted";
+            MessageStyle = "margin-top: 10px;";
+        }
+
+        //TODO add loader
+
         reportDatePicker.ReInitialize();
         SelectedFile = null;
-
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }
 
-    async Task OnReportNameValidationChanged()
+    protected async Task OnReportSubmissionChanged()
     {
-        await UpdateFormValidity();
+        await UpdateFormValidity(false);
     }
 
-    private async Task UpdateFormValidity()
+    private async Task UpdateFormValidity(bool validate = false)
     {
-        bool isReportDateValid = !reportDatePicker.HasValidationErrors;
+        bool reportDateValid = false;
+        bool reportNameValid = false;
 
-        IsFormValid =     ReportDate is not null
-                       && SelectedFile is not null
-                       && isReportDateValid;
+        if (validate)
+        {
+            Task<ValidationResult> reportDateValidationTask = reportDatePicker.Validate();
+            Task<ValidationResult> reportNameValidationTask = reportNamePicker.Validate();
+
+            await Task.WhenAll(reportDateValidationTask, reportNameValidationTask);
+
+            ValidationResult reportDateValidationResult = reportDateValidationTask.Result;
+            ValidationResult reportNameValidationResult = reportNameValidationTask.Result;
+
+            reportDateValid = reportDateValidationResult.IsValid;
+            reportNameValid = reportNameValidationResult.IsValid;
+        }
+        else
+        {
+            reportDateValid = reportDatePicker.IsValid;
+            reportNameValid = reportNamePicker.IsValid;
+        }
+
+        IsFormValid = reportDateValid && reportNameValid;
 
         await InvokeAsync(StateHasChanged);
         await Task.Yield();

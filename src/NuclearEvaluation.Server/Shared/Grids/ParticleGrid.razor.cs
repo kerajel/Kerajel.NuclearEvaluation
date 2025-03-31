@@ -6,10 +6,11 @@ using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Models.Domain;
+using NuclearEvaluation.Shared.Services;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
-public partial class ParticleGrid : BaseGrid
+public partial class ParticleGrid : BaseGridGeneric<ParticleView>
 {
     [Parameter]
     public bool EnableDecayCorrection { get; set; }
@@ -26,13 +27,12 @@ public partial class ParticleGrid : BaseGrid
     public override string EntityDisplayName => nameof(Particle);
 
     protected RadzenDataGrid<ParticleView> grid = null!;
-    protected IEnumerable<ParticleView> entries = Enumerable.Empty<ParticleView>();
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
         base.isLoading = true;
 
-        FilterDataCommand<ParticleView> command = new()
+        FetchDataCommand<ParticleView> command = new()
         {
             LoadDataArgs = loadDataArgs,
             TopLevelFilterExpression = this.TopLevelFilterExpression,
@@ -41,10 +41,9 @@ public partial class ParticleGrid : BaseGrid
         command.AddArgument(FilterDataCommand.ArgKeys.EnableDecayCorrection, EnableDecayCorrection);
         command.AddArgument(FilterDataCommand.ArgKeys.ProjectId, ProjectId);
 
-        FilterDataResponse<ParticleView> response = await this.ParticleService.GetParticleViews(command);
+        FetchDataResult<ParticleView> response = await this.ParticleService.GetParticleViews(command);
 
-        entries = response.Entries;
-        totalCount = response.TotalCount;
+        await FetchData(() => ParticleService.GetParticleViews(command));
 
         base.isLoading = false;
     }

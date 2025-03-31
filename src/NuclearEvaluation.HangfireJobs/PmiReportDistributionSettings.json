@@ -1,0 +1,12 @@
+{
+  "PmiReportDistributionSettings": {
+    "DistributionMap": {
+      "Email": {
+        "Exchange": "PmiReportDistributionEmailExchange"
+      },
+      "SharePoint": {
+        "Exchange": "PmiReportDistributionSharePointExchange"
+      }
+    }
+  }
+}

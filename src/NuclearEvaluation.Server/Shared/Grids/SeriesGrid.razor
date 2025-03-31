@@ -1,4 +1,4 @@
-@inherits BaseGrid
+@inherits BaseGridGeneric<SeriesView>
 
 <div style="display:@(Visible ? "block" : "none");">
 
@@ -49,6 +49,7 @@
                     FilterPopupRenderMode="PopupRenderMode.OnDemand"
                     FilterMode="FilterMode.Advanced"
                     ExpandMode="DataGridExpandMode.Multiple"
+                    EmptyTemplate="@EmptyTemplate"
                     PagingSummaryFormat="@("Displaying page {0:N0} of {1:N0} <b>(total {2:N0} records)</b>")">
 
         <Template Context="series">

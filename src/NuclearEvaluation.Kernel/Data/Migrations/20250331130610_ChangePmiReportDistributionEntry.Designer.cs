@@ -12,8 +12,8 @@ using NuclearEvaluation.Kernel.Data.Context;
 namespace NuclearEvaluation.Kernel.Data.Migrations
 {
     [DbContext(typeof(NuclearEvaluationServerDbContext))]
-    [Migration("20250323110620_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20250331130610_ChangePmiReportDistributionEntry")]
+    partial class ChangePmiReportDistributionEntry
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -133,18 +133,16 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
 
             modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("AuthorId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly>("CreatedDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -168,14 +166,14 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("PmiReportDistributionChannel")
+                    b.Property<int>("DistributionChannel")
                         .HasColumnType("int");
 
-                    b.Property<int>("PmiReportDistributionStatus")
+                    b.Property<int>("DistributionStatus")
                         .HasColumnType("int");
 
-                    b.Property<int>("PmiReportId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("PmiReportId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 

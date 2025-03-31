@@ -56,10 +56,10 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
     public EventCallback<bool> OnValidationStateChanged { get; set; }
 
     [Parameter]
-    public int TooltipOffsetX { get; set; } = 0;
+    public decimal TooltipOffsetX { get; set; } = 0;
 
     [Parameter]
-    public int TooltipOffsetY { get; set; } = 0;
+    public decimal TooltipOffsetY { get; set; } = 0;
 
     public IRadzenFormComponent _textInputRef = null!;
 
@@ -162,7 +162,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
 
     public void CancelValidation()
     {
-        HasValidationErrors = false;
+        IsValid = false;
         _validationDebounce.Cancel();
         PropertyValue = _initialValue ?? default;
         _boundValue = _initialValue;
@@ -170,7 +170,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
         StateHasChanged();
     }
 
-    public bool HasValidationErrors
+    public bool IsValid
     {
         get => _hasValidationErrors;
         set
@@ -215,14 +215,14 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
         StateHasChanged();
     }
 
-    async Task<ValidationResult> Validate(bool debounce = true)
+    public async Task<ValidationResult> Validate(bool debounce = true)
     {
         Task<ValidationResult> validate() => Validator.ValidateAsync(Model, options => options.IncludeProperties(PropertyName));
         ValidationResult validationResult = await (debounce ? _validationDebounce.ExecuteAsync(validate) : validate());
 
         if (validationResult.IsValid)
         {
-            HasValidationErrors = false;
+            IsValid = false;
             _validationMessage = string.Empty;
         }
         else
@@ -230,11 +230,11 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
             if (validationResult.Errors.Count != 0)
             {
                 _validationMessage = string.Join(Environment.NewLine, validationResult.Errors.Select(e => e.ErrorMessage));
-                HasValidationErrors = true;
+                IsValid = true;
             }
             else
             {
-                HasValidationErrors = false;
+                IsValid = false;
                 _validationMessage = string.Empty;
             }
         }

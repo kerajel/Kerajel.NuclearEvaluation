@@ -17,5 +17,6 @@ public class StemPreviewFileMetadata
     public string Name { get; set; } = string.Empty;
 
     public bool IsFullyUploaded { get; set; } = false;
+
     public bool IsDeleted { get; set; } = false;
 }

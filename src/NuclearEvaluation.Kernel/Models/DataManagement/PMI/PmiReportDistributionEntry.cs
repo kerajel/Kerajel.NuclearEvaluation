@@ -6,11 +6,11 @@ public class PmiReportDistributionEntry
 {
     public int Id { get; set; }
 
-    public int PmiReportId { get; set; }
+    public Guid PmiReportId { get; set; }
 
     public PmiReport PmiReport { get; set; } = null!;
 
-    public PmiReportDistributionChannel PmiReportDistributionChannel { get; set; }
+    public PmiReportDistributionChannel DistributionChannel { get; set; }
 
-    public PmiReportDistributionStatus PmiReportDistributionStatus { get; set; }
+    public PmiReportDistributionStatus DistributionStatus { get; set; }
 }

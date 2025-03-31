@@ -57,7 +57,7 @@ public partial class ProjectCard : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
-        FilterDataCommand<ProjectView> command = new()
+        FetchDataCommand<ProjectView> command = new()
         {
             TopLevelFilterExpression = x => x.Id == Id,
         };
@@ -96,7 +96,7 @@ public partial class ProjectCard : ComponentBase
 
     bool CanSaveProjectName()
     {
-        return !_projectNameInputRef?.HasValidationErrors ?? false;
+        return !_projectNameInputRef?.IsValid ?? false;
     }
 
     async Task EditProjectName()

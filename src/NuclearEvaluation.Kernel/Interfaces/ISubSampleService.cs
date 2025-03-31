@@ -5,5 +5,5 @@ namespace NuclearEvaluation.Kernel.Interfaces;
 
 public interface ISubSampleService
 {
-    Task<FilterDataResponse<SubSampleView>> GetSubSampleViews(FilterDataCommand<SubSampleView> command);
+    Task<FetchDataResult<SubSampleView>> GetSubSampleViews(FetchDataCommand<SubSampleView> command);
 }

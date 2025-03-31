@@ -10,7 +10,7 @@ using NuclearEvaluation.Kernel.Enums;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
-public partial class SeriesGrid : BaseGrid
+public partial class SeriesGrid : BaseGridGeneric<SeriesView>
 {
     [Parameter]
     public bool EnableDecayCorrection { get; set; }
@@ -28,7 +28,7 @@ public partial class SeriesGrid : BaseGrid
     public EventCallback OnEntriesDeselected { get; set; }
 
     [Parameter]
-    public EventCallback<FilterDataCommand<SeriesView>> OnSeriesSetChanged { get; set; }
+    public EventCallback<FetchDataCommand<SeriesView>> OnSeriesSetChanged { get; set; }
 
     [Inject]
     public ISeriesService SeriesService { get; set; } = null!;
@@ -42,8 +42,7 @@ public partial class SeriesGrid : BaseGrid
     public override string EntityDisplayName => nameof(Series);
 
     protected RadzenDataGrid<SeriesView> grid = null!;
-    protected List<SeriesView> entries = [];
-    protected FilterDataCommand<SeriesView>? currentCommand;
+    protected FetchDataCommand<SeriesView>? currentCommand;
 
     readonly DataGridEditMode _editMode = DataGridEditMode.Single;
     readonly List<SeriesView> _seriesToInsert = [];
@@ -53,7 +52,7 @@ public partial class SeriesGrid : BaseGrid
     {
         base.isLoading = true;
 
-        FilterDataCommand<SeriesView> command = new()
+        FetchDataCommand<SeriesView> command = new()
         {
             LoadDataArgs = loadDataArgs,
             TopLevelFilterExpression = this.TopLevelFilterExpression,
@@ -65,10 +64,9 @@ public partial class SeriesGrid : BaseGrid
             command.TopLevelOrderExpression = item => SelectedEntryIds.Contains(item.Id) ? 0 : 1;
         }
 
-        FilterDataResponse<SeriesView> response = await this.SeriesService.GetSeriesViews(command);
+        FetchDataResult<SeriesView> response = await this.SeriesService.GetSeriesViews(command);
 
-        entries = response.Entries.ToList();
-        totalCount = response.TotalCount;
+        await FetchData(() => SeriesService.GetSeriesViews(command));
 
         currentCommand = command;
 

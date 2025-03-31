@@ -69,15 +69,16 @@ internal class Program
         builder.Services.AddTransient<IStemPreviewEntryService, StemPreviewEntryService>();
         builder.Services.AddTransient<IStemPreviewService, StemPreviewService>();
         builder.Services.AddTransient<IStemPreviewParser, StemPreviewParser>();
+        builder.Services.AddTransient<IPmiReportService, PmiReportService>();
 
         builder.Services.AddScoped<ITempTableService, TempTableService>();
         builder.Services.AddScoped<IEfsFileService, EfsFileService>();
-        builder.Services.AddScoped<IMessager, RabbitMQPublisher>();
 
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();
         builder.Services.AddScoped<PmiReportSubmissionValidator>();
 
+        //using Transient registration due to the nature of server-side Blazor
         builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>
         {
             options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));

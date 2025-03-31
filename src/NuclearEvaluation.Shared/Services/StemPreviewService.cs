@@ -73,9 +73,9 @@ public class StemPreviewService(
 
             OperationResult<FileInfo> writeFileResult = await efsFileService.Write(writeFileCommand, linkedCts.Token);
 
-            if (!writeFileResult.Succeeded)
+            if (!writeFileResult.IsSuccessful)
             {
-                return OperationResult.FromFaulted(writeFileResult);
+                return OperationResult.Faulted(writeFileResult);
             }
 
             StemPreviewFileMetadata fileMetadata = new(fileId, fileName);
@@ -92,7 +92,7 @@ public class StemPreviewService(
 
             OperationResult deleteFileResult = await efsFileService.Delete(fileId);
 
-            if (!deleteFileResult.Succeeded)
+            if (!deleteFileResult.IsSuccessful)
             {
                 logger.LogError("Failed to delete file '{fileId}' from the EFS", fileId);
             }

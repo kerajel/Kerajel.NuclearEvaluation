@@ -57,7 +57,7 @@ public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
         });
     }
 
-    public async Task<FilterDataResponse<StemPreviewEntryView>> GetStemPreviewEntryViews(Guid stemSessionId, FilterDataCommand<StemPreviewEntryView> command)
+    public async Task<FetchDataResult<StemPreviewEntryView>> GetStemPreviewEntryViews(Guid stemSessionId, FetchDataCommand<StemPreviewEntryView> command)
     {
         return await ExecuteWithBulkheadPolicy(stemSessionId, async () =>
         {

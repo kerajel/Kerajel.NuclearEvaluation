@@ -1,4 +1,4 @@
-@inherits BaseGrid
+@inherits BaseGridGeneric<SubSampleView>
 
 <div style="display:@(Visible ? "block" : "none");">
 
@@ -24,6 +24,7 @@
                     ShowPagingSummary="true"
                     TItem="SubSampleView"
                     FilterPopupRenderMode="PopupRenderMode.OnDemand"
+                    EmptyTemplate="@EmptyTemplate"
                     PagingSummaryFormat="@("Displaying page {0:N0} of {1:N0} <b>(total {2:N0} records)</b>")"
                     FilterMode="FilterMode.Advanced">
 

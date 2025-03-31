@@ -2,7 +2,6 @@
 
 public enum PmiReportDistributionChannel
 {
-    Unknown = 1,
-    Completed = 2,
-    Failed = 3,
+    Email = 1,
+    SharePoint = 2,
 }

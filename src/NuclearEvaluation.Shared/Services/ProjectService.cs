@@ -7,13 +7,19 @@ using NuclearEvaluation.Kernel.Models.Views;
 using System.Linq.Expressions;
 using Z.EntityFramework.Plus;
 using NuclearEvaluation.Kernel.Data.Context;
+using Microsoft.Extensions.Logging;
 
 namespace NuclearEvaluation.Shared.Services;
 
 public class ProjectService : DbServiceBase, IProjectService
 {
-    public ProjectService(NuclearEvaluationServerDbContext dbContext) : base(dbContext)
+    private readonly ILogger<ProjectService> _logger;
+
+    public ProjectService(
+        NuclearEvaluationServerDbContext dbContext,
+        ILogger<ProjectService> logger) : base(dbContext)
     {
+        _logger = logger;
     }
 
     public async Task UpdatePropertyFromView<TProperty>(
@@ -42,11 +48,19 @@ public class ProjectService : DbServiceBase, IProjectService
         }
     }
 
-    public async Task<FilterDataResponse<ProjectView>> GetProjectViews(FilterDataCommand<ProjectView> command)
+    public async Task<FetchDataResult<ProjectView>> GetProjectViews(FetchDataCommand<ProjectView> command)
     {
-        IQueryable<ProjectView> baseQuery = _dbContext.ProjectView;
+        try
+        {
+            IQueryable<ProjectView> baseQuery = _dbContext.ProjectView;
+            return await ExecuteQuery(baseQuery, command);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "");
+            return FetchDataResult<ProjectView>.Faulted(ex);
+        }
 
-        return await ExecuteQuery(baseQuery, command);
     }
 
     public async Task UpdateProjectSeriesFromView(ProjectView projectView)

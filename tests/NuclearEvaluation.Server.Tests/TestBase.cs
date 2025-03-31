@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Helpers;
 using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.Server.Data;
 using NuclearEvaluation.Shared.Services;
 using System.Transactions;
 

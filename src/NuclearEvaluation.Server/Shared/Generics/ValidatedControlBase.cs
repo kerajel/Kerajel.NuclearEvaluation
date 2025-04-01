@@ -63,12 +63,13 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
 
     public IRadzenFormComponent _textInputRef = null!;
 
-    protected bool _hasValidationErrors;
+    readonly Lock validationLock = new();
+
     protected string? _validationMessage;
 
     protected string TooltipOffsetXpx => $"{TooltipOffsetX}px";
     protected string TooltipOffsetYpx => $"{TooltipOffsetY}px";
-    protected string ComputedStyle => $"{Style}; border: 2px solid {(_hasValidationErrors ? "orange" : "transparent")};";
+    protected string ComputedStyle => $"{Style}; border: 2px solid {(!IsValid ? "orange" : "transparent")};";
 
     protected Debouncer<ValidationResult> _validationDebounce = null!;
 
@@ -110,17 +111,14 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
         return !_initialValue.Equals(PropertyValue);
     }
 
-
-    public async Task<bool> IsReadyToCommit()
+    public bool IsReadyToCommit()
     {
         if (!ValueHasChanged())
         {
             return false;
         }
 
-        ValidationResult validationResult = await Validate(false);
-
-        return validationResult.IsValid;
+        return IsValid;
     }
 
     public async Task FocusAsync()
@@ -170,18 +168,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
         StateHasChanged();
     }
 
-    public bool IsValid
-    {
-        get => _hasValidationErrors;
-        set
-        {
-            if (_hasValidationErrors != value)
-            {
-                _hasValidationErrors = value;
-                OnValidationStateChanged.InvokeAsync(_hasValidationErrors);
-            }
-        }
-    }
+    public bool IsValid { get; private set; } = true;
 
     public void Commit()
     {
@@ -208,40 +195,50 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
         }
     }
 
-
     void SetPropertyValue(K? value)
     {
         _propertyInfo.SetValue(Model, value);
         StateHasChanged();
     }
 
-    public async Task<ValidationResult> Validate(bool debounce = true)
+    public async Task<ValidationResult> Validate()
     {
-        Task<ValidationResult> validate() => Validator.ValidateAsync(Model, options => options.IncludeProperties(PropertyName));
-        ValidationResult validationResult = await (debounce ? _validationDebounce.ExecuteAsync(validate) : validate());
+        return await _validationDebounce.ExecuteAsync(NewMethod);
 
-        if (validationResult.IsValid)
+        async Task<ValidationResult> NewMethod()
         {
-            IsValid = false;
-            _validationMessage = string.Empty;
-        }
-        else
-        {
-            if (validationResult.Errors.Count != 0)
+            bool previousIsValid = IsValid;
+
+            ValidationResult validationResult = await Validator.ValidateAsync(Model, options => options.IncludeProperties(PropertyName));
+
+            if (validationResult.IsValid)
             {
-                _validationMessage = string.Join(Environment.NewLine, validationResult.Errors.Select(e => e.ErrorMessage));
                 IsValid = true;
+                _validationMessage = string.Empty;
             }
             else
             {
-                IsValid = false;
-                _validationMessage = string.Empty;
+                if (validationResult.Errors.Count > 0)
+                {
+                    _validationMessage = string.Join(Environment.NewLine, validationResult.Errors.Select(e => e.ErrorMessage));
+                    IsValid = false;
+                }
+                else
+                {
+                    IsValid = true;
+                    _validationMessage = string.Empty;
+                }
             }
+
+            if (previousIsValid != IsValid)
+            {
+                await InvokeAsync(() => OnValidationStateChanged.InvokeAsync(IsValid));
+            }
+
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
+
+            return validationResult;
         }
-
-        await InvokeAsync(StateHasChanged);
-        await Task.Yield();
-
-        return validationResult;
     }
 }

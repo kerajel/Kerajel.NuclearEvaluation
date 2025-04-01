@@ -109,7 +109,7 @@ public partial class ProjectCard : ComponentBase
 
     async Task SaveProjectNameChanges()
     {
-        if (await _projectNameInputRef.IsReadyToCommit())
+        if (_projectNameInputRef.IsReadyToCommit())
         {
             await ProjectService.UpdatePropertyFromView(
                 _projectView,

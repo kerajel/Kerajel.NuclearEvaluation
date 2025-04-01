@@ -22,7 +22,7 @@ public partial class ProjectOverview : ComponentBase
 
     async Task OnConclusionsBlur()
     {
-        if (await _projectConclusionsInputRef.IsReadyToCommit())
+        if (_projectConclusionsInputRef.IsReadyToCommit())
         {
             await ProjectService.UpdatePropertyFromView(
                 ProjectView,
@@ -35,7 +35,7 @@ public partial class ProjectOverview : ComponentBase
 
     async Task OnFollowUpActionsRecommendedBlur()
     {
-        if (await _projectFollowUpActionsRecommendedInputRef.IsReadyToCommit())
+        if (_projectFollowUpActionsRecommendedInputRef.IsReadyToCommit())
         {
             await ProjectService.UpdatePropertyFromView(
                 ProjectView,

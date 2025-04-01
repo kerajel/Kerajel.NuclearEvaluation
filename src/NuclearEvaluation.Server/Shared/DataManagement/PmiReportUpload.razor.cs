@@ -127,6 +127,9 @@ public partial class PmiReportUpload : ComponentBase
 
     private async Task UpdateFormValidity(bool validate = false)
     {
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+
         bool reportDateValid = false;
         bool reportNameValid = false;
 

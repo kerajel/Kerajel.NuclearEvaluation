@@ -125,13 +125,14 @@ public partial class PmiReportUpload : ComponentBase
         await UpdateFormValidity(false);
     }
 
-    private async Task UpdateFormValidity(bool validate = false)
+    async Task UpdateFormValidity(bool validate = false)
     {
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
 
         bool reportDateValid = false;
         bool reportNameValid = false;
+        bool fileValid = SelectedFile is { };
 
         if (validate)
         {
@@ -152,7 +153,7 @@ public partial class PmiReportUpload : ComponentBase
             reportNameValid = reportNamePicker.IsValid;
         }
 
-        IsFormValid = reportDateValid && reportNameValid;
+        IsFormValid = reportDateValid && reportNameValid && fileValid;
 
         await InvokeAsync(StateHasChanged);
         await Task.Yield();

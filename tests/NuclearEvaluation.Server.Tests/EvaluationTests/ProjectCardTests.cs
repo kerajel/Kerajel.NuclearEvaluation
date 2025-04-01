@@ -2,31 +2,31 @@ using AngleSharp.Dom;
 using Bunit;
 using NuclearEvaluation.Kernel.Models.Domain;
 using NuclearEvaluation.Server.Pages;
-using NuclearEvaluation.Server.Tests;
 using Shouldly;
 
 namespace NuclearEvaluation.Server.Tests.EvaluationTests;
 
 public class ProjectCardTests : TestBase
 {
+    public ProjectCardTests(TestFixture fixture) : base(fixture)
+    {
+    }
+
     [Fact]
     public async Task Render_ShouldRenderProjectName()
     {
-        // Arrange
-        Project project = new()
+        Project project = new Project
         {
-            Name = "Plutonium assessment test",
+            Name = "Plutonium assessment test"
         };
 
         await DbContext.Project.SingleInsertAsync(project);
 
-        // Act
         IRenderedComponent<ProjectCard> component = TestContext
             .RenderComponent<ProjectCard>(parameters => parameters.Add(p => p.Id, project.Id));
 
         component.WaitForState(() => component.Instance._isLoading == false, DefaultWaitForStateTimeout);
 
-        // Assert
         string renderedProjectName = component.Find("#projectNameHeading").TextContent;
         renderedProjectName.ShouldBe(project.Name);
     }
@@ -34,20 +34,15 @@ public class ProjectCardTests : TestBase
     [Fact]
     public async Task RenameProject_WhenValidInput_ShouldUpdateProjectName()
     {
-        //TODO investigate
-        return;
-
-        // Arrange
-        Project project = new()
+        Project project = new Project
         {
-            Name = "Initial Project Name",
+            Name = "Initial Project Name"
         };
 
         string newProjectName = "Updated Project Name";
 
         await DbContext.Project.SingleInsertAsync(project);
 
-        // Act
         IRenderedComponent<ProjectCard> component = TestContext
             .RenderComponent<ProjectCard>(parameters => parameters.Add(p => p.Id, project.Id));
 
@@ -63,7 +58,6 @@ public class ProjectCardTests : TestBase
 
         component.WaitForState(() => !component.Instance._isEditingProjectName, DefaultWaitForStateTimeout);
 
-        // Assert
         string renderedProjectName = component.Find("#projectNameHeading").TextContent;
         renderedProjectName.ShouldBe(newProjectName);
 
@@ -74,22 +68,20 @@ public class ProjectCardTests : TestBase
     [Fact]
     public async Task RenameProject_WhenNameAlreadyExists_ShouldInvalidateInput()
     {
-        // Arrange
-        Project projectA = new()
+        Project projectA = new Project
         {
-            Name = "ProjectNameA",
+            Name = "ProjectNameA"
         };
 
-        Project projectB = new()
+        Project projectB = new Project
         {
-            Name = "ProjectNameB",
+            Name = "ProjectNameB"
         };
 
         DbContext.AddRange(projectA, projectB);
 
         await DbContext.SaveChangesAsync();
 
-        // Act
         IRenderedComponent<ProjectCard> component = TestContext
             .RenderComponent<ProjectCard>(parameters => parameters.Add(p => p.Id, projectA.Id));
 
@@ -101,7 +93,6 @@ public class ProjectCardTests : TestBase
 
         component.Find("#projectNameInput").Input(projectB.Name);
 
-        // Assert
         component.WaitForAssertion(async () =>
         {
             await Task.Yield();
@@ -110,7 +101,6 @@ public class ProjectCardTests : TestBase
 
             IElement validationLabel = component.Find("#validationTooltip");
             validationLabel.TextContent.ShouldBe("Name is already in use");
-
-        }, timeout: TimeSpan.FromSeconds(10));
+        }, timeout: System.TimeSpan.FromSeconds(10));
     }
 }

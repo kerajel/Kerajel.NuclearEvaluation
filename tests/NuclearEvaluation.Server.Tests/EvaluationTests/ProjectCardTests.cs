@@ -7,7 +7,7 @@ using Shouldly;
 
 namespace NuclearEvaluation.Server.Tests.EvaluationTests;
 
-public class EvaluationTests : TestBase
+public class ProjectCardTests : TestBase
 {
     [Fact]
     public async Task Render_ShouldRenderProjectName()

@@ -1,28 +1,27 @@
 ﻿using Bunit;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Kernel.Helpers;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Shared.Services;
+using Respawn;
 using System.Transactions;
 
 namespace NuclearEvaluation.Server.Tests;
 
-public abstract class TestBase : IDisposable
+public abstract class TestBase : IAsyncDisposable
 {
     protected readonly TestContext TestContext = new();
-    protected readonly TransactionScope TransactionScope;
     protected readonly NuclearEvaluationServerDbContext DbContext;
 
     protected readonly TimeSpan DefaultWaitForStateTimeout = TimeSpan.FromSeconds(3);
 
+    readonly Respawner respawner;
+
     protected TestBase()
     {
-        TransactionManager.ImplicitDistributedTransactions = true;
-        TransactionScope = TransactionProvider.CreateScope(isolationLevel: IsolationLevel.Serializable);
-
         IConfiguration configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.Tests.json", optional: false)
@@ -43,6 +42,9 @@ public abstract class TestBase : IDisposable
         TestContext.Services.AddTransient<IChartService, ChartService>();
 
         DbContext = TestContext.Services.GetRequiredService<NuclearEvaluationServerDbContext>();
+
+        string connString = DbContext.Database.GetConnectionString()!;
+        respawner = Respawner.CreateAsync(connString).Result;
     }
 
     void ConfigureLogging()
@@ -62,11 +64,10 @@ public abstract class TestBase : IDisposable
         TestContext.JSInterop.SetupVoid("Radzen.createDatePicker", _ => true);
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         GC.SuppressFinalize(this);
-
-        TransactionScope.Dispose();
+        await respawner.ResetAsync("Server=localhost;Connection Timeout=30;Command Timeout=30;Persist Security Info=False;TrustServerCertificate=True;Integrated Security=True;Initial Catalog=NuclearEvaluationServer;MultipleActiveResultSets=True;");
         TestContext.Dispose();
     }
 }

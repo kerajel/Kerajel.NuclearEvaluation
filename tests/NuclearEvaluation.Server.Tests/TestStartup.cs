@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.Kernel.Models.Identity;
 using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Shared.Services;
 using NuclearEvaluation.Shared.Validators;

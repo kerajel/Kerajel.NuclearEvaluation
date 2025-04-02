@@ -196,6 +196,9 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
                   .WithMany()
                   .HasForeignKey(pr => pr.AuthorId)
                   .IsRequired();
+            entity.HasOne(pr => pr.PmiReportFileMetadata)
+                  .WithOne(fm => fm.PmiReport)
+                  .HasForeignKey<PmiReportFileMetadata>(fm => fm.PmiReportId);
         });
 
         modelBuilder.Entity<PmiReportDistributionEntry>(entity =>
@@ -205,6 +208,12 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
             entity.HasOne(de => de.PmiReport)
                   .WithMany(pr => pr.PmiReportDistributionEntries)
                   .HasForeignKey(de => de.PmiReportId);
+        });
+
+        modelBuilder.Entity<PmiReportFileMetadata>(entity =>
+        {
+            entity.ToTable("PmiReportFileMetadata", EvaluationSchema);
+            entity.HasKey(fm => fm.Id);
         });
     }
 

@@ -1,6 +1,5 @@
 ﻿using Bunit;
 using NuclearEvaluation.Kernel.Data.Context;
-using Xunit;
 
 namespace NuclearEvaluation.Server.Tests;
 

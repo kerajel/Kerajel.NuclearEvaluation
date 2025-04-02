@@ -7,4 +7,6 @@ public class PmiReportSubmission
     public string ReportName { get; set; } = string.Empty;
 
     public DateOnly? ReportDate { get; set; }
+
+    public required Stream FileStream { get; set; }
 }

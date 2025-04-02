@@ -38,6 +38,7 @@ public partial class PmiReportUpload : ComponentBase
     protected IBrowserFile? SelectedFile { get; set; }
     protected string? Message { get; set; }
     protected string MessageStyle { get; set; } = "margin-top: 10px;";
+
     protected bool IsFormValid { get; set; }
     protected InputFile? fileInput;
     protected ValidatedDateOnlyPicker<PmiReportSubmission> reportDatePicker = null!;
@@ -46,6 +47,7 @@ public partial class PmiReportUpload : ComponentBase
     protected PmiReportSubmission reportSubmission = new()
     {
         ReportDate = DateOnly.FromDateTime(DateTime.UtcNow),
+        FileStream = Stream.Null,
     };
 
     protected override async Task OnInitializedAsync()
@@ -97,9 +99,10 @@ public partial class PmiReportUpload : ComponentBase
         {
             return;
         }
-        OperationResult<PmiReport> createReportResult = await PmiReportService.Create(reportSubmission);
 
-        //TODO persist report to EFS
+        using Stream stream = SelectedFile!.OpenReadStream();
+        reportSubmission.FileStream = stream;
+        OperationResult<PmiReport> createReportResult = await PmiReportService.Create(reportSubmission);
 
         if (!createReportResult.IsSuccessful)
         {

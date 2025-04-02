@@ -1,32 +1,48 @@
 ﻿using Kerajel.Primitives.Models;
+using LinqToDB;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
+using NuclearEvaluation.Kernel.Models.Files;
 
 namespace NuclearEvaluation.Shared.Services;
 
-public class PmiReportService : DbServiceBase, IPmiReportService
+public class PmiReportUploadService
 {
     readonly IEfsFileService _fileService;
-    readonly IGuidProvider _guidProvider;
+    readonly IPmiReportService _pmiReportService;
 
-    public PmiReportService(
-        NuclearEvaluationServerDbContext dbContext,
+    public PmiReportUploadService(
         IEfsFileService fileService,
-        IGuidProvider guidProvider) : base(dbContext)
+        IPmiReportService pmiReportService)
     {
         _fileService = fileService;
-        _guidProvider = guidProvider;
+        _pmiReportService = pmiReportService;
     }
 
-    public async Task<OperationResult<PmiReport>> Create(PmiReportSubmission reportSubmission)
+    public async Task<OperationResult<PmiReport>> Create(PmiReportSubmission reportSubmission, CancellationToken ct = default)
     {
         try
         {
-            PmiReport pmiReport = PreparePmiReport(reportSubmission);
-            _dbContext.Add(pmiReport);
-            await _dbContext.SaveChangesAsync();
+            OperationResult<PmiReport> createReportResult = await _pmiReportService.Create(reportSubmission);
+
+            if (!createReportResult.IsSuccessful)
+            {
+                return OperationResult<PmiReport>.Faulted(createReportResult);
+            }
+
+            PmiReport pmiReport = createReportResult.Content!;
+
+            Guid fileId = pmiReport.PmiReportFileMetadata.Id;
+            string fileName = pmiReport.PmiReportFileMetadata.FileName;
+            Stream content = reportSubmission.FileStream;
+
+            WriteFileCommand writeFileCommand = new(fileId, fileName, content);
+
+            //TODO finish class
+            await _fileService.Write(writeFileCommand, ct);
+
             return OperationResult<PmiReport>.Succeeded(pmiReport);
         }
         catch (Exception ex)
@@ -35,7 +51,7 @@ public class PmiReportService : DbServiceBase, IPmiReportService
         }
     }
 
-    private PmiReport PreparePmiReport(PmiReportSubmission reportSubmission)
+    private static PmiReport PreparePmiReport(PmiReportSubmission reportSubmission)
     {
         PmiReport pmiReport = new()
         {
@@ -56,15 +72,6 @@ public class PmiReportService : DbServiceBase, IPmiReportService
             };
             pmiReport.PmiReportDistributionEntries.Add(entry);
         }
-
-        PmiReportFileMetadata fileMetadata = new()
-        {
-            Id = _guidProvider.NewGuid(),
-            PmiReport = pmiReport,
-            Size = reportSubmission.FileStream.Length,
-        };
-
-        pmiReport.PmiReportFileMetadata = fileMetadata;
 
         return pmiReport;
     }

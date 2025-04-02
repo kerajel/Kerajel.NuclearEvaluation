@@ -78,6 +78,8 @@ internal class Program
         builder.Services.AddScoped<ProjectViewValidator>();
         builder.Services.AddScoped<PmiReportSubmissionValidator>();
 
+        builder.Services.AddSingleton<IGuidProvider, GuidProvider>();
+
         //using Transient registration due to the nature of server-side Blazor
         builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>
         {

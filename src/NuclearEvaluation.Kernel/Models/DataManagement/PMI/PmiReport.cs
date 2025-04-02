@@ -20,4 +20,6 @@ public class PmiReport
     public PmiReportStatus Status { get; set; } = PmiReportStatus.Unknown;
 
     public List<PmiReportDistributionEntry> PmiReportDistributionEntries { get; set; } = [];
+
+    public PmiReportFileMetadata PmiReportFileMetadata { get; set; } = null!;
 }

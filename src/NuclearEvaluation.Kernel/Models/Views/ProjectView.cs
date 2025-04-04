@@ -1,5 +1,4 @@
-﻿using NuclearEvaluation.Kernel.Interfaces;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace NuclearEvaluation.Kernel.Models.Views;
 

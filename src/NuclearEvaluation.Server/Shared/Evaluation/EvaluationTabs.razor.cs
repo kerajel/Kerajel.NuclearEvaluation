@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using NuclearEvaluation.Server.Services;
+using NuclearEvaluation.Server.Services.TabManager;
 
 namespace NuclearEvaluation.Server.Shared.Evaluation;
 

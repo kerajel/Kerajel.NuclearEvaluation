@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components;
-using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Server.Interfaces.Evaluation;
 using NuclearEvaluation.Server.Shared.Generics;
-using NuclearEvaluation.Shared.Validators;
+using NuclearEvaluation.Server.Validators;
 
 namespace NuclearEvaluation.Server.Shared.Evaluation.Project;
 

@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using NuclearEvaluation.Kernel.Enums;
-using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Filters;
+using NuclearEvaluation.Server.Interfaces.Components;
 using NuclearEvaluation.Server.Shared.Grids;
 using Radzen;
 
@@ -20,7 +20,7 @@ public partial class QueryBuilderCard : ComponentBase
     ParticleQueryBuilderFilter _particleFilter = null!;
     ApmQueryBuilderFilter _apmFilter = null!;
 
-    IDataGrid _activeGrid = null!;
+    IDataGridComponent _activeGrid = null!;
 
     SeriesGrid _seriesGrid = null!;
     SampleGrid _sampleGrid = null!;
@@ -31,7 +31,7 @@ public partial class QueryBuilderCard : ComponentBase
     PresetFilterBox _presetFilterBox = new();
     PresetFilter _activeFilter = new();
 
-    IDataGrid[] _dataGrids =>
+    IDataGridComponent[] _dataGrids =>
     [
         _seriesGrid,
         _sampleGrid,
@@ -113,7 +113,7 @@ public partial class QueryBuilderCard : ComponentBase
         return filterEntry.IsEnabled;
     }
 
-    bool GetDataGridVisibility(IDataGrid? dataGrid)
+    bool GetDataGridVisibility(IDataGridComponent? dataGrid)
     {
         if (dataGrid == null)
         {
@@ -154,7 +154,7 @@ public partial class QueryBuilderCard : ComponentBase
         await _activeGrid.Reset(false, false);
     }
 
-    async Task OnDataGridSelected(IDataGrid dataGrid)
+    async Task OnDataGridSelected(IDataGridComponent dataGrid)
     {
         await dataGrid.Reset();
         _activeGrid = dataGrid;

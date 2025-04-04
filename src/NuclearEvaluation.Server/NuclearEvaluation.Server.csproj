@@ -46,8 +46,8 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\..\..\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives.csproj" />
+	  <ProjectReference Include="..\..\..\Kerajel.TabularDataReader\Kerajel.TabularDataReader\Kerajel.TabularDataReader.csproj" />
 	  <ProjectReference Include="..\NuclearEvaluation.Kernel\NuclearEvaluation.Kernel.csproj" />
-	  <ProjectReference Include="..\NuclearEvaluation.Shared\NuclearEvaluation.Shared.csproj" />
 	</ItemGroup>
 
 </Project>

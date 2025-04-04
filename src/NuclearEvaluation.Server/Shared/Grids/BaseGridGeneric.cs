@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Components;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Filters;
+using NuclearEvaluation.Server.Interfaces.Cache;
+using NuclearEvaluation.Server.Interfaces.Components;
 using Radzen;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
-public abstract class BaseGridGeneric<T> : ComponentBase, IDataGrid
+public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
 {
     [Inject]
     protected ISessionCache SessionCache { get; set; } = null!;

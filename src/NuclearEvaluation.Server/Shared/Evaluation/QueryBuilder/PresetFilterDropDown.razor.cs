@@ -8,7 +8,7 @@ using Z.EntityFramework.Plus;
 using NuclearEvaluation.Kernel.Models.Filters;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Shared.Validators;
+using NuclearEvaluation.Server.Validators;
 
 namespace NuclearEvaluation.Server.Shared.Evaluation.QueryBuilder;
 

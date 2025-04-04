@@ -1,5 +1,4 @@
 ﻿using NuclearEvaluation.Kernel.Enums;
-using NuclearEvaluation.Kernel.Interfaces;
 using System.ComponentModel.DataAnnotations;
 
 namespace NuclearEvaluation.Kernel.Models.Domain;

@@ -2,9 +2,9 @@
 using Radzen;
 using Radzen.Blazor;
 using NuclearEvaluation.Kernel.Models.Filters;
-using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Extensions;
 using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.Server.Interfaces.Components;
 
 namespace NuclearEvaluation.Server.Shared.Evaluation.QueryBuilder;
 

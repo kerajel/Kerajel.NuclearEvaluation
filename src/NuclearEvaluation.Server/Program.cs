@@ -4,17 +4,33 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.OData;
 using Microsoft.OData.ModelBuilder;
 using Microsoft.AspNetCore.Components.Authorization;
-using NuclearEvaluation.Server.Services;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using LinqToDB.EntityFrameworkCore;
-using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using NuclearEvaluation.Kernel.Models.Identity;
 using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Shared.Validators;
-using NuclearEvaluation.Shared.Services;
+using NuclearEvaluation.Server.Services.Data;
+using NuclearEvaluation.Server.Services.DB;
+using NuclearEvaluation.Server.Services.Evaluation;
+using NuclearEvaluation.Server.Services.PMI;
+using NuclearEvaluation.Server.Services.STEM;
+using NuclearEvaluation.Server.Services.TempTable;
+using NuclearEvaluation.Server.Services.EFS;
+using NuclearEvaluation.Server.Services.Security;
+using NuclearEvaluation.Server.Services.Cache;
+using NuclearEvaluation.Server.Services.GUID;
+using NuclearEvaluation.Server.Validators;
+using NuclearEvaluation.Server.Interfaces.Data;
+using NuclearEvaluation.Server.Interfaces.Evaluation;
+using NuclearEvaluation.Server.Interfaces.STEM;
+using NuclearEvaluation.Server.Interfaces.Temp;
+using NuclearEvaluation.Server.Interfaces.Cache;
+using NuclearEvaluation.Server.Interfaces.GUID;
+using NuclearEvaluation.Server.Interfaces.EFS;
+using NuclearEvaluation.Server.Interfaces.PMI;
+using NuclearEvaluation.Server.Interfaces.DB;
 
 internal class Program
 {
@@ -65,11 +81,13 @@ internal class Program
         builder.Services.AddTransient<ISampleService, SampleService>();
         builder.Services.AddTransient<ISeriesService, SeriesService>();
         builder.Services.AddTransient<IChartService, ChartService>();
-        builder.Services.AddTransient<IGenericService, GenericService>();
+        builder.Services.AddTransient<IGenericDbService, GenericDbService>();
         builder.Services.AddTransient<IStemPreviewEntryService, StemPreviewEntryService>();
         builder.Services.AddTransient<IStemPreviewService, StemPreviewService>();
         builder.Services.AddTransient<IStemPreviewParser, StemPreviewParser>();
+
         builder.Services.AddTransient<IPmiReportService, PmiReportService>();
+        builder.Services.AddTransient<IPmiReportUploadService, PmiReportUploadService>();
 
         builder.Services.AddScoped<ITempTableService, TempTableService>();
         builder.Services.AddScoped<IEfsFileService, EfsFileService>();
@@ -77,6 +95,8 @@ internal class Program
         builder.Services.AddScoped<PresetFilterValidator>();
         builder.Services.AddScoped<ProjectViewValidator>();
         builder.Services.AddScoped<PmiReportSubmissionValidator>();
+
+        builder.Services.AddSingleton<IGuidProvider, GuidProvider>();
 
         //using Transient registration due to the nature of server-side Blazor
         builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>

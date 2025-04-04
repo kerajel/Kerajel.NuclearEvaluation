@@ -2,10 +2,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.Server.Services;
-using NuclearEvaluation.Shared.Services;
-using NuclearEvaluation.Shared.Validators;
+using NuclearEvaluation.Server.Interfaces.Cache;
+using NuclearEvaluation.Server.Services.Cache;
+using NuclearEvaluation.Server.Services.Security;
+using NuclearEvaluation.Server.Validators;
 using Radzen;
 
 namespace NuclearEvaluation.Server.Tests;

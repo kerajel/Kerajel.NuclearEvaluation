@@ -2,8 +2,8 @@ using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
 using Radzen;
 using Radzen.Blazor;
-using NuclearEvaluation.Server.Services;
 using NuclearEvaluation.Kernel.Models.Identity;
+using NuclearEvaluation.Server.Services.Security;
 
 namespace NuclearEvaluation.Server.Pages
 {

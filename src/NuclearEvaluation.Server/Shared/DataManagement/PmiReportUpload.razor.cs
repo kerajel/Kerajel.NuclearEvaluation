@@ -5,20 +5,20 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
 using NuclearEvaluation.Kernel.Extensions;
-using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
+using NuclearEvaluation.Server.Interfaces.PMI;
 using NuclearEvaluation.Server.Shared.Generics;
-using NuclearEvaluation.Shared.Validators;
+using NuclearEvaluation.Server.Validators;
 using Radzen;
 
 namespace NuclearEvaluation.Server.Shared.DataManagement;
 
 public partial class PmiReportUpload : ComponentBase
 {
-    private const long MaxFileSize = 50L * 1024L * 1024L;
+    private const long MaxFileSize = 50L * 1024L * 1024L; // 50 mb
 
     [Inject]
-    public ILogger<PmiReportUpload> Logger { get; set; } = null!;
+    protected ILogger<PmiReportUpload> Logger { get; set; } = null!;
 
     [Inject]
     protected IJSRuntime JsRuntime { get; set; } = null!;
@@ -30,14 +30,16 @@ public partial class PmiReportUpload : ComponentBase
     protected PmiReportSubmissionValidator PmiReportSubmissionValidator { get; set; } = null!;
 
     [Inject]
-    protected IPmiReportService PmiReportService { get; set; } = null!;
+    protected IPmiReportUploadService PmiReportUploadService { get; set; } = null!;
 
     [Inject]
-    public DialogService DialogService { get; set; } = null!;
+    protected DialogService DialogService { get; set; } = null!;
+
     protected DateOnly? ReportDate { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
     protected IBrowserFile? SelectedFile { get; set; }
     protected string? Message { get; set; }
     protected string MessageStyle { get; set; } = "margin-top: 10px;";
+
     protected bool IsFormValid { get; set; }
     protected InputFile? fileInput;
     protected ValidatedDateOnlyPicker<PmiReportSubmission> reportDatePicker = null!;
@@ -46,6 +48,7 @@ public partial class PmiReportUpload : ComponentBase
     protected PmiReportSubmission reportSubmission = new()
     {
         ReportDate = DateOnly.FromDateTime(DateTime.UtcNow),
+        FileStream = Stream.Null,
     };
 
     protected override async Task OnInitializedAsync()
@@ -97,9 +100,13 @@ public partial class PmiReportUpload : ComponentBase
         {
             return;
         }
-        OperationResult<PmiReport> createReportResult = await PmiReportService.Create(reportSubmission);
 
-        //TODO persist report to EFS
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(30));
+
+        using Stream stream = SelectedFile!.OpenReadStream();
+        reportSubmission.FileName = SelectedFile.Name;
+        reportSubmission.FileStream = stream;
+        OperationResult<PmiReport> createReportResult = await PmiReportUploadService.Upload(reportSubmission, cts.Token);
 
         if (!createReportResult.IsSuccessful)
         {
@@ -112,10 +119,9 @@ public partial class PmiReportUpload : ComponentBase
             MessageStyle = "margin-top: 10px;";
         }
 
-        //TODO add loader
-
         reportDatePicker.ReInitialize();
         SelectedFile = null;
+
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
     }

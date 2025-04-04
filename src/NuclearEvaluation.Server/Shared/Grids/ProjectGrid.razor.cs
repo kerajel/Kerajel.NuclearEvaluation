@@ -4,8 +4,7 @@ using Radzen;
 using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Kernel.Models.Domain;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.Shared.Services;
+using NuclearEvaluation.Server.Interfaces.Evaluation;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 

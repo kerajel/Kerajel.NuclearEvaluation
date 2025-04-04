@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Interfaces;
+using NuclearEvaluation.Server.Interfaces.DB;
 using Radzen;
 using Radzen.Blazor;
 using System.Linq.Dynamic.Core;
@@ -12,7 +12,7 @@ public partial class GenericEnumColumnFilter<T, K>
     where K : class
 {
     [Inject]
-    public IGenericService GenericService { get; set; } = null!;
+    public IGenericDbService GenericService { get; set; } = null!;
 
     [Parameter]
     public FetchDataCommand<K>? Command { get; set; }

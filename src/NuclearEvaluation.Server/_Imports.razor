@@ -16,9 +16,19 @@
 @using NuclearEvaluation.Server.Shared.Generics
 @using NuclearEvaluation.Server.Shared.Grids
 
+@using NuclearEvaluation.Server.Interfaces.Cache
+@using NuclearEvaluation.Server.Interfaces.Components
+@using NuclearEvaluation.Server.Interfaces.Data
+@using NuclearEvaluation.Server.Interfaces.DB
+@using NuclearEvaluation.Server.Interfaces.EFS
+@using NuclearEvaluation.Server.Interfaces.Evaluation
+@using NuclearEvaluation.Server.Interfaces.GUID
+@using NuclearEvaluation.Server.Interfaces.PMI
+@using NuclearEvaluation.Server.Interfaces.STEM
+@using NuclearEvaluation.Server.Interfaces.Temp
+
 @using NuclearEvaluation.Kernel.Enums
 @using NuclearEvaluation.Kernel.Extensions
-@using NuclearEvaluation.Kernel.Interfaces
 @using NuclearEvaluation.Kernel.Models.DataManagement
 @using NuclearEvaluation.Kernel.Models.Domain
 @using NuclearEvaluation.Kernel.Models.Filters
@@ -27,9 +37,6 @@
 @using NuclearEvaluation.Kernel.Models.Upload
 @using NuclearEvaluation.Kernel.Models.Views
 @using NuclearEvaluation.Kernel.Data.Context
-
-@using NuclearEvaluation.Shared.Services;
-@using NuclearEvaluation.Shared.Validators;
 
 @using FluentValidation
 @using FluentValidation.Results

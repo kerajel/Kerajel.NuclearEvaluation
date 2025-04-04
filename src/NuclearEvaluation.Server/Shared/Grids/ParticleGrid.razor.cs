@@ -3,10 +3,9 @@ using Radzen.Blazor;
 using Radzen;
 using System.Linq.Expressions;
 using NuclearEvaluation.Kernel.Models.Views;
-using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Models.Domain;
-using NuclearEvaluation.Shared.Services;
+using NuclearEvaluation.Server.Interfaces.Data;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 

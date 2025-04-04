@@ -4,8 +4,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Kernel.Interfaces;
-using NuclearEvaluation.Shared.Services;
+using NuclearEvaluation.Server.Interfaces.Data;
+using NuclearEvaluation.Server.Interfaces.DB;
+using NuclearEvaluation.Server.Interfaces.Evaluation;
+using NuclearEvaluation.Server.Services.Data;
+using NuclearEvaluation.Server.Services.Db;
+using NuclearEvaluation.Server.Services.Evaluation;
 using Respawn;
 
 namespace NuclearEvaluation.Server.Tests;
@@ -38,7 +42,7 @@ public sealed class TestFixture : IAsyncLifetime
         TestContext.Services.AddTransient<ISubSampleService, SubSampleService>();
         TestContext.Services.AddTransient<ISampleService, SampleService>();
         TestContext.Services.AddTransient<ISeriesService, SeriesService>();
-        TestContext.Services.AddTransient<IGenericService, GenericService>();
+        TestContext.Services.AddTransient<IGenericDbService, GenericDbService>();
         TestContext.Services.AddTransient<IChartService, ChartService>();
 
         DbContext = TestContext.Services.GetRequiredService<NuclearEvaluationServerDbContext>();

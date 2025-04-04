@@ -179,6 +179,30 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToTable("PmiReportDistributionEntry", "EVALUATION");
                 });
 
+            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReportFileMetadata", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("PmiReportId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PmiReportId")
+                        .IsUnique();
+
+                    b.ToTable("PmiReportFileMetadata", "EVALUATION");
+                });
+
             modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Apm", b =>
                 {
                     b.Property<int>("Id")
@@ -1093,6 +1117,17 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("PmiReport");
                 });
 
+            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReportFileMetadata", b =>
+                {
+                    b.HasOne("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport", "PmiReport")
+                        .WithOne("PmiReportFileMetadata")
+                        .HasForeignKey("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReportFileMetadata", "PmiReportId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PmiReport");
+                });
+
             modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Apm", b =>
                 {
                     b.HasOne("NuclearEvaluation.Kernel.Models.Domain.SubSample", "SubSample")
@@ -1255,6 +1290,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
             modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport", b =>
                 {
                     b.Navigation("PmiReportDistributionEntries");
+
+                    b.Navigation("PmiReportFileMetadata")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Project", b =>

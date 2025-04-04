@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Interfaces;
 using NuclearEvaluation.Kernel.Models.Views;
-using NuclearEvaluation.Server.Services;
+using NuclearEvaluation.Server.Interfaces.Evaluation;
+using NuclearEvaluation.Server.Services.TabManager;
 using NuclearEvaluation.Server.Shared.Charts;
 using NuclearEvaluation.Server.Shared.Generics;
 using NuclearEvaluation.Server.Shared.Grids;
-using NuclearEvaluation.Shared.Validators;
+using NuclearEvaluation.Server.Validators;
 using Radzen;
 
 namespace NuclearEvaluation.Server.Pages;

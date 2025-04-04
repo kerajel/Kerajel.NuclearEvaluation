@@ -69,10 +69,10 @@
 
         <RadzenColumn Style="display: flex; align-items: center; justify-content: center;">
             <RadzenDropDown Data="@_dataGrids"
-                            TextProperty="@nameof(IDataGrid.EntityDisplayName)"
+                            TextProperty="@nameof(IDataGridComponent.EntityDisplayName)"
                             Value="@_activeGrid"
                             ValueChanged="OnDataGridSelected"
-                            TValue="IDataGrid"
+                            TValue="IDataGridComponent"
                             Style="width: 50%;" />
         </RadzenColumn>
 

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Radzen;
 using Radzen.Blazor;
-using NuclearEvaluation.Server.Services;
+using NuclearEvaluation.Server.Services.Security;
 
 namespace NuclearEvaluation.Server.Pages
 {

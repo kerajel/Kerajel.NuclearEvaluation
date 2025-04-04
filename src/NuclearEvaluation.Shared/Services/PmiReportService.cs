@@ -62,6 +62,7 @@ public class PmiReportService : DbServiceBase, IPmiReportService
             Id = _guidProvider.NewGuid(),
             PmiReport = pmiReport,
             Size = reportSubmission.FileStream.Length,
+            FileName = reportSubmission.FileName,
         };
 
         pmiReport.PmiReportFileMetadata = fileMetadata;

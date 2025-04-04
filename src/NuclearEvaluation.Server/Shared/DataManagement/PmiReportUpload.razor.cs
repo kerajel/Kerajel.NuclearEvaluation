@@ -101,6 +101,7 @@ public partial class PmiReportUpload : ComponentBase
         }
 
         using Stream stream = SelectedFile!.OpenReadStream();
+        reportSubmission.FileName = SelectedFile.Name;
         reportSubmission.FileStream = stream;
         OperationResult<PmiReport> createReportResult = await PmiReportService.Create(reportSubmission);
 

@@ -3,9 +3,7 @@ using CsvHelper;
 using System.Globalization;
 using CsvHelper.TypeConversion;
 using Kerajel.TabularDataReader;
-using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using System.Runtime.CompilerServices;
-using NuclearEvaluation.Server.Interfaces.STEM;
 
 namespace NuclearEvaluation.Server.Services.STEM;
 

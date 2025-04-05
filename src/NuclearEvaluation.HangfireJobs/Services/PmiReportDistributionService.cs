@@ -33,7 +33,7 @@ public class PmiReportDistributionService : IPmiReportDistributionService
                 {
                     PmiReportId = x.PmiReportId,
                     PmiReportDistributionEntryId = x.Id,
-                    DistributionChannel = x.DistributionChannel
+                    DistributionChannel = x.DistributionChannel,
                 })
                 .ToArrayAsyncLinqToDB(ct);
             return FetchDataResult<PmiReportDistributionQueueItem>.Succeeded(result);

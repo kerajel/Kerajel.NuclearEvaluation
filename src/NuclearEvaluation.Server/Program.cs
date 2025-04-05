@@ -8,29 +8,6 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using LinqToDB.EntityFrameworkCore;
-using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
-using NuclearEvaluation.Kernel.Models.Identity;
-using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Server.Services.Data;
-using NuclearEvaluation.Server.Services.DB;
-using NuclearEvaluation.Server.Services.Evaluation;
-using NuclearEvaluation.Server.Services.PMI;
-using NuclearEvaluation.Server.Services.STEM;
-using NuclearEvaluation.Server.Services.TempTable;
-using NuclearEvaluation.Server.Services.EFS;
-using NuclearEvaluation.Server.Services.Security;
-using NuclearEvaluation.Server.Services.Cache;
-using NuclearEvaluation.Server.Services.GUID;
-using NuclearEvaluation.Server.Validators;
-using NuclearEvaluation.Server.Interfaces.Data;
-using NuclearEvaluation.Server.Interfaces.Evaluation;
-using NuclearEvaluation.Server.Interfaces.STEM;
-using NuclearEvaluation.Server.Interfaces.Temp;
-using NuclearEvaluation.Server.Interfaces.Cache;
-using NuclearEvaluation.Server.Interfaces.GUID;
-using NuclearEvaluation.Server.Interfaces.EFS;
-using NuclearEvaluation.Server.Interfaces.PMI;
-using NuclearEvaluation.Server.Interfaces.DB;
 
 internal class Program
 {
@@ -69,6 +46,7 @@ internal class Program
             .WriteTo.File(
                 path: "logs/log-.txt",
                 rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 3,
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}")
             .CreateLogger();
 

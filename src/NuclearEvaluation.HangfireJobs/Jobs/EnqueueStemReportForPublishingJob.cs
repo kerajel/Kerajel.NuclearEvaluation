@@ -27,6 +27,12 @@ public partial class EnqueueStemReportForPublishingJob : IEnqueueStemReportForPu
 
     public async Task Execute()
     {
+        Guid operationId = Guid.NewGuid();
+
+        using IDisposable? scope = _logger.BeginScope("OperationId: {OperationId}", operationId);
+
+        _logger.LogInformation("Starting PMI report distribution process");
+
         FetchDataResult<PmiReportDistributionQueueItem> fetchItemsResult = await _distributionService.GetQueueItems(maxQueueItemsPerOperation);
 
         if (!fetchItemsResult.IsSuccessful)
@@ -37,19 +43,28 @@ public partial class EnqueueStemReportForPublishingJob : IEnqueueStemReportForPu
 
         if (fetchItemsResult.Entries.IsNullOrEmpty())
         {
+            _logger.LogInformation("No entries found to process");
             return;
         }
+
+        _logger.LogInformation("Dispatching {Count} entries for PMI report distribution", fetchItemsResult.Entries.Count());
 
         await _pmiReportDistributionMessageDispatcher.Send(fetchItemsResult.Entries);
 
         PmiReportDistributionStatus inProgressStatus = PmiReportDistributionStatus.InProgress;
         IEnumerable<int> distributionItemIds = fetchItemsResult.Entries.Select(x => x.PmiReportDistributionEntryId);
 
+        _logger.LogInformation("Setting PMI report distribution entry status to {Status}", inProgressStatus);
+
         OperationResult setStatusResult = await _distributionService.SetPmiReportDistributionEntryStatus(inProgressStatus, distributionItemIds);
 
-        if (!setStatusResult.IsSuccessful)
+        if (setStatusResult.IsSuccessful)
         {
-            _logger.LogError(setStatusResult.Exception, "Failed to update status of PMI report distributiion entries to {status}", inProgressStatus);
+            _logger.LogInformation("Successfully updated status for all entries");
+        }
+        else
+        {
+            _logger.LogError(setStatusResult.Exception, "Failed to update status of PMI report distribution entries to {Status}", inProgressStatus);
         }
     }
 }

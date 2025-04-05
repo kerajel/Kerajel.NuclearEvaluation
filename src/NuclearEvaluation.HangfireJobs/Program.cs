@@ -7,6 +7,8 @@ using NuclearEvaluation.HangfireJobs.Interfaces;
 using NuclearEvaluation.HangfireJobs.Models.Settings;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.HangfireJobs.Services;
+using Serilog;
+using Serilog.Sinks.SystemConsole.Themes;
 
 namespace NuclearEvaluation.HangfireJobs;
 
@@ -15,6 +17,20 @@ public class Program
     public static void Main(string[] args)
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+        Log.Logger = new LoggerConfiguration()
+            .Enrich.FromLogContext()
+            .WriteTo.Console(
+                theme: AnsiConsoleTheme.Grayscale,
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}")
+            .WriteTo.File(
+                path: "logs/log-.txt",
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 3,
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}")
+        .CreateLogger();
+
+        builder.Services.AddSerilog();
 
         builder.Configuration.AddJsonFile("rabbitMqSettings.json", optional: false, reloadOnChange: true);
         builder.Configuration.AddJsonFile("pmiReportDistributionSettings.json", optional: false, reloadOnChange: true);
@@ -47,15 +63,18 @@ public class Program
             busConfigurator.UsingRabbitMq((IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator rabbitMqConfigurator) =>
             {
                 string hostName = builder.Configuration["RabbitMQSettings:HostName"]!;
+                string userName = builder.Configuration["RabbitMQSettings:UserName"]!;
+                string password = builder.Configuration["RabbitMQSettings:Password"]!;
                 string virtualHost = builder.Configuration["RabbitMQSettings:VirtualHost"]!;
                 string port = builder.Configuration["RabbitMQSettings:Port"]!;
-                string uriString = $"amqp://{hostName}:{port}/{virtualHost}";
+                string uriString = $"amqps://{hostName}:{port}/{virtualHost}";
+
                 rabbitMqConfigurator.Host(
                     new Uri(uriString),
-                    (IRabbitMqHostConfigurator hostConfigurator) =>
+                    hostConfigurator =>
                     {
-                        hostConfigurator.Username(builder.Configuration["RabbitMQSettings:UserName"]!);
-                        hostConfigurator.Password(builder.Configuration["RabbitMQSettings:Password"]!);
+                        hostConfigurator.Username(userName);
+                        hostConfigurator.Password(password);
                     }
                 );
             });

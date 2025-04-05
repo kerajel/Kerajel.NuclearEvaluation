@@ -11,6 +11,8 @@ using LinqToDB.EntityFrameworkCore;
 
 internal class Program
 {
+    const string logTemlate = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
+
     private static async Task Main(string[] args)
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -42,12 +44,12 @@ internal class Program
             .Enrich.FromLogContext()
             .WriteTo.Console(
                 theme: AnsiConsoleTheme.Grayscale,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}")
+                outputTemplate: logTemlate)
             .WriteTo.File(
                 path: "logs/log-.txt",
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 3,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}")
+                outputTemplate: logTemlate)
             .CreateLogger();
 
         builder.Services.AddScoped<ISessionCache, SessionCache>();

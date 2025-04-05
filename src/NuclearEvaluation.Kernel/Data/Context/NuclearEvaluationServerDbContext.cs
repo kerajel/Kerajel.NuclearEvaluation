@@ -2,13 +2,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 using NuclearEvaluation.Kernel.Models.Domain;
 using NuclearEvaluation.Kernel.Models.Filters;
 using NuclearEvaluation.Kernel.Models.Identity;
 using NuclearEvaluation.Kernel.Models.Views;
-using System;
 
 namespace NuclearEvaluation.Kernel.Data.Context;
 

@@ -1,12 +1,10 @@
 ﻿using Kerajel.Primitives.Models;
 using LinqToDB;
-using NuclearEvaluation.Kernel.Data.Context;
+using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Helpers;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
-using NuclearEvaluation.Server.Interfaces.GUID;
-using NuclearEvaluation.Server.Interfaces.PMI;
-using NuclearEvaluation.Server.Services.DB;
+using NuclearEvaluation.Kernel.Models.Views;
 using System.Transactions;
 
 namespace NuclearEvaluation.Server.Services.PMI;
@@ -54,6 +52,11 @@ public class PmiReportService : DbServiceBase, IPmiReportService
         {
             return OperationResult.Faulted(ex);
         }
+    }
+
+    public Task<FetchDataResult<PmiReportView> GetPmiReportViews(FetchDataCommand<ApmView> command, CancellationToken ct = default)
+    {
+
     }
 
     private PmiReport PreparePmiReport(PmiReportSubmission reportSubmission)

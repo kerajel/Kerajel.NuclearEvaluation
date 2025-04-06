@@ -11,9 +11,9 @@ public class PmiReport
 
     public string Name { get; set; } = string.Empty;
 
-    public string AuthorId { get; set; } = string.Empty;
+    public required string AuthorId { get; set; } = string.Empty;
 
-    public ApplicationUser Author { get; set; } = null!;
+    public required ApplicationUser Author { get; set; } = null!;
 
     public DateOnly CreatedDate { get; set; }
 

@@ -6,7 +6,7 @@ namespace NuclearEvaluation.Kernel.Models.Views;
 public class PmiReportView
 {
     [Key]
-    public required Guid PmiReportId { get; init; }
+    public required Guid Id { get; init; }
 
     public required string ReportName { get; init; }
 

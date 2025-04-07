@@ -1,11 +1,11 @@
 ﻿using Kerajel.Primitives.Models;
 using LinqToDB;
+using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Helpers;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 using NuclearEvaluation.Kernel.Models.Views;
-using Polly;
 using System.Transactions;
 
 namespace NuclearEvaluation.Server.Services.PMI;
@@ -57,14 +57,18 @@ public class PmiReportService : DbServiceBase, IPmiReportService
 
     public Task<FetchDataResult<PmiReportView>> GetPmiReportViews(FetchDataCommand<PmiReportView> command, CancellationToken ct = default)
     {
-        //TODO this works but a SQL view would fare better esp. in optimized includes
+        // The inline view mapping functions; however, EF generates a single LEFT JOIN that leads to a Cartesian explosion.
+        // IncludeOptimized cannot be applied; includes, such as PmiReportDistributionEntries, are always eagerly loaded.
+        // Moreover, manual mapping of parent-child relationships is necessary.
+        // Using the SQL view (e.g. [DATA].ApmView) avoids these issues.
         IQueryable<PmiReportView> query = _dbContext.PmiReport
+            .AsNoTracking()
             .Select(r => new PmiReportView
             {
-                PmiReportId = r.Id,
+                Id = r.Id,
                 ReportName = r.Name,
                 DateUploaded = r.CreatedDate,
-                UserName = r.Author.UserName!, //TODO ???
+                UserName = r.Author.UserName!,
                 ReportStatus = r.Status,
                 DistributionEntries = r.PmiReportDistributionEntries
                     .Select(de => new PmiReportDistributionEntryView

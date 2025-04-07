@@ -1,0 +1,54 @@
+@inherits BaseGridGeneric<PmiReportView>
+
+<div style="display:@(Visible ? "block" : "none");">
+
+    <GridButtonRibbon>
+        <ResetGridButton Click="@(() => Reset())" />
+    </GridButtonRibbon>
+
+    <RadzenDataGrid @bind-Settings="@GridSettings"
+                    @ref="grid"
+                    AllowAlternatingRows="false"
+                    AllowColumnResize="true"
+                    AllowFiltering="true"
+                    AllowPaging="true"
+                    AllowSorting="true"
+                    ColumnWidth="150px"
+                    Count="@totalCount"
+                    Data="@entries"
+                    KeyProperty="@nameof(PmiReportView.Id)"
+                    LoadData="@((args) => LoadData(args))"
+                    IsLoading="@isLoading"
+                    LogicalFilterOperator="LogicalFilterOperator.And"
+                    PagerHorizontalAlign="HorizontalAlign.Left"
+                    ShowPagingSummary="true"
+                    TItem="PmiReportView"
+                    FilterPopupRenderMode="PopupRenderMode.OnDemand"
+                    EmptyTemplate="@EmptyTemplate"
+                    PagingSummaryFormat="@("Displaying page {0:N0} of {1:N0} <b>(total {2:N0} records)</b>")"
+                    FilterMode="FilterMode.Advanced">
+
+        <Columns>
+
+            <RadzenDataGridColumn Property="@nameof(PmiReportView.ReportName)"
+                                  Title="Report Name"
+                                  Width="125px"
+                                  TextAlign="TextAlign.Left">
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Property="@nameof(PmiReportView.DateUploaded)"
+                                  TextAlign="TextAlign.Left"
+                                  FormatString="@DateOnlyFormat"
+                                  Title="Date Uploaded" />
+
+            <RadzenDataGridColumn Property="@nameof(PmiReportView.UserName)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="User Name" />
+
+            <RadzenDataGridColumn Property="@nameof(PmiReportView.ReportStatus)"
+                                  TextAlign="TextAlign.Left"
+                                  Title="Report Status" />
+        </Columns>
+    </RadzenDataGrid>
+
+</div>

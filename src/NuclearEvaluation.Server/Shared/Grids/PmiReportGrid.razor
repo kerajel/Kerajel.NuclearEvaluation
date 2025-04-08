@@ -1,11 +1,9 @@
 @inherits BaseGridGeneric<PmiReportView>
 
 <div style="display:@(Visible ? "block" : "none");">
-
     <GridButtonRibbon>
         <ResetGridButton Click="@(() => Reset())" />
     </GridButtonRibbon>
-
     <RadzenDataGrid @bind-Settings="@GridSettings"
                     @ref="grid"
                     AllowAlternatingRows="false"
@@ -27,28 +25,25 @@
                     EmptyTemplate="@EmptyTemplate"
                     PagingSummaryFormat="@("Displaying page {0:N0} of {1:N0} <b>(total {2:N0} records)</b>")"
                     FilterMode="FilterMode.Advanced">
-
         <Columns>
-
             <RadzenDataGridColumn Property="@nameof(PmiReportView.ReportName)"
                                   Title="Report Name"
                                   Width="125px"
                                   TextAlign="TextAlign.Left">
+                <Template Context="report">
+                    <a href="/DownloadPmiReport?id=@report.Id" target="_blank">@report.ReportName</a>
+                </Template>
             </RadzenDataGridColumn>
-
             <RadzenDataGridColumn Property="@nameof(PmiReportView.DateUploaded)"
                                   TextAlign="TextAlign.Left"
                                   FormatString="@DateOnlyFormat"
                                   Title="Date Uploaded" />
-
             <RadzenDataGridColumn Property="@nameof(PmiReportView.UserName)"
                                   TextAlign="TextAlign.Left"
                                   Title="Author" />
-
             <RadzenDataGridColumn Property="@nameof(PmiReportView.ReportStatus)"
                                   TextAlign="TextAlign.Left"
                                   Title="Report Status" />
         </Columns>
     </RadzenDataGrid>
-
 </div>

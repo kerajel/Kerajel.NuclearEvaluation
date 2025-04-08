@@ -67,3 +67,13 @@ public class DownloadPmiReportModel : PageModel
         return File(reportStream, "application/octet-stream", fileName);
     }
 }
+
+public class DownloadPmiReportViewModel : PageModel
+{
+    public Guid ReportId { get; set; }
+
+    public void OnGet(Guid id)
+    {
+        ReportId = id;
+    }
+}

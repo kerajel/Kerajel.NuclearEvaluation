@@ -31,7 +31,10 @@
                                   Width="125px"
                                   TextAlign="TextAlign.Left">
                 <Template Context="report">
-                    <a href="/DownloadPmiReport?id=@report.Id" target="_blank">@report.ReportName</a>
+                    <a href="javascript:void(0)" style="cursor:pointer;text-decoration:underline;"
+                       @onclick="@(() => TriggerDownload(report.Id))">
+                        @report.ReportName
+                    </a>
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn Property="@nameof(PmiReportView.DateUploaded)"

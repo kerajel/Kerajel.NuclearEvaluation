@@ -1,10 +1,10 @@
-﻿using Radzen;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using Radzen.Blazor;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Models.Views;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
+using NuclearEvaluation.Kernel.Models.Views;
+using Radzen.Blazor;
+using Radzen;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
@@ -43,14 +43,9 @@ public partial class PmiReportGrid : BaseGridGeneric<PmiReportView>
         await grid.Reload();
     }
 
-    public async Task DownloadReport(PmiReportView report)
+    protected async Task TriggerDownload(Guid reportId)
     {
-        using var reportStream = Stream.Null;
-        using var memoryStream = new MemoryStream();
-        await reportStream.CopyToAsync(memoryStream);
-        byte[] fileBytes = memoryStream.ToArray(); //TODO stream, not bytes
-        string base64 = Convert.ToBase64String(fileBytes);
-        string fileName = report.ReportName + ".pdf";
-        await jsRuntime.InvokeVoidAsync("downloadFile", fileName, base64);
+        string downloadUrl = $"/DownloadPmiReport?id={reportId}";
+        await jsRuntime.InvokeVoidAsync("checkAndDownloadFile", downloadUrl);
     }
 }

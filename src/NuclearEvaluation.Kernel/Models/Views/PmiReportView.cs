@@ -17,4 +17,6 @@ public class PmiReportView
     public required PmiReportStatus ReportStatus { get; init; }
 
     public ICollection<PmiReportDistributionEntryView> DistributionEntries { get; init; } = [];
+
+    public required PmiReportFileMetadataView FileMetadata { get; init; }
 }

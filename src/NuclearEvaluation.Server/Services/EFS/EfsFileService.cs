@@ -38,7 +38,7 @@ public class EfsFileService : IEfsFileService
         }
         catch (Exception ex)
         {
-            result = new(OperationStatus.Faulted, "Could not write file", ex);
+            result = new(OperationStatus.Error, "Could not write file", ex);
         }
 
         return result;
@@ -66,7 +66,7 @@ public class EfsFileService : IEfsFileService
             DirectoryInfo fileDirectory = GetFileDirectory(fileGuid);
             if (!fileDirectory.Exists || fileDirectory.GetFiles().Length == 0)
             {
-                result = new(OperationStatus.Faulted, "File not found");
+                result = new(OperationStatus.NotFound, "File not found");
                 return Task.FromResult(result);
             }
 
@@ -75,7 +75,7 @@ public class EfsFileService : IEfsFileService
         }
         catch (Exception ex)
         {
-            result = new(OperationStatus.Faulted, "Could not access file", ex);
+            result = new(OperationStatus.Error, "Could not access file", ex);
         }
 
         return Task.FromResult(result);
@@ -99,7 +99,7 @@ public class EfsFileService : IEfsFileService
         }
         catch (Exception ex)
         {
-            result = new(OperationStatus.Faulted, "Could not delete a file", ex);
+            result = new(OperationStatus.Error, "Could not delete a file", ex);
         }
 
         return result;

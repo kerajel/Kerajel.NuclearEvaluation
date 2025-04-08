@@ -78,11 +78,19 @@ public class PmiReportService : DbServiceBase, IPmiReportService
                         DistributionChannel = de.DistributionChannel,
                         DistributionStatus = de.DistributionStatus,
                     })
-                    .ToList()
+                    .ToList(),
+                FileMetadata = new PmiReportFileMetadataView
+                {
+                    Id = r.PmiReportFileMetadata.Id,
+                    PmiReportId = r.PmiReportFileMetadata.PmiReportId,
+                    FileName = r.PmiReportFileMetadata.FileName,
+                    Size = r.PmiReportFileMetadata.Size,
+                }
             });
 
         foreach (PmiReportView parent in query)
         {
+            parent.FileMetadata.PmiReport = parent;
             foreach (PmiReportDistributionEntryView child in parent.DistributionEntries)
             {
                 child.PmiReport = parent;

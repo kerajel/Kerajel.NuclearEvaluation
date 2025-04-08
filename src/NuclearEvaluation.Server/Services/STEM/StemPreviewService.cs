@@ -50,16 +50,16 @@ public class StemPreviewService(
         }
         catch (BulkheadRejectedException ex)
         {
-            result = new(OperationStatus.Faulted, "Too many concurrent uploads", ex);
+            result = new(OperationStatus.Error, "Too many concurrent uploads", ex);
         }
         catch (OperationCanceledException ex)
         {
-            result = new(OperationStatus.Faulted, "The upload was canceled or timed out", ex);
+            result = new(OperationStatus.Error, "The upload was canceled or timed out", ex);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error processing the file");
-            result = new(OperationStatus.Faulted, "Error processing the file", ex);
+            result = new(OperationStatus.Error, "Error processing the file", ex);
         }
 
         return result;
@@ -107,7 +107,7 @@ public class StemPreviewService(
         catch (Exception ex)
         {
             logger.LogError("Failed to refresh indexes");
-            return new OperationResult(OperationStatus.Faulted, ex);
+            return new OperationResult(OperationStatus.Error, ex);
         }
         return new OperationResult(OperationStatus.Succeeded);
     }
@@ -121,7 +121,7 @@ public class StemPreviewService(
         catch (Exception ex)
         {
             logger.LogError("Failed to delete file data");
-            return new OperationResult(OperationStatus.Faulted, ex);
+            return new OperationResult(OperationStatus.Error, ex);
         }
         return new OperationResult(OperationStatus.Succeeded);
     }

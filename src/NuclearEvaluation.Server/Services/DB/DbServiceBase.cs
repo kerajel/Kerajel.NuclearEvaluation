@@ -1,4 +1,5 @@
-﻿using LinqToDB.EntityFrameworkCore;
+﻿using Kerajel.Primitives.Enums;
+using LinqToDB.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Data.Context;
@@ -73,6 +74,11 @@ public class DbServiceBase
             {
                 _dbContext.Entry(entry).State = EntityState.Detached;
             }
+        }
+
+        if (result.Entries.IsNullOrEmpty())
+        {
+            result.OperationStatus = OperationStatus.NotFound;
         }
 
         return result;

@@ -57,48 +57,16 @@ public class PmiReportService : DbServiceBase, IPmiReportService
 
     public Task<FetchDataResult<PmiReportView>> GetPmiReportViews(FetchDataCommand<PmiReportView> command, CancellationToken ct = default)
     {
-        // The inline view mapping functions; however, EF generates a single LEFT JOIN that leads to a Cartesian explosion.
-        // IncludeOptimized cannot be applied; includes, such as PmiReportDistributionEntries, are always eagerly loaded.
-        // Moreover, manual mapping of parent-child relationships is necessary.
-        // Using the SQL view (e.g. [DATA].ApmView) avoids these issues.
-        IQueryable<PmiReportView> query = _dbContext.PmiReport
-            .AsNoTracking()
-            .Select(r => new PmiReportView
-            {
-                Id = r.Id,
-                ReportName = r.Name,
-                DateUploaded = r.CreatedDate,
-                UserName = r.Author.UserName!,
-                ReportStatus = r.Status,
-                DistributionEntries = r.PmiReportDistributionEntries
-                    .Select(de => new PmiReportDistributionEntryView
-                    {
-                        Id = de.Id,
-                        PmiReportId = de.PmiReportId,
-                        DistributionChannel = de.DistributionChannel,
-                        DistributionStatus = de.DistributionStatus,
-                    })
-                    .ToList(),
-                FileMetadata = new PmiReportFileMetadataView
-                {
-                    Id = r.PmiReportFileMetadata.Id,
-                    PmiReportId = r.PmiReportFileMetadata.PmiReportId,
-                    FileName = r.PmiReportFileMetadata.FileName,
-                    Size = r.PmiReportFileMetadata.Size,
-                }
-            });
+        Func<IQueryable<PmiReportView>, IQueryable<PmiReportView>> distributionInclude = (IQueryable<PmiReportView> query) => query.Include(x => x.DistributionEntries);
+        Func<IQueryable<PmiReportView>, IQueryable<PmiReportView>> fileMetadataInclude = (IQueryable<PmiReportView> query) => query.Include(x => x.FileMetadata);
 
-        foreach (PmiReportView parent in query)
-        {
-            parent.FileMetadata.PmiReport = parent;
-            foreach (PmiReportDistributionEntryView child in parent.DistributionEntries)
-            {
-                child.PmiReport = parent;
-            }
-        }
+        IQueryable<PmiReportView> query = _dbContext.PmiReportView.AsNoTracking();
+        query = distributionInclude(query);
+        query = fileMetadataInclude(query);
 
         return ExecuteQuery(query, command, ct);
     }
+
 
     private PmiReport PreparePmiReport(PmiReportSubmission reportSubmission)
     {

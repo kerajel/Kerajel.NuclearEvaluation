@@ -1,10 +1,4 @@
 ﻿using NuclearEvaluation.Kernel.Enums;
-using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NuclearEvaluation.Kernel.Models.Views;
 

@@ -28,6 +28,9 @@ public partial class PmiReportGrid : BaseGridGeneric<PmiReportView>
             LoadDataArgs = loadDataArgs,
             PresetFilterBox = GetPresetFilterBox?.Invoke()
         };
+        command.Include(x => x.DistributionEntries);
+        command.Include(x => x.FileMetadata);
+
         await FetchData(() => PmiReportService.GetPmiReportViews(command));
         isLoading = false;
     }
@@ -47,5 +50,15 @@ public partial class PmiReportGrid : BaseGridGeneric<PmiReportView>
     {
         string downloadUrl = $"/DownloadPmiReport?id={reportId}";
         await jsRuntime.InvokeVoidAsync("checkAndDownloadFile", downloadUrl);
+    }
+
+    private string GetDistributionTooltip(IEnumerable<PmiReportDistributionEntryView> entries)
+    {
+        if (entries == null || !entries.Any())
+        {
+            return "No distribution entries";
+        }
+
+        return string.Join(Environment.NewLine, entries.Select(entry => $"{entry.DistributionChannel}: {entry.DistributionStatus}"));
     }
 }

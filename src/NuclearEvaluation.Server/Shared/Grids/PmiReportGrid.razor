@@ -1,14 +1,16 @@
 @inherits BaseGridGeneric<PmiReportView>
 
+@using Humanizer;
+
 <div style="display:@(Visible ? "block" : "none")">
     <GridButtonRibbon>
         <ResetGridButton Click="@(() => Reset())" />
     </GridButtonRibbon>
-    <RadzenDataGrid @bind-Settings="@GridSettings"
+    <RadzenDataGrid @bind-Settings="GridSettings"
                     @ref="grid"
                     AllowAlternatingRows="false"
                     AllowColumnResize="true"
-                    AllowFiltering="true"
+                    AllowFiltering="false"
                     AllowPaging="true"
                     AllowSorting="true"
                     ColumnWidth="150px"
@@ -21,10 +23,32 @@
                     PagerHorizontalAlign="HorizontalAlign.Left"
                     ShowPagingSummary="true"
                     TItem="PmiReportView"
-                    FilterPopupRenderMode="PopupRenderMode.OnDemand"
                     EmptyTemplate="@EmptyTemplate"
                     PagingSummaryFormat="@("Displaying page {0:N0} of {1:N0} <b>(total {2:N0} records)</b>")"
-                    FilterMode="FilterMode.Advanced">
+                    ExpandMode="DataGridExpandMode.Multiple">
+
+        <Template Context="report">
+            <div style="max-width:1000px; overflow-x: auto; margin-left: 23px;">
+                <RadzenDataGrid AllowFiltering="false"
+                                AllowPaging="true"
+                                AllowSorting="true"
+                                Data="@report.DistributionEntries">
+                    <Columns>
+                        <RadzenDataGridColumn Title="Distribution Channel">
+                            <Template Context="entry">
+                                @entry.DistributionChannel.Humanize()
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn Title="Distribution Status">
+                            <Template Context="entry">
+                                @entry.DistributionStatus.Humanize()
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+        </Template>
+
         <Columns>
             <RadzenDataGridColumn Property="@nameof(PmiReportView.Name)"
                                   Title="Report Name"
@@ -44,9 +68,12 @@
             <RadzenDataGridColumn Property="@nameof(PmiReportView.UserName)"
                                   TextAlign="TextAlign.Left"
                                   Title="Author" />
-            <RadzenDataGridColumn Property="@nameof(PmiReportView.Status)"
-                                  TextAlign="TextAlign.Left"
-                                  Title="Status" />
+            <RadzenDataGridColumn Title="Status"
+                                  TextAlign="TextAlign.Left">
+                <Template Context="report">
+                    @report.Status.Humanize()
+                </Template>
+            </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </div>

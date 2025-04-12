@@ -5,6 +5,7 @@ using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 using NuclearEvaluation.Kernel.Models.Views;
 using Radzen.Blazor;
 using Radzen;
+using NuclearEvaluation.Kernel.Enums;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
@@ -50,6 +51,11 @@ public partial class PmiReportGrid : BaseGridGeneric<PmiReportView>
     {
         string downloadUrl = $"/DownloadPmiReport?id={reportId}";
         await jsRuntime.InvokeVoidAsync("checkAndDownloadFile", downloadUrl);
+    }
+
+    protected void RowRender(RowRenderEventArgs<PmiReportView> args)
+    {
+        args.Expandable = args.Data.Status != PmiReportStatus.Distributed;
     }
 
     private string GetDistributionTooltip(IEnumerable<PmiReportDistributionEntryView> entries)

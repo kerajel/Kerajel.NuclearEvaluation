@@ -6,6 +6,7 @@ using NuclearEvaluation.Kernel.Models.Views;
 using Radzen.Blazor;
 using Radzen;
 using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.Kernel.Extensions;
 
 namespace NuclearEvaluation.Server.Shared.Grids;
 
@@ -56,15 +57,5 @@ public partial class PmiReportGrid : BaseGridGeneric<PmiReportView>
     protected void RowRender(RowRenderEventArgs<PmiReportView> args)
     {
         args.Expandable = args.Data.Status != PmiReportStatus.Distributed;
-    }
-
-    private string GetDistributionTooltip(IEnumerable<PmiReportDistributionEntryView> entries)
-    {
-        if (entries == null || !entries.Any())
-        {
-            return "No distribution entries";
-        }
-
-        return string.Join(Environment.NewLine, entries.Select(entry => $"{entry.DistributionChannel}: {entry.DistributionStatus}"));
     }
 }

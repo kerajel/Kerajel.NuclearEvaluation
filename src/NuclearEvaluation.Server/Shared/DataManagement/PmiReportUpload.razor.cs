@@ -33,6 +33,9 @@ public partial class PmiReportUpload : ComponentBase
     protected IPmiReportUploadService PmiReportUploadService { get; set; } = null!;
 
     [Inject]
+    protected IPmiReportService PmiReportService { get; set; } = null!;
+
+    [Inject]
     protected DialogService DialogService { get; set; } = null!;
 
     protected DateOnly? ReportDate { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);

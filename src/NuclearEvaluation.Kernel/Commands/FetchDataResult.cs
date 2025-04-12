@@ -23,7 +23,7 @@ public class FetchDataResult<T>() : OperationResultBase
         return new FetchDataResult<T>
         {
             Exception = ex,
-            OperationStatus = OperationStatus.Faulted,
+            OperationStatus = OperationStatus.Error,
         };
     }
 }

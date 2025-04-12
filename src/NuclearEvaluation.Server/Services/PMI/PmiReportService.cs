@@ -1,12 +1,11 @@
 ﻿using Kerajel.Primitives.Models;
 using LinqToDB;
-using NuclearEvaluation.Kernel.Data.Context;
+using Microsoft.EntityFrameworkCore;
+using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Helpers;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
-using NuclearEvaluation.Server.Interfaces.GUID;
-using NuclearEvaluation.Server.Interfaces.PMI;
-using NuclearEvaluation.Server.Services.DB;
+using NuclearEvaluation.Kernel.Models.Views;
 using System.Transactions;
 
 namespace NuclearEvaluation.Server.Services.PMI;
@@ -56,12 +55,26 @@ public class PmiReportService : DbServiceBase, IPmiReportService
         }
     }
 
+    public Task<FetchDataResult<PmiReportView>> GetPmiReportViews(FetchDataCommand<PmiReportView> command, CancellationToken ct = default)
+    {
+        Func<IQueryable<PmiReportView>, IQueryable<PmiReportView>> distributionInclude = (IQueryable<PmiReportView> query) => query.Include(x => x.DistributionEntries);
+        Func<IQueryable<PmiReportView>, IQueryable<PmiReportView>> fileMetadataInclude = (IQueryable<PmiReportView> query) => query.Include(x => x.FileMetadata);
+
+        IQueryable<PmiReportView> query = _dbContext.PmiReportView.AsNoTracking();
+        query = distributionInclude(query);
+        query = fileMetadataInclude(query);
+
+        return ExecuteQuery(query, command, ct);
+    }
+
+
     private PmiReport PreparePmiReport(PmiReportSubmission reportSubmission)
     {
         PmiReport pmiReport = new()
         {
             Name = reportSubmission.ReportName,
             AuthorId = reportSubmission.AuthorId,
+            Author = null!,
             CreatedDate = reportSubmission.ReportDate!.Value,
             Status = PmiReportStatus.Uploaded,
         };

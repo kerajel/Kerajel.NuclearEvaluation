@@ -2,13 +2,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 using NuclearEvaluation.Kernel.Models.Domain;
 using NuclearEvaluation.Kernel.Models.Filters;
 using NuclearEvaluation.Kernel.Models.Identity;
 using NuclearEvaluation.Kernel.Models.Views;
-using System;
 
 namespace NuclearEvaluation.Kernel.Data.Context;
 
@@ -19,13 +17,9 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
     private const string DataSchema = "DATA";
     private const string EvaluationSchema = "EVALUATION";
 
-    public NuclearEvaluationServerDbContext()
-    {
-    }
+    public NuclearEvaluationServerDbContext() { }
 
-    public NuclearEvaluationServerDbContext(DbContextOptions<NuclearEvaluationServerDbContext> options) : base(options)
-    {
-    }
+    public NuclearEvaluationServerDbContext(DbContextOptions<NuclearEvaluationServerDbContext> options) : base(options) { }
 
     public DbSet<Project> Project { get; set; }
     public DbSet<Series> Series { get; set; }
@@ -48,6 +42,10 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
     public DbSet<ProjectDecayCorrectedApmView> ProjectDecayCorrectedApmView { get; set; }
     public DbSet<PmiReport> PmiReport { get; set; }
     public DbSet<PmiReportDistributionEntry> PmiReportDistributionEntry { get; set; }
+
+    public DbSet<PmiReportView> PmiReportView { get; set; }
+    public DbSet<PmiReportDistributionEntryView> PmiReportDistributionEntryView { get; set; }
+    public DbSet<PmiReportFileMetadataView> PmiReportFileMetadataView { get; set; }
 
     partial void OnModelBuilding(ModelBuilder builder);
 
@@ -292,6 +290,24 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
         {
             entity.ToView("ProjectDecayCorrectedApmView", EvaluationSchema);
             entity.HasBaseType(null as Type);
+        });
+
+        modelBuilder.Entity<PmiReportView>(entity =>
+        {
+            entity.HasAlternateKey(x => x.Id);
+            entity.ToView("PmiReportView", EvaluationSchema);
+        });
+
+        modelBuilder.Entity<PmiReportDistributionEntryView>(entity =>
+        {
+            entity.HasAlternateKey(x => x.Id);
+            entity.ToView("PmiReportDistributionEntryView", EvaluationSchema);
+        });
+
+        modelBuilder.Entity<PmiReportFileMetadataView>(entity =>
+        {
+            entity.HasAlternateKey(x => x.Id);
+            entity.ToView("PmiReportFileMetadataView", EvaluationSchema);
         });
     }
 

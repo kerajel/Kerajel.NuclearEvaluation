@@ -1,4 +1,5 @@
-﻿using LinqToDB.EntityFrameworkCore;
+﻿using Kerajel.Primitives.Enums;
+using LinqToDB.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Data.Context;
@@ -24,7 +25,10 @@ public class DbServiceBase
         _dbContext = dbContext;
     }
 
-    public async Task<FetchDataResult<T>> ExecuteQuery<T>(IQueryable<T> query, FetchDataCommand<T> cmd) where T : class
+    public async Task<FetchDataResult<T>> ExecuteQuery<T>(
+        IQueryable<T> query,
+        FetchDataCommand<T> cmd,
+        CancellationToken ct = default) where T : class
     {
         FetchDataResult<T> result = FetchDataResult<T>.Succeeded([]);
 
@@ -53,15 +57,15 @@ public class DbServiceBase
             if (cmd.FetchTotalCount)
             {
                 QueryFutureValue<int> futureCount = filteredQuery.DeferredCount().FutureValue();
-                result.TotalCount = await futureCount.ValueAsync();
+                result.TotalCount = await futureCount.ValueAsync(ct);
             }
 
-            result.Entries = await futureEntries.ToArrayAsync();
+            result.Entries = await futureEntries.ToArrayAsync(ct);
         }
         else
         {
-            result.TotalCount = await filteredQuery.CountAsyncLinqToDB();
-            result.Entries = await dataQuery.ToArrayAsyncLinqToDB();
+            result.TotalCount = await filteredQuery.CountAsyncLinqToDB(ct);
+            result.Entries = await dataQuery.ToArrayAsyncLinqToDB(ct);
         }
 
         if (enableVirtualTracking)
@@ -70,6 +74,11 @@ public class DbServiceBase
             {
                 _dbContext.Entry(entry).State = EntityState.Detached;
             }
+        }
+
+        if (result.Entries.IsNullOrEmpty())
+        {
+            result.OperationStatus = OperationStatus.NotFound;
         }
 
         return result;

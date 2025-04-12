@@ -1,0 +1,21 @@
+﻿@page "{id:guid}"
+@model NuclearEvaluation.Server.Pages.DownloadReportViewModel
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Download PMI Report</title>
+</head>
+<body>
+    <button id="downloadBtn">Download File</button>
+    <iframe id="downloadFrame" style="display:none"></iframe>
+    <script>
+        document.getElementById("downloadBtn").addEventListener("click", function() {
+            var reportGuid = "@Model.ReportId";
+            // The URL points to the file download endpoint. Ensure it matches your routing configuration.
+            var url = "/DownloadPmiReport?id=" + reportGuid;
+            document.getElementById("downloadFrame").src = url;
+        });
+    </script>
+</body>
+</html>

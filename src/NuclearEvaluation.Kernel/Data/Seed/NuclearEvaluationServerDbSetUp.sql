@@ -765,3 +765,33 @@ BEGIN
         EXEC sp_executesql @sql;
     END
 END;
+
+GO
+
+CREATE OR ALTER VIEW [EVALUATION].PmiReportView
+AS
+SELECT    pr.Id
+        , pr.ReportName
+        , pr.DateUploaded
+        , pr.UserName
+        , pr.ReportStatus
+FROM [EVALUATION].[PmiReport] AS pr;
+GO
+
+CREATE OR ALTER VIEW [EVALUATION].PmiReportDistributionEntryView
+AS
+SELECT    de.Id
+        , de.PmiReportId
+        , de.DistributionChannel
+        , de.DistributionStatus
+FROM [EVALUATION].[PmiReportDistributionEntry] AS de;
+GO
+
+CREATE OR ALTER VIEW [EVALUATION].PmiReportFileMetadataView
+AS
+SELECT    fm.Id
+        , fm.PmiReportId
+        , fm.FileName
+        , fm.Size
+FROM [EVALUATION].[PmiReportFileMetadata] AS fm;
+GO

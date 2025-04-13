@@ -771,11 +771,12 @@ GO
 CREATE OR ALTER VIEW [EVALUATION].PmiReportView
 AS
 SELECT    pr.Id
-        , pr.ReportName
-        , pr.DateUploaded
-        , pr.UserName
-        , pr.ReportStatus
-FROM [EVALUATION].[PmiReport] AS pr;
+        , pr.Name AS Name
+        , pr.CreatedDate AS DateUploaded
+        , anu.UserName
+        , pr.Status
+FROM [EVALUATION].[PmiReport] AS pr
+INNER JOIN [ADMIN].[AspNetUsers] anu ON pr.AuthorId = anu.Id;
 GO
 
 CREATE OR ALTER VIEW [EVALUATION].PmiReportDistributionEntryView

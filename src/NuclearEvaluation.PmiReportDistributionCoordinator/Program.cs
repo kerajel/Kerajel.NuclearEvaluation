@@ -2,19 +2,21 @@ using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.EntityFrameworkCore;
 using MassTransit;
-using NuclearEvaluation.HangfireJobs.Jobs;
-using NuclearEvaluation.HangfireJobs.Interfaces;
-using NuclearEvaluation.HangfireJobs.Models.Settings;
 using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.HangfireJobs.Services;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Services;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Models.Settings;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Jobs;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Consumers;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Dispatchers;
 
-namespace NuclearEvaluation.HangfireJobs;
+namespace NuclearEvaluation.PmiReportDistributionCoordinator;
 
 internal class Program
 {
-    const string logTemlate = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
+    private const string LogTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
 
     public static void Main(string[] args)
     {
@@ -24,14 +26,8 @@ internal class Program
 
             Log.Logger = new LoggerConfiguration()
                 .Enrich.FromLogContext()
-                .WriteTo.Console(
-                    theme: AnsiConsoleTheme.Grayscale,
-                    outputTemplate: logTemlate)
-                .WriteTo.File(
-                    path: "logs/log-.txt",
-                    rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: 3,
-                    outputTemplate: logTemlate)
+                .WriteTo.Console(theme: AnsiConsoleTheme.Grayscale, outputTemplate: LogTemplate)
+                .WriteTo.File(path: "logs/log-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 3, outputTemplate: LogTemplate)
                 .CreateLogger();
 
             builder.Services.AddSerilog();
@@ -47,13 +43,10 @@ internal class Program
                     .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
                     .UseSimpleAssemblyNameTypeSerializer()
                     .UseRecommendedSerializerSettings()
-                    .UseSqlServerStorage(
-                        builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"),
-                        new SqlServerStorageOptions
-                      {
-                          SchemaName = builder.Configuration["HangfireSettings:DbSchemaName"],
-                      }
-                    );
+                    .UseSqlServerStorage(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"), new SqlServerStorageOptions
+                    {
+                        SchemaName = builder.Configuration["HangfireSettings:DbSchemaName"],
+                    });
             });
             builder.Services.AddHangfireServer();
 
@@ -62,8 +55,10 @@ internal class Program
                 options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
             }, ServiceLifetime.Scoped);
 
-            builder.Services.AddMassTransit((IBusRegistrationConfigurator busConfigurator) =>
+            builder.Services.AddMassTransit((busConfigurator) =>
             {
+                busConfigurator.AddConsumer<PmiReportDistributionReplyMessageConsumer>();
+
                 busConfigurator.UsingRabbitMq((IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator rabbitMqConfigurator) =>
                 {
                     string hostName = builder.Configuration["RabbitMQSettings:HostName"]!;
@@ -76,14 +71,11 @@ internal class Program
 
                     try
                     {
-                        rabbitMqConfigurator.Host(
-                            new Uri(uriString)
-                          , hostConfigurator =>
-                          {
-                              hostConfigurator.Username(userName);
-                              hostConfigurator.Password(password);
-                          }
-                        );
+                        rabbitMqConfigurator.Host(new Uri(uriString), hostConfigurator =>
+                        {
+                            hostConfigurator.Username(userName);
+                            hostConfigurator.Password(password);
+                        });
                         Log.Information("RabbitMQ host configured successfully.");
                     }
                     catch (Exception ex)
@@ -91,10 +83,16 @@ internal class Program
                         Log.Error(ex, "Error configuring RabbitMQ host.");
                         throw;
                     }
+
+                    string queueName = builder.Configuration["PmiReportDistributionSettings:ReplyQueueName"]!;
+                    rabbitMqConfigurator.ReceiveEndpoint(queueName, endpointConfigurator =>
+                    {
+                        endpointConfigurator.ConfigureConsumer<PmiReportDistributionReplyMessageConsumer>(context);
+                    });
                 });
             });
 
-            builder.Services.AddTransient<IEnqueueStemReportForPublishingJob, EnqueueStemReportForPublishingJob>();
+            builder.Services.AddTransient<IEnqueuePmiReportForPublishingJob, EnqueuePmiReportForPublishingJob>();
             builder.Services.AddTransient<IPmiReportDistributionMessageDispatcher, PmiReportDistributionMessageDispatcher>();
             builder.Services.AddTransient<IPmiReportDistributionService, PmiReportDistributionService>();
 

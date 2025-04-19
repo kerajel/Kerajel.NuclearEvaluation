@@ -1,3 +1,8 @@
-﻿namespace NuclearEvaluation.Kernel.Messages.PMI;
+﻿using NuclearEvaluation.Kernel.Enums;
 
-public record PmiReportDistributionReplyMessage(Guid PmiReportId);
+namespace NuclearEvaluation.Kernel.Messages.PMI;
+
+public record PmiReportDistributionReplyMessage(
+    Guid PmiReportId,
+    PmiReportDistributionChannel Channel,
+    PmiReportDistributionStatus Status);

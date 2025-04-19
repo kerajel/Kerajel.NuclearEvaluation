@@ -5,7 +5,7 @@ using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Models;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Models.Settings;
 
-namespace NuclearEvaluation.PmiReportDistributionCoordinator.Services;
+namespace NuclearEvaluation.PmiReportDistributionCoordinator.Dispatchers;
 
 public class PmiReportDistributionMessageDispatcher : IPmiReportDistributionMessageDispatcher
 {

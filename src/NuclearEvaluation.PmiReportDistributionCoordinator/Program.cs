@@ -10,6 +10,7 @@ using NuclearEvaluation.PmiReportDistributionCoordinator.Services;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Models.Settings;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Jobs;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Consumers;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Dispatchers;
 
 namespace NuclearEvaluation.PmiReportDistributionCoordinator;
 

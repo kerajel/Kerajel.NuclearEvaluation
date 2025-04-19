@@ -1,9 +1,0 @@
-{
-  "RabbitMQSettings": {
-    "HostName": "sparrow.rmq.cloudamqp.com",
-    "UserName": "xudptmtj",
-    "Password": "8VRgPINzxxXcr2JP_cG67_7YvIeB-EF-",
-    "VirtualHost": "xudptmtj",
-    "Port": 5671
-  }
-}

@@ -377,3 +377,4 @@ FodyWeavers.xsd
 /src/NuclearEvaluation.HangfireJobs/rabbitMqSettings.json
 /src/NuclearEvaluationStorage/37e92cba-3541-403b-9fa8-99f441927d0e
 /src/NuclearEvaluationStorage
+/src/NuclearEvaluation.PmiReportDistributionCoordinator/rabbitMqSettings.json

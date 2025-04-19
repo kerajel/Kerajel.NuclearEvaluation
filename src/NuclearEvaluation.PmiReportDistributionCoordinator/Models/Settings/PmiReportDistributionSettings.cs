@@ -1,4 +1,4 @@
-﻿namespace NuclearEvaluation.HangfireJobs.Models.Settings;
+﻿namespace NuclearEvaluation.PmiReportDistributionCoordinator.Models.Settings;
 
 public class PmiReportDistributionSettings
 {

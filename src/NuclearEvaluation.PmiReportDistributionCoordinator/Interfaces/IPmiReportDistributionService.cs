@@ -1,9 +1,9 @@
 ﻿using Kerajel.Primitives.Models;
-using NuclearEvaluation.HangfireJobs.Models;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Models;
 
-namespace NuclearEvaluation.HangfireJobs.Interfaces;
+namespace NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 
 public interface IPmiReportDistributionService
 {

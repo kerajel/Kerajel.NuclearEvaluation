@@ -1,6 +1,6 @@
 ﻿using NuclearEvaluation.Kernel.Enums;
 
-namespace NuclearEvaluation.HangfireJobs.Models;
+namespace NuclearEvaluation.PmiReportDistributionCoordinator.Models;
 
 public class PmiReportDistributionQueueItem
 {

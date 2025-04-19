@@ -1,23 +1,23 @@
 ﻿using Kerajel.Primitives.Models;
 using Microsoft.IdentityModel.Tokens;
-using NuclearEvaluation.HangfireJobs.Interfaces;
-using NuclearEvaluation.HangfireJobs.Models;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Enums;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Models;
 
-namespace NuclearEvaluation.HangfireJobs.Jobs;
+namespace NuclearEvaluation.PmiReportDistributionCoordinator.Jobs;
 
-public partial class EnqueueStemReportForPublishingJob : IEnqueueStemReportForPublishingJob
+public partial class EnqueuePmiReportForPublishingJob : IEnqueuePmiReportForPublishingJob
 {
     const int maxQueueItemsPerOperation = 3072;
 
     readonly IPmiReportDistributionMessageDispatcher _pmiReportDistributionMessageDispatcher;
     readonly IPmiReportDistributionService _distributionService;
-    readonly ILogger<EnqueueStemReportForPublishingJob> _logger;
+    readonly ILogger<EnqueuePmiReportForPublishingJob> _logger;
 
-    public EnqueueStemReportForPublishingJob(
+    public EnqueuePmiReportForPublishingJob(
         IPmiReportDistributionService distributionService,
-        ILogger<EnqueueStemReportForPublishingJob> logger,
+        ILogger<EnqueuePmiReportForPublishingJob> logger,
         IPmiReportDistributionMessageDispatcher pmiReportDistributionMessageDispatcher)
     {
         _distributionService = distributionService;

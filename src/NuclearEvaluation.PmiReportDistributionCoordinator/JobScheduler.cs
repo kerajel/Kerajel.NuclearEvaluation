@@ -1,7 +1,7 @@
 ﻿using Hangfire;
-using NuclearEvaluation.HangfireJobs.Interfaces;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 
-namespace NuclearEvaluation.HangfireJobs;
+namespace NuclearEvaluation.PmiReportDistributionCoordinator;
 
 public static class JobScheduler
 {
@@ -9,7 +9,7 @@ public static class JobScheduler
 
     public static void RegisterJobs()
     {
-        RecurringJob.AddOrUpdate<IEnqueueStemReportForPublishingJob>(enqueueStemReportForPublishingJobId,
+        RecurringJob.AddOrUpdate<IEnqueuePmiReportForPublishingJob>(enqueueStemReportForPublishingJobId,
             job => job.Execute(), Cron.Minutely);
     }
 }

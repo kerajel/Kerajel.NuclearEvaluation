@@ -1,14 +1,14 @@
 ﻿using Kerajel.Primitives.Models;
 using LinqToDB;
 using Microsoft.EntityFrameworkCore;
-using NuclearEvaluation.HangfireJobs.Models;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Enums;
 using LinqToDB.EntityFrameworkCore;
-using NuclearEvaluation.HangfireJobs.Interfaces;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Models;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 
-namespace NuclearEvaluation.HangfireJobs.Services;
+namespace NuclearEvaluation.PmiReportDistributionCoordinator.Services;
 
 public class PmiReportDistributionService : IPmiReportDistributionService
 {

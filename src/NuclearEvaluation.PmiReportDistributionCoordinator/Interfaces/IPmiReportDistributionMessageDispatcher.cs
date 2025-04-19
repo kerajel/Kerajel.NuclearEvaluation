@@ -1,6 +1,6 @@
-﻿using NuclearEvaluation.HangfireJobs.Models;
+﻿using NuclearEvaluation.PmiReportDistributionCoordinator.Models;
 
-namespace NuclearEvaluation.HangfireJobs.Interfaces;
+namespace NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 
 public interface IPmiReportDistributionMessageDispatcher
 {

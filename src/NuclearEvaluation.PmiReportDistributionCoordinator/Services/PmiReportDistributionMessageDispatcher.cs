@@ -1,11 +1,11 @@
 ﻿using MassTransit;
 using Microsoft.Extensions.Options;
-using NuclearEvaluation.HangfireJobs.Interfaces;
-using NuclearEvaluation.HangfireJobs.Models;
-using NuclearEvaluation.HangfireJobs.Models.Settings;
 using NuclearEvaluation.Kernel.Messages.PMI;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Models;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Models.Settings;
 
-namespace NuclearEvaluation.HangfireJobs.Services;
+namespace NuclearEvaluation.PmiReportDistributionCoordinator.Services;
 
 public class PmiReportDistributionMessageDispatcher : IPmiReportDistributionMessageDispatcher
 {

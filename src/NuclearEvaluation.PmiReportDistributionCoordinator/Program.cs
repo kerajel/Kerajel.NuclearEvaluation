@@ -84,17 +84,17 @@ internal class Program
                         throw;
                     }
 
-                    string queueName = builder.Configuration["PmiReportDistributionSettings:ReplyQueueName"]!;
-                    rabbitMqConfigurator.ReceiveEndpoint(queueName, endpointConfigurator =>
+                    string replyQueueName = builder.Configuration["PmiReportDistributionSettings:ReplyQueueName"]!;
+                    rabbitMqConfigurator.ReceiveEndpoint(replyQueueName, endpointConfigurator =>
                     {
                         endpointConfigurator.ConfigureConsumer<PmiReportDistributionReplyMessageConsumer>(context);
                     });
                 });
             });
 
-            builder.Services.AddTransient<IEnqueuePmiReportForPublishingJob, EnqueuePmiReportForPublishingJob>();
-            builder.Services.AddTransient<IPmiReportDistributionMessageDispatcher, PmiReportDistributionMessageDispatcher>();
-            builder.Services.AddTransient<IPmiReportDistributionService, PmiReportDistributionService>();
+            builder.Services.AddScoped<IEnqueuePmiReportForPublishingJob, EnqueuePmiReportForPublishingJob>();
+            builder.Services.AddScoped<IPmiReportDistributionMessageDispatcher, PmiReportDistributionMessageDispatcher>();
+            builder.Services.AddScoped<IPmiReportDistributionService, PmiReportDistributionService>();
 
             WebApplication app = builder.Build();
 

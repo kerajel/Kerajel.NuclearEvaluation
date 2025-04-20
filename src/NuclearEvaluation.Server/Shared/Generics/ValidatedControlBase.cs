@@ -201,9 +201,9 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
 
     public async Task<ValidationResult> Validate()
     {
-        return await _validationDebounce.ExecuteAsync(NewMethod);
+        return await _validationDebounce.ExecuteAsync(Validate);
 
-        async Task<ValidationResult> NewMethod()
+        async Task<ValidationResult> Validate()
         {
             bool previousIsValid = IsValid;
 

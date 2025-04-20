@@ -4,7 +4,7 @@
 
 <div class="validated-textarea-container" style="position: relative;">
     <RadzenDatePicker id="@Id"
-                      @ref="_textInputRef"
+                      @ref="_inputRef"
                       Style="@ComputedStyle"
                       Placeholder="@Placeholder"
                       ValueChanged="new EventCallback<DateOnly?>(this, OnValueChanged)"
@@ -17,7 +17,7 @@
     @if (Visible && !IsValid && !string.IsNullOrEmpty(_validationMessage))
     {
         <div class="validation-tooltip"
-        style="--tooltip-offset-x:@TooltipOffsetXpx; --tooltip-offset-y:@TooltipOffsetYpx;">
+             style="--tooltip-offset-x:@TooltipOffsetXpx; --tooltip-offset-y:@TooltipOffsetYpx;">
             @(_validationMessage)
         </div>
     }

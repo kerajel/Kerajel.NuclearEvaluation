@@ -6,9 +6,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
 using NuclearEvaluation.Kernel.Extensions;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
-using NuclearEvaluation.Server.Interfaces.PMI;
 using NuclearEvaluation.Server.Shared.Generics;
-using NuclearEvaluation.Server.Validators;
 using Radzen;
 
 namespace NuclearEvaluation.Server.Shared.DataManagement;
@@ -59,6 +57,7 @@ public partial class PmiReportUpload : ComponentBase
         base.OnInitialized();
         IsFormValid = false;
         reportSubmission.AuthorId = await AuthenticationStateProvider.GetCurrentUserId();
+        await UpdateFormValidity(true);
     }
 
     protected async void TriggerFileInputClick()
@@ -81,6 +80,7 @@ public partial class PmiReportUpload : ComponentBase
 
         reportSubmission.ReportName = Path.GetFileNameWithoutExtension(e.File.Name);
         reportNamePicker.ReInitialize();
+        reportDatePicker.ReInitialize();
 
         if (Path.GetExtension(file.Name) != ".docx")
         {

@@ -61,9 +61,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
     [Parameter]
     public decimal TooltipOffsetY { get; set; } = 0;
 
-    public IRadzenFormComponent _textInputRef = null!;
-
-    readonly Lock validationLock = new();
+    public IRadzenFormComponent _inputRef = null!;
 
     protected string? _validationMessage;
 
@@ -126,9 +124,9 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
         StateHasChanged();
         await Task.Yield();
 
-        if (_textInputRef != null && Visible)
+        if (_inputRef != null && Visible)
         {
-            await _textInputRef.FocusAsync();
+            await _inputRef.FocusAsync();
         }
     }
 

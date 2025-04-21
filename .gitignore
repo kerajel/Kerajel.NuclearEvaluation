@@ -379,3 +379,5 @@ FodyWeavers.xsd
 /src/NuclearEvaluationStorage
 /src/NuclearEvaluation.PmiReportDistributionCoordinator/rabbitMqSettings.json
 /src/NuclearEvaluation.PmiReportDistributionCoordinator/appsettings.Development.json
+/src/NuclearEvaluation.PmiReportEmailDistributor/rabbitMqSettings.json
+/src/NuclearEvaluation.PmiReportEmailDistributor/appsettings.Development.json

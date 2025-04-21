@@ -34,8 +34,8 @@ public class PmiReportSubmissionValidator : AbstractValidator<PmiReportSubmissio
             .DependentRules(() =>
             {
                 RuleFor(x => x.ReportDate)
-                    .Must(value => value!.Value <= DateOnly.FromDateTime(DateTime.UtcNow))
-                    .WithMessage("Date should not be in the future");
+                    .Must(value => value!.Value <= DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))
+                    .WithMessage("Date should not be this far in the future");
             });
     }
 }

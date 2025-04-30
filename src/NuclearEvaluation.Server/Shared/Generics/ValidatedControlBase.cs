@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Components.Web;
 using System.Reflection;
 using Radzen;
 using NuclearEvaluation.Kernel.Extensions;
-using NuclearEvaluation.Kernel.Helpers;
+using Kerajel.Primitives.Helpers;
 
 namespace NuclearEvaluation.Server.Shared.Generics;
 

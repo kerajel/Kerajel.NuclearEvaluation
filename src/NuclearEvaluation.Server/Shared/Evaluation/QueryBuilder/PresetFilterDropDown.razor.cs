@@ -65,7 +65,7 @@ public partial class PresetFilterDropDown : ComponentBase
 
     async Task ProcessNewOrEditedFilter()
     {
-        if (_validatedTextBoxRef.IsValid)
+        if (!_validatedTextBoxRef.IsValid)
         {
             return;
         }

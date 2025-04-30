@@ -50,6 +50,7 @@ public class DbServiceBase
             dataQuery = QueryIncludeOptimizedExtensions.IncludeOptimized(dataQuery, include);
         }
 
+        //TODO figure out when we can use the future
         if (cmd.TableKind == TableKind.Persisted && false)
         {
             QueryFutureEnumerable<T> futureEntries = dataQuery.Future();

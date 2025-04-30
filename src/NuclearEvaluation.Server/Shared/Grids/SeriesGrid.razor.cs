@@ -64,8 +64,6 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
             command.TopLevelOrderExpression = item => SelectedEntryIds.Contains(item.Id) ? 0 : 1;
         }
 
-        FetchDataResult<SeriesView> response = await this.SeriesService.GetSeriesViews(command);
-
         await FetchData(() => SeriesService.GetSeriesViews(command));
 
         currentCommand = command;

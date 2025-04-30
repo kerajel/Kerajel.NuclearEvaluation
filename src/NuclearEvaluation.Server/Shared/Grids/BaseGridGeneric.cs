@@ -69,10 +69,16 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
     {
         FetchDataResult<T> result = await fetchDataFunction();
 
-        if (result.IsSuccessful)
+        if (result.IsSuccessful || result.NotFound)
         {
-            entries = result.Entries.ToList();
+            entries = [.. result.Entries];
             totalCount = result.TotalCount;
+            hasFetchDataError = false;
+        }
+        else if (result.NotFound)
+        {
+            entries = [];
+            totalCount = 0;
             hasFetchDataError = false;
         }
         else

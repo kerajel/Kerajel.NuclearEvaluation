@@ -27,7 +27,7 @@ public class SeriesService : DbServiceBase, ISeriesService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "");
+            _logger.LogError(ex, "Error occured while fetchind series views");
             return FetchDataResult<SeriesView>.Faulted(ex);
         }
     }

@@ -96,7 +96,7 @@ public partial class ProjectCard : ComponentBase
 
     bool CanSaveProjectName()
     {
-        return !_projectNameInputRef?.IsValid ?? false;
+        return _projectNameInputRef?.IsValid ?? false;
     }
 
     async Task EditProjectName()

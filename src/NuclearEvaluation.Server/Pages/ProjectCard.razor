@@ -82,7 +82,8 @@ else
             </SeriesGrid>
         }
 
-        <RadzenRow Style="align-items: flex-start; margin-bottom: 20px;">
+        @* TODO Fix decay correction logic *@
+@*         <RadzenRow Style="align-items: flex-start; margin-bottom: 20px;">
             <RadzenColumn xs="10" sm="10" md="10" lg="10">
                 <div>
                     <RadzenLabel Text="Decay Correction Date:" Style="font-weight:bold; display: block;" />
@@ -93,7 +94,7 @@ else
                                       Style="margin-top: 4px;" />
                 </div>
             </RadzenColumn>
-        </RadzenRow>
+        </RadzenRow> *@
 
         <RadzenTabs RenderMode="@TabRenderMode.Client" @bind-SelectedIndex="tabManager.SelectedTabIndex" Change="OnTabChanged">
             <Tabs>

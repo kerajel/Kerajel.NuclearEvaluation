@@ -55,8 +55,7 @@ else
                     <RadzenLabel Text="@($"{string.Join(", ", _projectView.SeriesIds)}")" Style="font-style: italic; margin-top: 4px;" />
                 </div>
             </RadzenColumn>
-            @* TODO fix and enable series selection*@
-@*             <RadzenColumn xs="2" sm="2" md="2" lg="2" Style="display: flex; justify-content: flex-end; align-items: flex-start;">
+            <RadzenColumn xs="2" sm="2" md="2" lg="2" Style="display: flex; justify-content: flex-end; align-items: flex-start;">
                 @if (!_isEditingSeries)
                 {
                     <RadzenButton Icon="edit" Tooltip="Edit Series" Click="@EditSeries" />
@@ -66,7 +65,7 @@ else
                     <RadzenButton Icon="check" Tooltip="Save Series Changes" Click="@SaveSeriesChanges" Disabled="@(!CanSaveProjectSeries())" Style="margin-right: 10px;" />
                     <RadzenButton Icon="cancel" Tooltip="Cancel Series Editing" ButtonStyle="ButtonStyle.Secondary" Click="@CancelEditSeries" />
                 }
-            </RadzenColumn> *@
+            </RadzenColumn>
         </RadzenRow>
 
         @if (_isEditingSeries)

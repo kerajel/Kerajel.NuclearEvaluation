@@ -5,10 +5,6 @@ using NuclearEvaluation.Kernel.Models.Domain;
 using NuclearEvaluation.Kernel.Models.Views;
 using System.Linq.Expressions;
 using Z.EntityFramework.Plus;
-using NuclearEvaluation.Kernel.Data.Context;
-using Microsoft.Extensions.Logging;
-using NuclearEvaluation.Server.Services.DB;
-using NuclearEvaluation.Server.Interfaces.Evaluation;
 
 namespace NuclearEvaluation.Server.Services.Evaluation;
 

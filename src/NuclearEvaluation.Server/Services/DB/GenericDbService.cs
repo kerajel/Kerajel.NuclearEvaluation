@@ -14,7 +14,7 @@ public class GenericDbService : DbServiceBase, IGenericDbService
     public async Task<FetchDataResult<dynamic>> GetFilterOptions<T>(FetchDataCommand<T> command, string propertyName) where T : class
     {
         IQueryable<T> query = _dbContext.Set<T>().AsQueryable();
-        IQueryable<T> filteredQuery = GetFilteredQuery(query, command, false);
+        IQueryable<T> filteredQuery = GetFilteredQuery(query, command);
         dynamic[] result = await filteredQuery.Select(propertyName).Distinct().OrderByDynamic("x => x").ToDynamicArrayAsync();
         return new()
         {

@@ -36,7 +36,7 @@ public class SeriesService : DbServiceBase, ISeriesService
     {
         IQueryable<SeriesView> baseQuery = _dbContext.SeriesView;
 
-        IQueryable<SeriesView> filteredQuery = GetFilteredQuery(baseQuery, command, false);
+        IQueryable<SeriesView> filteredQuery = GetFilteredQuery(baseQuery, command);
 
         IQueryable<int> seriesIdsQuery = filteredQuery.Select(s => s.Id);
 

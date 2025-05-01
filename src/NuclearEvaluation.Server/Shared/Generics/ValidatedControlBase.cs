@@ -92,6 +92,9 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
 
         _initialValue = PropertyValue;
         _boundValue = _initialValue;
+
+        _validationMessage = string.Empty;
+        IsValid = true;
     }
 
     public bool ValueHasChanged()

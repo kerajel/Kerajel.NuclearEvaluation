@@ -107,7 +107,6 @@ public class TempTableService : ITempTableService
 
     public async ValueTask DisposeAsync()
     {
-        //TODO remove RetainTables
         if (tables.Count != 0 && !_settings.RetainTables)
         {
             foreach (string tableName in tables.Keys)

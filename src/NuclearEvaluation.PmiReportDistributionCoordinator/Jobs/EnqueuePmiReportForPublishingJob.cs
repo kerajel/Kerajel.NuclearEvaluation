@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Messages.PMI;
+using NuclearEvaluation.Messaging.Interfaces;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Models;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Models.Settings;
@@ -14,7 +15,7 @@ public partial class EnqueuePmiReportForPublishingJob : IEnqueuePmiReportForPubl
 {
     const int maxQueueItemsPerOperation = 3072;
 
-    readonly IPmiReportDistributionMessageDispatcher _pmiReportDistributionMessageDispatcher;
+    readonly IMessageDispatcher _pmiReportDistributionMessageDispatcher;
     readonly IPmiReportDistributionService _distributionService;
     readonly ILogger<EnqueuePmiReportForPublishingJob> _logger;
     readonly PmiReportDistributionSettings _pmiReportDistributionSettings;
@@ -23,7 +24,7 @@ public partial class EnqueuePmiReportForPublishingJob : IEnqueuePmiReportForPubl
         IPmiReportDistributionService distributionService,
         ILogger<EnqueuePmiReportForPublishingJob> logger,
         IOptions<PmiReportDistributionSettings> pmiReportDistributionOptions,
-        IPmiReportDistributionMessageDispatcher pmiReportDistributionMessageDispatcher)
+        IMessageDispatcher pmiReportDistributionMessageDispatcher)
     {
         _distributionService = distributionService;
         _logger = logger;

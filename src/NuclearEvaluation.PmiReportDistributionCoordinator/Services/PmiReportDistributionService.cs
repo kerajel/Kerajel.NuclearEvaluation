@@ -1,12 +1,14 @@
 ﻿using Kerajel.Primitives.Models;
 using LinqToDB;
-using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Enums;
 using LinqToDB.EntityFrameworkCore;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Models;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
+using Kerajel.Primitives.Helpers;
+using NuclearEvaluation.Kernel.Messages.PMI;
+using System.Transactions;
 
 namespace NuclearEvaluation.PmiReportDistributionCoordinator.Services;
 
@@ -14,7 +16,8 @@ public class PmiReportDistributionService : IPmiReportDistributionService
 {
     readonly NuclearEvaluationServerDbContext _dbContext;
 
-    public PmiReportDistributionService(NuclearEvaluationServerDbContext dbContext)
+    public PmiReportDistributionService(
+        NuclearEvaluationServerDbContext dbContext)
     {
         _dbContext = dbContext;
     }
@@ -61,5 +64,37 @@ public class PmiReportDistributionService : IPmiReportDistributionService
         {
             return OperationResult.Faulted(ex);
         }
+    }
+
+    public async Task<OperationResult> ProcessReplyMessage(PmiReportDistributionReplyMessage message, CancellationToken ct = default)
+    {
+        try
+        {
+            using TransactionScope ts = TransactionProvider.CreateScope();
+
+            await _dbContext.PmiReportDistributionEntry
+                .Where(x => x.PmiReportId == message.PmiReportId
+                         && x.DistributionChannel == message.Channel)
+                .Set(x => x.DistributionStatus, PmiReportDistributionStatus.Completed)
+            .UpdateAsync(ct);
+
+            await _dbContext.PmiReport
+                .Where(r =>
+                        _dbContext.PmiReportDistributionEntry.Any(e => e.PmiReportId == r.Id) &&
+                        _dbContext.PmiReportDistributionEntry
+                            .Where(e => e.PmiReportId == r.Id)
+                            .All(e => e.DistributionStatus == PmiReportDistributionStatus.Completed))
+                    .Set(r => r.Status, PmiReportStatus.Distributed)
+                    .UpdateAsync(ct);
+
+            ts.Complete();
+
+            return OperationResult.Succeeded();
+        }
+        catch (Exception ex)
+        {
+            return OperationResult.Faulted(ex);
+        }
+
     }
 }

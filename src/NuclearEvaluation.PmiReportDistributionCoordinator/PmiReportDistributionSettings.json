@@ -8,6 +8,6 @@
         "Exchange": "PmiReportDistributionSharePointExchange"
       }
     },
-    "ConsumeQueueName": "PmiReportDistributionReplyQueue"
+    "ReplyQueueName": "PmiReportDistributionReplyQueue"
   }
 }

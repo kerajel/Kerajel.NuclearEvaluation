@@ -20,7 +20,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\NuclearEvaluation.Messaging\NuclearEvaluation.Messaging.csproj" />
 		<ProjectReference Include="..\NuclearEvaluation.Kernel\NuclearEvaluation.Kernel.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Dispatchers\" />
 	</ItemGroup>
 
 </Project>

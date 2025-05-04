@@ -8,8 +8,11 @@ using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Services;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Models.Settings;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Jobs;
-using NuclearEvaluation.PmiReportDistributionCoordinator.Dispatchers;
 using RabbitMQ.Client;
+using NuclearEvaluation.Messaging.Interfaces;
+using NuclearEvaluation.Messaging.Dispatchers;
+using System.Security.Authentication;
+using NuclearEvaluation.PmiReportDistributionCoordinator.Consumers;
 
 namespace NuclearEvaluation.PmiReportDistributionCoordinator;
 
@@ -73,19 +76,18 @@ internal class Program
                     {
                         Enabled = true,
                         ServerName = hostName,
-                        Version = System.Security.Authentication.SslProtocols.Tls12
+                        Version = SslProtocols.Tls12
                     },
-                    RequestedConnectionTimeout = TimeSpan.FromSeconds(10),
                 };
 
                 return factory;
             });
 
-
-
             builder.Services.AddScoped<IEnqueuePmiReportForPublishingJob, EnqueuePmiReportForPublishingJob>();
-            builder.Services.AddScoped<IPmiReportDistributionMessageDispatcher, PmiReportDistributionMessageDispatcher>();
             builder.Services.AddScoped<IPmiReportDistributionService, PmiReportDistributionService>();
+            builder.Services.AddScoped<IMessageDispatcher, NuclearEvaluationMessageDispatcher>();
+
+            builder.Services.AddHostedService<PmiReportDistributionReplyConsumer>();
 
             WebApplication app = builder.Build();
 

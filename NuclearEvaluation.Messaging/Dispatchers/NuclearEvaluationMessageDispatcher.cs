@@ -1,12 +1,12 @@
 ﻿using System.Text;
 using System.Text.Json;
-using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 using RabbitMQ.Client;
 using Kerajel.Primitives.Models;
+using NuclearEvaluation.Messaging.Interfaces;
 
-namespace NuclearEvaluation.PmiReportDistributionCoordinator.Dispatchers;
+namespace NuclearEvaluation.Messaging.Dispatchers;
 
-public class PmiReportDistributionMessageDispatcher : IPmiReportDistributionMessageDispatcher, IAsyncDisposable
+public class NuclearEvaluationMessageDispatcher : IMessageDispatcher, IAsyncDisposable
 {
     readonly IConnectionFactory _connectionFactory;
     readonly SemaphoreSlim _initSemaphore = new(1, 1);
@@ -14,7 +14,7 @@ public class PmiReportDistributionMessageDispatcher : IPmiReportDistributionMess
     IConnection? _connection;
     IChannel? _channel;
 
-    public PmiReportDistributionMessageDispatcher(IConnectionFactory connectionFactory)
+    public NuclearEvaluationMessageDispatcher(IConnectionFactory connectionFactory)
     {
         _connectionFactory = connectionFactory;
     }

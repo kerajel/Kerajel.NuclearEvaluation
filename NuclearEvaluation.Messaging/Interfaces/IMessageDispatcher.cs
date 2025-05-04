@@ -1,8 +1,8 @@
 ﻿using Kerajel.Primitives.Models;
 
-namespace NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
+namespace NuclearEvaluation.Messaging.Interfaces;
 
-public interface IPmiReportDistributionMessageDispatcher
+public interface IMessageDispatcher
 {
     Task<OperationResult> Send<T>(T message, string exchange, string routingKey, CancellationToken ct = default);
 }

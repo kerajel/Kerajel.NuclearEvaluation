@@ -1,19 +1,21 @@
-﻿using Kerajel.Primitives.Models;
+﻿using Hangfire;
+using Kerajel.Primitives.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Enums;
-using NuclearEvaluation.Kernel.Messages.PMI;
+using NuclearEvaluation.Abstractions.Enums;
 using NuclearEvaluation.Messaging.Interfaces;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Models;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Models.Settings;
+using NuclearEvaluation.PmiReportDistributionContracts.Messages;
 
 namespace NuclearEvaluation.PmiReportDistributionCoordinator.Jobs;
 
+[DisableConcurrentExecution(600)]
 public partial class EnqueuePmiReportForPublishingJob : IEnqueuePmiReportForPublishingJob
 {
-    const int maxQueueItemsPerOperation = 3072;
+    const int _maxQueueItemsPerOperation = 3072;
 
     readonly IMessageDispatcher _pmiReportDistributionMessageDispatcher;
     readonly IPmiReportDistributionService _distributionService;
@@ -40,7 +42,7 @@ public partial class EnqueuePmiReportForPublishingJob : IEnqueuePmiReportForPubl
 
         _logger.LogInformation("Starting PMI report distribution process");
 
-        FetchDataResult<PmiReportDistributionQueueItem> fetchItemsResult = await _distributionService.GetQueueItems(maxQueueItemsPerOperation);
+        FetchDataResult<PmiReportDistributionQueueItem> fetchItemsResult = await _distributionService.GetQueueItems(_maxQueueItemsPerOperation);
 
         if (!fetchItemsResult.IsSuccessful)
         {

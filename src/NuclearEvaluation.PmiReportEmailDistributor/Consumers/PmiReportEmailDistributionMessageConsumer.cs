@@ -1,34 +1,31 @@
 ﻿using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using NuclearEvaluation.PmiReportDistributionCoordinator.Models.Settings;
 using System.Text.Json;
-using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 using Kerajel.Primitives.Models;
 using NuclearEvaluation.PmiReportDistributionContracts.Messages;
 
-namespace NuclearEvaluation.PmiReportDistributionCoordinator.Consumers;
+namespace NuclearEvaluation.PmiReportEmailDistributor.Consumers;
 
-internal sealed class PmiReportDistributionReplyConsumer : BackgroundService
+internal sealed class PmiReportEmailDistributionMessageConsumer : BackgroundService
 {
     readonly IConnectionFactory _connectionFactory;
     readonly IServiceScopeFactory _scopeFactory;
-    readonly ILogger<PmiReportDistributionReplyConsumer> _logger;
+    readonly ILogger<PmiReportEmailDistributionMessageConsumer> _logger;
     readonly string _queueName;
 
     IConnection? _connection;
     IChannel? _channel;
 
-    public PmiReportDistributionReplyConsumer(
+    public PmiReportEmailDistributionMessageConsumer(
         IConnectionFactory connectionFactory,
         IServiceScopeFactory scopeFactory,
-        IOptions<PmiReportDistributionSettings> options,
-        ILogger<PmiReportDistributionReplyConsumer> logger)
+        ILogger<PmiReportEmailDistributionMessageConsumer> logger)
     {
         _connectionFactory = connectionFactory;
         _scopeFactory = scopeFactory;
         _logger = logger;
-        _queueName = options.Value.ReplyQueueName;
+        _queueName = "PmiReportDistributionEmailQueue";
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -45,19 +42,19 @@ internal sealed class PmiReportDistributionReplyConsumer : BackgroundService
             try
             {
                 using IServiceScope scope = _scopeFactory.CreateScope();
-                IPmiReportDistributionService pmiService = scope.ServiceProvider.GetRequiredService<IPmiReportDistributionService>();
 
                 ReadOnlyMemory<byte> body = ea.Body;
-                var message = JsonSerializer.Deserialize<PmiReportDistributionReplyMessage>(body.Span)!;
+                var message = JsonSerializer.Deserialize<PmiReportDistributionMessage>(body.Span)!;
 
                 using IDisposable? logScope = _logger.BeginScope(
-                    "PMI Report Distribution reply message for {PmiReportId}, Channel {Channel}",
-                    message.PmiReportId,
-                    message.Channel);
+                    "Received PMI Report Email Distribution message for {PmiReportId}",
+                    message.PmiReportId);
 
                 _logger.LogInformation("Received message");
 
-                OperationResult result = await pmiService.ProcessReplyMessage(message, stoppingToken);
+                //TODO Process message
+
+                OperationResult result = OperationResult.Succeeded();
 
                 if (!result.IsSuccessful)
                 {

@@ -16,16 +16,14 @@
 		<PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
 		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
 
-	</ItemGroup>
+  </ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\NuclearEvaluation.Messaging\NuclearEvaluation.Messaging.csproj" />
+		<ProjectReference Include="..\..\NuclearEvaluation.PmiReportDistributionContracts\NuclearEvaluation.PmiReportDistributionContracts.csproj" />
 		<ProjectReference Include="..\NuclearEvaluation.Kernel\NuclearEvaluation.Kernel.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Dispatchers\" />
 	</ItemGroup>
 
 </Project>

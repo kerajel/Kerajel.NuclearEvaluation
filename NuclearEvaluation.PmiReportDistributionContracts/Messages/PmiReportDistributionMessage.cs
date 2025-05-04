@@ -1,0 +1,3 @@
+﻿namespace NuclearEvaluation.PmiReportDistributionContracts.Messages;
+
+public record PmiReportDistributionMessage(Guid PmiReportId);

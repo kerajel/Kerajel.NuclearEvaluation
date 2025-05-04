@@ -1,9 +1,7 @@
-using Microsoft.EntityFrameworkCore;
-using MassTransit;
-using NuclearEvaluation.Kernel.Data.Context;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
-using NuclearEvaluation.PmiReportEmailDistributor.Consumers;
+using RabbitMQ.Client;
+using System.Security.Authentication;
 
 namespace NuclearEvaluation.PmiReportEmailDistributor;
 
@@ -28,46 +26,30 @@ internal class Program
             builder.Configuration.AddJsonFile("rabbitMqSettings.json", optional: false, reloadOnChange: true);
             builder.Configuration.AddJsonFile("pmiReportDistributionSettings.json", optional: false, reloadOnChange: true);
 
-            builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>
+            builder.Services.AddSingleton<IConnectionFactory>(_ =>
             {
-                options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
-            }, ServiceLifetime.Scoped);
+                string hostName = builder.Configuration["RabbitMQSettings:HostName"]!;
+                int port = int.Parse(builder.Configuration["RabbitMQSettings:Port"]!);
+                string virtualHost = builder.Configuration["RabbitMQSettings:VirtualHost"]!;
+                string userName = builder.Configuration["RabbitMQSettings:UserName"]!;
+                string password = builder.Configuration["RabbitMQSettings:Password"]!;
 
-            builder.Services.AddMassTransit((busConfigurator) =>
-            {
-                busConfigurator.AddConsumer<PmiReportDistributionReplyMessageConsumer>();
-
-                busConfigurator.UsingRabbitMq((IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator rabbitMqConfigurator) =>
+                ConnectionFactory factory = new()
                 {
-                    string hostName = builder.Configuration["RabbitMQSettings:HostName"]!;
-                    string userName = builder.Configuration["RabbitMQSettings:UserName"]!;
-                    string password = builder.Configuration["RabbitMQSettings:Password"]!;
-                    string virtualHost = builder.Configuration["RabbitMQSettings:VirtualHost"]!;
-                    string port = builder.Configuration["RabbitMQSettings:Port"]!;
-                    Log.Information("Configuring RabbitMQ host: {HostName}, port: {Port}, virtualHost: {VirtualHost}", hostName, port, virtualHost);
-                    string uriString = $"amqps://{hostName}:{port}/{virtualHost}";
+                    HostName = hostName,
+                    Port = port,
+                    VirtualHost = virtualHost,
+                    UserName = userName,
+                    Password = password,
+                    Ssl =
+                    {
+                        Enabled = true,
+                        ServerName = hostName,
+                        Version = SslProtocols.Tls12
+                    },
+                };
 
-                    try
-                    {
-                        rabbitMqConfigurator.Host(new Uri(uriString), hostConfigurator =>
-                        {
-                            hostConfigurator.Username(userName);
-                            hostConfigurator.Password(password);
-                        });
-                        Log.Information("RabbitMQ host configured successfully.");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "Error configuring RabbitMQ host.");
-                        throw;
-                    }
-
-                    string consumeQueue = builder.Configuration["PmiReportDistributionSettings:ConsumeQueueName"]!;
-                    rabbitMqConfigurator.ReceiveEndpoint(consumeQueue, endpointConfigurator =>
-                    {
-                        endpointConfigurator.ConfigureConsumer<PmiReportDistributionReplyMessageConsumer>(context);
-                    });
-                });
+                return factory;
             });
 
             WebApplication app = builder.Build();

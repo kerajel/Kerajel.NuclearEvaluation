@@ -18,12 +18,12 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
 		<PackageReference Include="Radzen.Blazor" Version="5.9.8" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\..\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives.csproj" />
+	  <ProjectReference Include="..\..\NuclearEvaluation.Abstractions\NuclearEvaluation.Abstractions.csproj" />
 	</ItemGroup>
 
 </Project>

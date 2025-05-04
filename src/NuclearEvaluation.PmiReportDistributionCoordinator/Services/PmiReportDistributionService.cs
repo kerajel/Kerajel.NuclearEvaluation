@@ -7,8 +7,9 @@ using LinqToDB.EntityFrameworkCore;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Models;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 using Kerajel.Primitives.Helpers;
-using NuclearEvaluation.Kernel.Messages.PMI;
 using System.Transactions;
+using NuclearEvaluation.Abstractions.Enums;
+using NuclearEvaluation.PmiReportDistributionContracts.Messages;
 
 namespace NuclearEvaluation.PmiReportDistributionCoordinator.Services;
 

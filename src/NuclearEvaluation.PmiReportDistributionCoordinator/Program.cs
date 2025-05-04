@@ -1,7 +1,6 @@
 using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.EntityFrameworkCore;
-using NuclearEvaluation.Kernel.Data.Context;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
@@ -51,11 +50,6 @@ internal class Program
                     });
             });
             builder.Services.AddHangfireServer();
-
-            builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>
-            {
-                options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
-            }, ServiceLifetime.Scoped);
 
             builder.Services.AddSingleton<IConnectionFactory>(_ =>
             {

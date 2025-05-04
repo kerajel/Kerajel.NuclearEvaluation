@@ -1,4 +1,4 @@
-﻿namespace NuclearEvaluation.Kernel.Enums;
+﻿namespace NuclearEvaluation.Abstractions.Enums;
 
 public enum PmiReportDistributionStatus
 {

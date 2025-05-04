@@ -7,16 +7,16 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MassTransit" Version="8.4.0" />
-		<PackageReference Include="MassTransit.RabbitMQ" Version="8.4.0" />
 		<PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
 		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
 
-	</ItemGroup>
+  </ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\NuclearEvaluation.Kernel\NuclearEvaluation.Kernel.csproj" />
+		<ProjectReference Include="..\..\..\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives.csproj" />
+		<ProjectReference Include="..\..\NuclearEvaluation.PmiReportDistributionContracts\NuclearEvaluation.PmiReportDistributionContracts.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -5,11 +5,11 @@ using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using NuclearEvaluation.PmiReportEmailDistributor.Consumers;
 
-namespace NuclearEvaluation.PmiReportDistributionCoordinator;
+namespace NuclearEvaluation.PmiReportEmailDistributor;
 
 internal class Program
 {
-    private const string LogTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
+    private const string _logTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
 
     public static void Main(string[] args)
     {
@@ -19,8 +19,8 @@ internal class Program
 
             Log.Logger = new LoggerConfiguration()
                 .Enrich.FromLogContext()
-                .WriteTo.Console(theme: AnsiConsoleTheme.Grayscale, outputTemplate: LogTemplate)
-                .WriteTo.File(path: "logs/log-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 3, outputTemplate: LogTemplate)
+                .WriteTo.Console(theme: AnsiConsoleTheme.Grayscale, outputTemplate: _logTemplate)
+                .WriteTo.File(path: "logs/log-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 3, outputTemplate: _logTemplate)
                 .CreateLogger();
 
             builder.Services.AddSerilog();
@@ -62,8 +62,8 @@ internal class Program
                         throw;
                     }
 
-                    string replyQueueName = builder.Configuration["PmiReportDistributionSettings:ReplyQueueName"]!;
-                    rabbitMqConfigurator.ReceiveEndpoint(replyQueueName, endpointConfigurator =>
+                    string consumeQueue = builder.Configuration["PmiReportDistributionSettings:ConsumeQueueName"]!;
+                    rabbitMqConfigurator.ReceiveEndpoint(consumeQueue, endpointConfigurator =>
                     {
                         endpointConfigurator.ConfigureConsumer<PmiReportDistributionReplyMessageConsumer>(context);
                     });

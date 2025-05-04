@@ -1,7 +1,6 @@
 using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.EntityFrameworkCore;
-using MassTransit;
 using NuclearEvaluation.Kernel.Data.Context;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -9,14 +8,14 @@ using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Services;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Models.Settings;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Jobs;
-using NuclearEvaluation.PmiReportDistributionCoordinator.Consumers;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Dispatchers;
+using RabbitMQ.Client;
 
 namespace NuclearEvaluation.PmiReportDistributionCoordinator;
 
 internal class Program
 {
-    private const string LogTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
+    private const string _logTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
 
     public static void Main(string[] args)
     {
@@ -26,8 +25,8 @@ internal class Program
 
             Log.Logger = new LoggerConfiguration()
                 .Enrich.FromLogContext()
-                .WriteTo.Console(theme: AnsiConsoleTheme.Grayscale, outputTemplate: LogTemplate)
-                .WriteTo.File(path: "logs/log-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 3, outputTemplate: LogTemplate)
+                .WriteTo.Console(theme: AnsiConsoleTheme.Grayscale, outputTemplate: _logTemplate)
+                .WriteTo.File(path: "logs/log-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 3, outputTemplate: _logTemplate)
                 .CreateLogger();
 
             builder.Services.AddSerilog();
@@ -55,42 +54,34 @@ internal class Program
                 options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
             }, ServiceLifetime.Scoped);
 
-            builder.Services.AddMassTransit((busConfigurator) =>
+            builder.Services.AddSingleton<IConnectionFactory>(_ =>
             {
-                busConfigurator.AddConsumer<PmiReportDistributionReplyMessageConsumer>();
+                string hostName = builder.Configuration["RabbitMQSettings:HostName"]!;
+                int port = int.Parse(builder.Configuration["RabbitMQSettings:Port"]!);
+                string virtualHost = builder.Configuration["RabbitMQSettings:VirtualHost"]!;
+                string userName = builder.Configuration["RabbitMQSettings:UserName"]!;
+                string password = builder.Configuration["RabbitMQSettings:Password"]!;
 
-                busConfigurator.UsingRabbitMq((IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator rabbitMqConfigurator) =>
+                ConnectionFactory factory = new()
                 {
-                    string hostName = builder.Configuration["RabbitMQSettings:HostName"]!;
-                    string userName = builder.Configuration["RabbitMQSettings:UserName"]!;
-                    string password = builder.Configuration["RabbitMQSettings:Password"]!;
-                    string virtualHost = builder.Configuration["RabbitMQSettings:VirtualHost"]!;
-                    string port = builder.Configuration["RabbitMQSettings:Port"]!;
-                    Log.Information("Configuring RabbitMQ host: {HostName}, port: {Port}, virtualHost: {VirtualHost}", hostName, port, virtualHost);
-                    string uriString = $"amqps://{hostName}:{port}/{virtualHost}";
+                    HostName = hostName,
+                    Port = port,
+                    VirtualHost = virtualHost,
+                    UserName = userName,
+                    Password = password,
+                    Ssl =
+                    {
+                        Enabled = true,
+                        ServerName = hostName,
+                        Version = System.Security.Authentication.SslProtocols.Tls12
+                    },
+                    RequestedConnectionTimeout = TimeSpan.FromSeconds(10),
+                };
 
-                    try
-                    {
-                        rabbitMqConfigurator.Host(new Uri(uriString), hostConfigurator =>
-                        {
-                            hostConfigurator.Username(userName);
-                            hostConfigurator.Password(password);
-                        });
-                        Log.Information("RabbitMQ host configured successfully.");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "Error configuring RabbitMQ host.");
-                        throw;
-                    }
-
-                    string replyQueueName = builder.Configuration["PmiReportDistributionSettings:ReplyQueueName"]!;
-                    rabbitMqConfigurator.ReceiveEndpoint(replyQueueName, endpointConfigurator =>
-                    {
-                        endpointConfigurator.ConfigureConsumer<PmiReportDistributionReplyMessageConsumer>(context);
-                    });
-                });
+                return factory;
             });
+
+
 
             builder.Services.AddScoped<IEnqueuePmiReportForPublishingJob, EnqueuePmiReportForPublishingJob>();
             builder.Services.AddScoped<IPmiReportDistributionMessageDispatcher, PmiReportDistributionMessageDispatcher>();

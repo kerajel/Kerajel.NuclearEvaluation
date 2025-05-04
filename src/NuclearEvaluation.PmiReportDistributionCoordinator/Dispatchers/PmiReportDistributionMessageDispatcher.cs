@@ -1,47 +1,82 @@
-﻿using MassTransit;
-using Microsoft.Extensions.Options;
-using NuclearEvaluation.Kernel.Messages.PMI;
+﻿using System.Text;
+using System.Text.Json;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
-using NuclearEvaluation.PmiReportDistributionCoordinator.Models;
-using NuclearEvaluation.PmiReportDistributionCoordinator.Models.Settings;
+using RabbitMQ.Client;
+using Kerajel.Primitives.Models;
 
 namespace NuclearEvaluation.PmiReportDistributionCoordinator.Dispatchers;
 
-public class PmiReportDistributionMessageDispatcher : IPmiReportDistributionMessageDispatcher
+public class PmiReportDistributionMessageDispatcher : IPmiReportDistributionMessageDispatcher, IAsyncDisposable
 {
-    readonly IBus _bus;
-    readonly ILogger<PmiReportDistributionMessageDispatcher> _logger;
-    readonly PmiReportDistributionSettings _distributionSettings;
+    readonly IConnectionFactory _connectionFactory;
+    readonly SemaphoreSlim _initSemaphore = new(1, 1);
 
-    public PmiReportDistributionMessageDispatcher(
-        IBus bus,
-        ILogger<PmiReportDistributionMessageDispatcher> logger,
-        IOptions<PmiReportDistributionSettings> distributionSettings)
+    IConnection? _connection;
+    IChannel? _channel;
+
+    public PmiReportDistributionMessageDispatcher(IConnectionFactory connectionFactory)
     {
-        _bus = bus;
-        _logger = logger;
-        _distributionSettings = distributionSettings.Value;
+        _connectionFactory = connectionFactory;
     }
 
-    public async Task Send(IEnumerable<PmiReportDistributionQueueItem> queueItems, CancellationToken ct = default)
+    public async Task<OperationResult> Send<T>(
+        T message,
+        string exchange,
+        string routingKey,
+        CancellationToken ct = default)
     {
-        foreach (var group in queueItems.GroupBy(item => item.DistributionChannel))
+        try
         {
-            string channelTypeName = Enum.GetName(group.Key) ?? string.Empty;
+            await EnsureInitializedAsync(ct);
 
-            _ = _distributionSettings.DistributionMap.TryGetValue(channelTypeName, out ExchangeInfo? exchangeInfo);
+            byte[] body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
 
-            if (exchangeInfo is null)
-            {
-                _logger.LogError("Exchange mapping undefined for '{ChannelType}'", channelTypeName);
-                continue;
-            }
+            await _channel!.BasicPublishAsync(
+                exchange: exchange,
+                routingKey: routingKey,
+                body: body,
+                cancellationToken: ct);
 
-            ISendEndpoint endpoint = await _bus.GetSendEndpoint(new Uri($"exchange:{exchangeInfo.Exchange}"));
-
-            IEnumerable<PmiReportDistributionMessage> messages = group.Select(item => new PmiReportDistributionMessage(item.PmiReportId));
-
-            await endpoint.SendBatch(messages, ct);
+            return OperationResult.Succeeded();
         }
+        catch (Exception ex)
+        {
+            return OperationResult.Faulted(ex);
+        }
+    }
+
+    async Task EnsureInitializedAsync(CancellationToken ct)
+    {
+        if (_connection is { IsOpen: true } && _channel is { IsOpen: true })
+            return;
+
+        await _initSemaphore.WaitAsync(ct);
+        try
+        {
+            if (!(_connection is { IsOpen: true }) && !(_channel is { IsOpen: true }))
+            {
+                CreateChannelOptions channelOptions = new(
+                    publisherConfirmationsEnabled: true,
+                    publisherConfirmationTrackingEnabled: true,
+                    outstandingPublisherConfirmationsRateLimiter: null,
+                    consumerDispatchConcurrency: null);
+
+                _connection = await _connectionFactory.CreateConnectionAsync(ct);
+                _channel = await _connection.CreateChannelAsync(channelOptions, ct);
+            }
+        }
+        finally
+        {
+            _initSemaphore.Release();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_channel != null)
+            await _channel.DisposeAsync();
+        _connection?.Dispose();
+        _initSemaphore.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

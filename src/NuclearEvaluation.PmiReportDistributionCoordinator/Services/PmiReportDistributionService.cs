@@ -46,12 +46,12 @@ public class PmiReportDistributionService : IPmiReportDistributionService
 
     public async Task<OperationResult> SetPmiReportDistributionEntryStatus(
         PmiReportDistributionStatus status,
-        IEnumerable<int> entryIds,
+        int entryId,
         CancellationToken ct = default)
     {
         try
         {
-            await _dbContext.PmiReportDistributionEntry.Where(x => entryIds.Contains(x.Id))
+            await _dbContext.PmiReportDistributionEntry.Where(x => entryId == x.Id)
                 .Set(x => x.DistributionStatus, status)
                 .UpdateAsync(ct);
 

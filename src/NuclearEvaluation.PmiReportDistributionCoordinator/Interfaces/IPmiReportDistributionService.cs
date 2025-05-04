@@ -8,5 +8,5 @@ namespace NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 public interface IPmiReportDistributionService
 {
     Task<FetchDataResult<PmiReportDistributionQueueItem>> GetQueueItems(int take, CancellationToken ct = default);
-    Task<OperationResult> SetPmiReportDistributionEntryStatus(PmiReportDistributionStatus status, IEnumerable<int> entryIds, CancellationToken ct = default);
+    Task<OperationResult> SetPmiReportDistributionEntryStatus(PmiReportDistributionStatus status, int entryId, CancellationToken ct = default);
 }

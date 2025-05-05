@@ -12,6 +12,7 @@ using NuclearEvaluation.Messaging.Interfaces;
 using NuclearEvaluation.Messaging.Dispatchers;
 using System.Security.Authentication;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Consumers;
+using NuclearEvaluation.Kernel.Data.Context;
 
 namespace NuclearEvaluation.PmiReportDistributionCoordinator;
 
@@ -37,6 +38,11 @@ internal class Program
             builder.Configuration.AddJsonFile("pmiReportDistributionSettings.json", optional: false, reloadOnChange: true);
 
             builder.Services.Configure<PmiReportDistributionSettings>(builder.Configuration.GetSection("PmiReportDistributionSettings"));
+
+            builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>
+            {
+                options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
+            }, ServiceLifetime.Scoped);
 
             builder.Services.AddHangfire(configuration =>
             {

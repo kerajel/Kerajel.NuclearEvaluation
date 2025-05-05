@@ -2,6 +2,10 @@ using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using RabbitMQ.Client;
 using System.Security.Authentication;
+using NuclearEvaluation.PmiReportEmailDistributor.Consumers;
+using NuclearEvaluation.Messaging.Interfaces;
+using NuclearEvaluation.Messaging.Dispatchers;
+using NuclearEvaluation.PmiReportEmailDistributor.Settings;
 
 namespace NuclearEvaluation.PmiReportEmailDistributor;
 
@@ -25,6 +29,8 @@ internal class Program
 
             builder.Configuration.AddJsonFile("rabbitMqSettings.json", optional: false, reloadOnChange: true);
             builder.Configuration.AddJsonFile("pmiReportDistributionSettings.json", optional: false, reloadOnChange: true);
+
+            builder.Services.Configure<PmiReportDistributionSettings>(builder.Configuration.GetSection("PmiReportDistributionSettings"));
 
             builder.Services.AddSingleton<IConnectionFactory>(_ =>
             {
@@ -51,6 +57,11 @@ internal class Program
 
                 return factory;
             });
+
+            builder.Services.AddHostedService<PmiReportEmailDistributionMessageConsumer>();
+
+            builder.Services.AddScoped<IMessageDispatcher, NuclearEvaluationMessageDispatcher>();
+
 
             WebApplication app = builder.Build();
 

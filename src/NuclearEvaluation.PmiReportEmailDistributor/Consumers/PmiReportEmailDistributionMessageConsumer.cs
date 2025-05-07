@@ -1,11 +1,9 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using System.Text.Json;
 using Kerajel.Primitives.Models;
 using NuclearEvaluation.PmiReportDistributionContracts.Messages;
 using NuclearEvaluation.Messaging.Interfaces;
 using NuclearEvaluation.Abstractions.Enums;
-using System.Text;
 using NuclearEvaluation.Messaging.Parsers;
 using NuclearEvaluation.PmiReportEmailDistributor.Settings;
 using Microsoft.Extensions.Options;
@@ -77,7 +75,7 @@ internal sealed class PmiReportEmailDistributionMessageConsumer : BackgroundServ
                     throw new InvalidOperationException("Failed to process reply message", result.Exception!);
                 }
 
-                //await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
+                await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
 
                 IMessageDispatcher messageDispatcher = scope.ServiceProvider.GetRequiredService<IMessageDispatcher>();
 

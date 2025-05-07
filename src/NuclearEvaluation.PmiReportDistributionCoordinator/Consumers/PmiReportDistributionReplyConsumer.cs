@@ -6,6 +6,7 @@ using System.Text.Json;
 using NuclearEvaluation.PmiReportDistributionCoordinator.Interfaces;
 using Kerajel.Primitives.Models;
 using NuclearEvaluation.PmiReportDistributionContracts.Messages;
+using NuclearEvaluation.Messaging.Parsers;
 
 namespace NuclearEvaluation.PmiReportDistributionCoordinator.Consumers;
 
@@ -47,8 +48,16 @@ internal sealed class PmiReportDistributionReplyConsumer : BackgroundService
                 using IServiceScope scope = _scopeFactory.CreateScope();
                 IPmiReportDistributionService pmiService = scope.ServiceProvider.GetRequiredService<IPmiReportDistributionService>();
 
-                ReadOnlyMemory<byte> body = ea.Body;
-                var message = JsonSerializer.Deserialize<PmiReportDistributionReplyMessage>(body.Span)!;
+                OperationResult<PmiReportDistributionReplyMessage> parseResult = MessageParser.TryParseMessage<PmiReportDistributionReplyMessage>(ea.Body);
+
+                if (!parseResult.IsSuccessful)
+                {
+                    _logger.LogError("Failed to deserialize {PmiReportDistributionReplyMessage}", nameof(PmiReportDistributionReplyMessage));
+                    await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
+                    return;
+                }
+
+                PmiReportDistributionReplyMessage? message = parseResult.Content!;
 
                 using IDisposable? logScope = _logger.BeginScope(
                     "PMI Report Distribution reply message for {PmiReportId}, Channel {Channel}",

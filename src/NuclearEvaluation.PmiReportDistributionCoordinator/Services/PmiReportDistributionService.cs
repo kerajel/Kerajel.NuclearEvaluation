@@ -10,6 +10,7 @@ using Kerajel.Primitives.Helpers;
 using System.Transactions;
 using NuclearEvaluation.Abstractions.Enums;
 using NuclearEvaluation.PmiReportDistributionContracts.Messages;
+using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 
 namespace NuclearEvaluation.PmiReportDistributionCoordinator.Services;
 
@@ -73,20 +74,20 @@ public class PmiReportDistributionService : IPmiReportDistributionService
         {
             using TransactionScope ts = TransactionProvider.CreateScope();
 
-            await _dbContext.PmiReportDistributionEntry
-                .Where(x => x.PmiReportId == message.PmiReportId
-                         && x.DistributionChannel == message.Channel)
-                .Set(x => x.DistributionStatus, PmiReportDistributionStatus.Completed)
-            .UpdateAsync(ct);
+            var entriesTable = _dbContext.GetTable<PmiReportDistributionEntry>();
+            var reportsTable = _dbContext.GetTable<PmiReport>();
 
-            await _dbContext.PmiReport
-                .Where(r =>
-                        _dbContext.PmiReportDistributionEntry.Any(e => e.PmiReportId == r.Id) &&
-                        _dbContext.PmiReportDistributionEntry
+            await entriesTable
+                .Where(x => x.PmiReportId == message.PmiReportId && x.DistributionChannel == message.Channel)
+                .Set(x => x.DistributionStatus, PmiReportDistributionStatus.Completed)
+                .UpdateAsync(ct);
+
+            await reportsTable
+                .Where(r => entriesTable
                             .Where(e => e.PmiReportId == r.Id)
                             .All(e => e.DistributionStatus == PmiReportDistributionStatus.Completed))
-                    .Set(r => r.Status, PmiReportStatus.Distributed)
-                    .UpdateAsync(ct);
+                .Set(r => r.Status, PmiReportStatus.Distributed)
+                .UpdateAsync(ct);
 
             ts.Complete();
 
@@ -96,6 +97,5 @@ public class PmiReportDistributionService : IPmiReportDistributionService
         {
             return OperationResult.Faulted(ex);
         }
-
     }
 }

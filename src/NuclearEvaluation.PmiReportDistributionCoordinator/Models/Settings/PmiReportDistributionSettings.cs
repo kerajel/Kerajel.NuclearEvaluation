@@ -2,5 +2,6 @@
 
 public class PmiReportDistributionSettings
 {
-    public Dictionary<string, ExchangeInfo> DistributionMap { get; set; } = [];
+    public required Dictionary<string, ExchangeInfo> DistributionMap { get; init; }
+    public required string ReplyQueueName { get; init; }
 }

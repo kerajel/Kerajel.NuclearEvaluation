@@ -1,4 +1,4 @@
-﻿using NuclearEvaluation.Kernel.Enums;
+﻿using NuclearEvaluation.Abstractions.Enums;
 
 namespace NuclearEvaluation.PmiReportDistributionCoordinator.Models;
 

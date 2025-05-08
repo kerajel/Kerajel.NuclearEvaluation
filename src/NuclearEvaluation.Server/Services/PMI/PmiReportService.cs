@@ -2,6 +2,7 @@
 using Kerajel.Primitives.Models;
 using LinqToDB;
 using Microsoft.EntityFrameworkCore;
+using NuclearEvaluation.Abstractions.Enums;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;

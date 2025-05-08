@@ -1,6 +1,6 @@
-﻿using NuclearEvaluation.Kernel.Enums;
+﻿using NuclearEvaluation.Abstractions.Enums;
 
-namespace NuclearEvaluation.Kernel.Messages.PMI;
+namespace NuclearEvaluation.PmiReportDistributionContracts.Messages;
 
 public record PmiReportDistributionReplyMessage(
     Guid PmiReportId,

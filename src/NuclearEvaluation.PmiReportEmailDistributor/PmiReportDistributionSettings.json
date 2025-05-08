@@ -1,3 +1,6 @@
 {
-  "ConsumeQueueName": "PmiReportDistributionEmailQueue"
+  "PmiReportDistributionSettings": {
+    "ConsumeQueueName": "PmiReportDistributionEmailQueue",
+    "ReplyExchangeName": "PmiReportDistributionReplyExchange"
+  }
 }

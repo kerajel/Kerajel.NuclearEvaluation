@@ -8,7 +8,7 @@ using NuclearEvaluation.Server.Interfaces.Data;
 using NuclearEvaluation.Server.Interfaces.DB;
 using NuclearEvaluation.Server.Interfaces.Evaluation;
 using NuclearEvaluation.Server.Services.Data;
-using NuclearEvaluation.Server.Services.Db;
+using NuclearEvaluation.Server.Services.DB;
 using NuclearEvaluation.Server.Services.Evaluation;
 using Respawn;
 

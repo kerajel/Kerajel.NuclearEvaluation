@@ -28,13 +28,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.PmiReport
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.PmiReportEmailDistributor", "src\NuclearEvaluation.PmiReportEmailDistributor\NuclearEvaluation.PmiReportEmailDistributor.csproj", "{5B45C936-C0E4-4F51-94ED-E8375250A710}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.Messaging", "NuclearEvaluation.Messaging\NuclearEvaluation.Messaging.csproj", "{DB941B6C-6357-4645-A156-EDD9691A3E71}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.Messaging", "src\NuclearEvaluation.Messaging\NuclearEvaluation.Messaging.csproj", "{DB941B6C-6357-4645-A156-EDD9691A3E71}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.PmiReportDistributionContracts", "NuclearEvaluation.PmiReportDistributionContracts\NuclearEvaluation.PmiReportDistributionContracts.csproj", "{2F16C047-1E2A-41A8-B297-9BCC9693446C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.PmiReportDistributionContracts", "src\NuclearEvaluation.PmiReportDistributionContracts\NuclearEvaluation.PmiReportDistributionContracts.csproj", "{2F16C047-1E2A-41A8-B297-9BCC9693446C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.Abstractions", "NuclearEvaluation.Abstractions\NuclearEvaluation.Abstractions.csproj", "{C03B8B21-A061-43C7-947B-103573535BDC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.Abstractions", "src\NuclearEvaluation.Abstractions\NuclearEvaluation.Abstractions.csproj", "{C03B8B21-A061-43C7-947B-103573535BDC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.ODataTests", "NuclearEvaluation.ODataTests\NuclearEvaluation.ODataTests.csproj", "{5C821A55-D7E5-49B5-8AB5-01C77B22F297}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.ODataTests", "tests\NuclearEvaluation.ODataTests\NuclearEvaluation.ODataTests.csproj", "{5C821A55-D7E5-49B5-8AB5-01C77B22F297}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

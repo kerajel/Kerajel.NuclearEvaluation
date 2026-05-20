@@ -21,8 +21,8 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\NuclearEvaluation.Messaging\NuclearEvaluation.Messaging.csproj" />
-		<ProjectReference Include="..\..\NuclearEvaluation.PmiReportDistributionContracts\NuclearEvaluation.PmiReportDistributionContracts.csproj" />
+		<ProjectReference Include="..\NuclearEvaluation.Messaging\NuclearEvaluation.Messaging.csproj" />
+		<ProjectReference Include="..\NuclearEvaluation.PmiReportDistributionContracts\NuclearEvaluation.PmiReportDistributionContracts.csproj" />
 		<ProjectReference Include="..\NuclearEvaluation.Kernel\NuclearEvaluation.Kernel.csproj" />
 	</ItemGroup>
 

@@ -54,7 +54,10 @@
 
         <Template Context="series">
             <div style="max-width:1000px; overflow-x: auto; margin-left: 23px;">
-                <RadzenDataGrid AllowFiltering="true" AllowPaging="true" AllowSorting="true" Data="@series.Samples" FilterMode="FilterMode.SimpleWithMenu">
+                <RadzenDataGrid AllowFiltering="true" AllowPaging="true" AllowSorting="true" Data="@series.Samples"
+                                IsLoading="@_expandingSeries.Contains(series.Id)"
+                                Style="min-height: 8rem;"
+                                FilterMode="FilterMode.SimpleWithMenu">
                 <Columns>
                     <RadzenDataGridColumn Property="@nameof(SampleView.Sequence)" Title="Sequence" />
                     <RadzenDataGridColumn Property="@nameof(SampleView.ExternalCode)" Title="External Code" />

@@ -29,7 +29,7 @@ public partial class ApmGrid : BaseGridGeneric<ApmView>
             projectId: ProjectId,
             decayCorrected: EnableDecayCorrection);
 
-        await FetchData(() => Api.GetApmViews(query));
+        await FetchData(query, () => Api.GetApmViews(query));
 
         isLoading = false;
     }

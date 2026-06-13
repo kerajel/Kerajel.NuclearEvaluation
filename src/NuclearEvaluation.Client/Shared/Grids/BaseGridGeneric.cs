@@ -3,6 +3,7 @@ using NuclearEvaluation.Client.Services;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Filters;
 using Radzen;
+using System.Text.Json;
 
 namespace NuclearEvaluation.Client.Shared.Grids;
 
@@ -10,6 +11,9 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
 {
     [Inject]
     protected ISessionCache SessionCache { get; set; } = null!;
+
+    [Inject]
+    protected IGridResultCache ResultCache { get; set; } = null!;
 
     [Inject]
     protected INuclearEvaluationApi Api { get; set; } = null!;
@@ -69,10 +73,67 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
 
     public abstract Task Reset(bool resetColumnState = true, bool resetRowState = false);
 
+    int _loadSequence;
+
     protected async Task FetchData(Func<Task<DataResult<T>>> fetchDataFunction)
+    {
+        ApplyResult(await fetchDataFunction());
+    }
+
+    /// <summary>
+    /// Query-aware fetch with caching. If a result for this exact grid+query was seen before,
+    /// it is shown immediately and a fresh fetch runs in the background; otherwise the grid
+    /// loads normally. A sequence guard ensures a slow background refresh can never overwrite
+    /// a newer query's results.
+    /// </summary>
+    protected async Task FetchData(DataQuery query, Func<Task<DataResult<T>>> fetchDataFunction)
+    {
+        int sequence = ++_loadSequence;
+        string key = $"{GetType().Name}|{ComponentId}|{JsonSerializer.Serialize(query)}";
+
+        if (ResultCache.TryGet(key, out List<T> cachedEntries, out int cachedTotal))
+        {
+            entries = cachedEntries;
+            totalCount = cachedTotal;
+            hasFetchDataError = false;
+            isLoading = false;
+            _ = RefreshInBackground(sequence, key, fetchDataFunction);
+            return;
+        }
+
+        isLoading = true;
+        await FetchAndApply(sequence, key, fetchDataFunction);
+    }
+
+    async Task RefreshInBackground(int sequence, string key, Func<Task<DataResult<T>>> fetchDataFunction)
+    {
+        await FetchAndApply(sequence, key, fetchDataFunction);
+        if (sequence == _loadSequence)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task FetchAndApply(int sequence, string key, Func<Task<DataResult<T>>> fetchDataFunction)
     {
         DataResult<T> result = await fetchDataFunction();
 
+        // A newer LoadData superseded this fetch; discard its (now stale) result.
+        if (sequence != _loadSequence)
+        {
+            return;
+        }
+
+        ApplyResult(result);
+
+        if (result.IsSuccessful)
+        {
+            ResultCache.Set(key, entries, totalCount);
+        }
+    }
+
+    void ApplyResult(DataResult<T> result)
+    {
         if (result.IsSuccessful)
         {
             entries = [.. result.Entries];

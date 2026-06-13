@@ -30,7 +30,7 @@ public partial class SampleGrid : BaseGridGeneric<SampleView>
             projectId: ProjectId);
         currentQuery = query;
 
-        await FetchData(() => Api.GetSampleViews(query));
+        await FetchData(query, () => Api.GetSampleViews(query));
 
         isLoading = false;
     }

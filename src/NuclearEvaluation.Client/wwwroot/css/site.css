@@ -73,6 +73,8 @@ body {
     color: var(--rz-text-secondary-color);
 }
 
+/* The file input sits on top and is the actual click/drop target; the visible content
+   underneath must not intercept pointer/drag events. */
 .stem-dropzone-input {
     position: absolute;
     inset: 0;
@@ -80,6 +82,15 @@ body {
     height: 100%;
     opacity: 0;
     cursor: pointer;
+    z-index: 1;
+}
+
+.stem-dropzone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    pointer-events: none;
 }
 
 a {

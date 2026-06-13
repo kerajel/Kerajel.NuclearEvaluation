@@ -29,7 +29,7 @@ public partial class ParticleGrid : BaseGridGeneric<ParticleView>
             projectId: ProjectId,
             decayCorrected: EnableDecayCorrection);
 
-        await FetchData(() => Api.GetParticleViews(query));
+        await FetchData(query, () => Api.GetParticleViews(query));
 
         isLoading = false;
     }

@@ -43,6 +43,7 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
     readonly DataGridEditMode _editMode = DataGridEditMode.Single;
     readonly List<SeriesView> _seriesToInsert = [];
     readonly List<SeriesView> _seriesToUpdate = [];
+    readonly HashSet<int> _expandingSeries = [];
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
@@ -53,7 +54,7 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
             projectId: ProjectId,
             priorityIds: SelectedEntryIds.Count > 0 ? SelectedEntryIds : null);
 
-        await FetchData(() => Api.GetSeriesViews(query));
+        await FetchData(query, () => Api.GetSeriesViews(query));
 
         currentQuery = query;
 
@@ -122,7 +123,18 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
 
     protected async Task OnExpandRow(SeriesView seriesView)
     {
-        seriesView.Samples = await Api.GetSamplesForSeries(seriesView.Id);
+        _expandingSeries.Add(seriesView.Id);
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            seriesView.Samples = await Api.GetSamplesForSeries(seriesView.Id);
+        }
+        finally
+        {
+            _expandingSeries.Remove(seriesView.Id);
+        }
+
         await InvokeAsync(StateHasChanged);
     }
 

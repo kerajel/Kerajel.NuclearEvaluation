@@ -1,4 +1,5 @@
 using NuclearEvaluation.Client.Services;
+using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Domain;
 using NuclearEvaluation.Shared.Models.Views;
 using Radzen;
@@ -14,9 +15,9 @@ public partial class ProjectGrid : BaseGridGeneric<ProjectView>
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
-        isLoading = true;
+        DataQuery query = loadDataArgs.ToDataQuery();
 
-        await FetchData(() => Api.GetProjectViews(loadDataArgs.ToDataQuery()));
+        await FetchData(query, () => Api.GetProjectViews(query));
 
         isLoading = false;
     }

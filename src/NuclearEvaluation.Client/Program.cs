@@ -18,6 +18,7 @@ builder.Services.AddScoped(_ => new HttpClient
 
 builder.Services.AddScoped<INuclearEvaluationApi, NuclearEvaluationApiClient>();
 builder.Services.AddScoped<ISessionCache, SessionCache>();
+builder.Services.AddSingleton<IGridResultCache, GridResultCache>();
 
 builder.Services.AddRadzenComponents();
 builder.Services.AddRadzenCookieThemeService(options =>

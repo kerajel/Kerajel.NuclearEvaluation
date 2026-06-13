@@ -3,7 +3,7 @@
 <RadzenTabs @bind-SelectedIndex="tabManager.SelectedTabIndex" Change="OnTabChanged" Style="min-height: 600px;">
     <Tabs>
         <RadzenTabsItem Text="Projects">
-            <ProjectGrid />
+            <ProjectGrid ComponentId="evaluation-projects" />
         </RadzenTabsItem>
         <RadzenTabsItem Text="Query Builder">
             <QueryBuilderCard />

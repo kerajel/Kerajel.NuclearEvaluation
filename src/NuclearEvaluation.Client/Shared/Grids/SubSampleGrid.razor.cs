@@ -25,7 +25,7 @@ public partial class SubSampleGrid : BaseGridGeneric<SubSampleView>
             presetFilterBox: GetPresetFilterBox?.Invoke(),
             projectId: ProjectId);
 
-        await FetchData(() => Api.GetSubSampleViews(query));
+        await FetchData(query, () => Api.GetSubSampleViews(query));
 
         isLoading = false;
     }

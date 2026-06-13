@@ -60,7 +60,7 @@ public partial class StemPreview
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
-        List<IBrowserFile> newlySelectedFiles = new(e.GetMultipleFiles());
+        List<IBrowserFile> newlySelectedFiles = new(e.GetMultipleFiles(maximumFileCount: 100));
 
         files = files.Where(x => x.Status != FileStatus.Pending).ToList();
 

@@ -15,11 +15,13 @@
     <div class="stem-dropzone">
         <InputFile @ref="fileInput"
                    OnChange="OnInputFileChange"
-                   Multiple
+                   multiple="multiple"
                    class="stem-dropzone-input"
                    title="Drag and drop files here, or click to browse" />
-        <RadzenIcon Icon="cloud_upload" />
-        <RadzenText TextStyle="TextStyle.Body1" class="rz-mb-0">Drag &amp; drop STEM files here, or click to browse</RadzenText>
+        <div class="stem-dropzone-content">
+            <RadzenIcon Icon="cloud_upload" />
+            <RadzenText TextStyle="TextStyle.Body1" class="rz-mb-0">Drag &amp; drop one or more STEM files here, or click to browse</RadzenText>
+        </div>
     </div>
 
     @if (files.Any())

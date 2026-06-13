@@ -1,0 +1,55 @@
+# Copy this file to:
+# D:/Repos/C#/Kerajel.NuclearEvaluation/.claude/repo-knowledge.sources.yaml
+#
+# These sources are read-only context for demoing external source usage. They do
+# not replace repository evidence about the current implementation.
+
+repository:
+  name: Kerajel.NuclearEvaluation
+  aliases:
+    - Nuclear Evaluation
+    - NuclearEvaluation
+  local_path_hint: D:/Repos/C#/Kerajel.NuclearEvaluation
+  notes:
+    - Blazor Server application for nuclear material evaluation workflows.
+
+external_sources:
+  web:
+    - title: Nuclear Evaluation live application
+      url: https://nuclearevaluation.com/
+      reason: Repository README identifies this as the live application URL.
+      use_for:
+        - Product-facing terminology
+        - Visible application purpose
+
+    - title: Nuclear fission
+      url: https://en.wikipedia.org/wiki/Nuclear_fission
+      reason: Broad domain background for nuclear fission terminology.
+      use_for:
+        - Domain glossary
+        - Background context only
+
+    - title: Uranium enrichment
+      url: https://en.wikipedia.org/wiki/Enriched_uranium
+      reason: Background for U-235 and U-238 terminology visible in repository models.
+      use_for:
+        - Uranium isotope terminology
+        - Background context only
+
+    - title: Radioactive decay
+      url: https://en.wikipedia.org/wiki/Radioactive_decay
+      reason: Background for decay-correction terminology visible in repository SQL/views.
+      use_for:
+        - Decay-correction terminology
+        - Background context only
+
+context_rules:
+  use_external_sources_for:
+    - Product-facing terminology
+    - Domain glossary entries
+    - Background explanation for uranium isotope and decay-correction terms
+  do_not_use_external_sources_for:
+    - Current architecture facts
+    - Current setup or deployment instructions
+    - Replacing repository evidence about implementation behavior
+    - Future roadmap or delivery planning

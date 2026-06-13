@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Kernel.Models.Plotting;
-using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Shared.Models.Plotting;
+using NuclearEvaluation.Shared.Models.Views;
 using NuclearEvaluation.Server.Interfaces.Evaluation;
 using NuclearEvaluation.Server.Services.DB;
 using System.Linq.Expressions;

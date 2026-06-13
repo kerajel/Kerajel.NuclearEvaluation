@@ -1,6 +1,7 @@
-using Radzen;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.EntityFrameworkCore;
+using NuclearEvaluation.Server.Interfaces.STEM;
+using NuclearEvaluation.Shared;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using LinqToDB.EntityFrameworkCore;
@@ -13,42 +14,24 @@ internal class Program
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-        builder.Configuration.AddJsonFile("stemSettings.json", optional: false, reloadOnChange: true);
-        builder.Services.Configure<StemSettings>(builder.Configuration.GetSection(nameof(StemSettings)));
-
         builder.Services.Configure<KestrelServerOptions>(options =>
         {
-            options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100 MB
+            options.Limits.MaxRequestBodySize = UploadLimits.MaxStemPreviewFileSizeBytes + (1 * 1024 * 1024);
         });
 
-        builder.Services.AddRazorPages();
-        builder.Services.AddServerSideBlazor().AddHubOptions(o =>
-        {
-            o.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB
-        });
-        builder.Services.AddRadzenComponents();
-
-        builder.Services.AddRadzenCookieThemeService(options =>
-        {
-            options.Name = "NuclearEvaluationTheme";
-            options.Duration = TimeSpan.FromDays(365);
-        });
+        builder.Services.AddControllers();
 
         builder.Services.AddSerilog();
 
         Log.Logger = new LoggerConfiguration()
             .Enrich.FromLogContext()
-            .WriteTo.Console(
-                theme: AnsiConsoleTheme.Grayscale,
-                outputTemplate: logTemplate)
+            .WriteTo.Console(theme: AnsiConsoleTheme.Grayscale, outputTemplate: logTemplate)
             .WriteTo.File(
                 path: "logs/log-.txt",
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 3,
                 outputTemplate: logTemplate)
             .CreateLogger();
-
-        builder.Services.AddScoped<ISessionCache, SessionCache>();
 
         builder.Services.AddTransient<IProjectService, ProjectService>();
         builder.Services.AddTransient<IApmService, ApmService>();
@@ -65,24 +48,17 @@ internal class Program
         builder.Services.AddTransient<IPmiReportService, PmiReportService>();
         builder.Services.AddTransient<IPmiReportUploadService, PmiReportUploadService>();
 
-        builder.Services.AddScoped<ITempTableService, TempTableService>();
         builder.Services.AddScoped<IEfsFileService, EfsFileService>();
-
-        builder.Services.AddScoped<PresetFilterValidator>();
-        builder.Services.AddScoped<ProjectViewValidator>();
-        builder.Services.AddScoped<PmiReportSubmissionValidator>();
-
         builder.Services.AddSingleton<IGuidProvider, GuidProvider>();
 
-        //using Transient registration due to the nature of server-side Blazor
-        builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(options =>
-        {
-            options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
-        }, ServiceLifetime.Transient);
-        builder.Services.AddDbContextFactory<NuclearEvaluationServerDbContext>(options =>
-        {
-            options.UseSqlServer(builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection"));
-        }, ServiceLifetime.Transient);
+        string connectionString = builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection")
+            ?? throw new InvalidOperationException("Connection string 'NuclearEvaluationServerDbConnection' is not configured.");
+
+        // Transient DbContext: services are short-lived per API request.
+        builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(
+            options => options.UseSqlServer(connectionString), ServiceLifetime.Transient);
+        builder.Services.AddDbContextFactory<NuclearEvaluationServerDbContext>(
+            options => options.UseSqlServer(connectionString), ServiceLifetime.Transient);
 
         LinqToDBForEFTools.Initialize();
 
@@ -95,11 +71,12 @@ internal class Program
         }
 
         app.UseHttpsRedirection();
+        app.UseBlazorFrameworkFiles();
         app.UseStaticFiles();
         app.UseRouting();
-        app.MapRazorPages();
-        app.MapBlazorHub();
-        app.MapFallbackToPage("/_Host");
+        app.MapControllers();
+        app.MapFallbackToFile("index.html");
+
         await app.RunAsync();
     }
 }

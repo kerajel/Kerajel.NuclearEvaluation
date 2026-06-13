@@ -1,10 +1,12 @@
-﻿using Kerajel.Primitives.Enums;
+using Kerajel.Primitives.Enums;
 using LinqToDB.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Data.Queries;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Extensions;
-using NuclearEvaluation.Kernel.Models.Filters;
+using NuclearEvaluation.Shared.Enums;
+using NuclearEvaluation.Shared.Extensions;
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
@@ -47,19 +49,11 @@ public class DbServiceBase
         Expression<Func<T, object>> lambdaKeyPropertyAccess = Expression.Lambda<Func<T, object>>(convertedKeyAccess, param);
 
         IQueryable<T> dataQuery = orderedQuery
-            .OrderByWithFallback(cmd.LoadDataArgs, lambdaKeyPropertyAccess)
-            .PageWithFallback(cmd.LoadDataArgs);
+            .OrderByWithFallback(cmd.Query, lambdaKeyPropertyAccess)
+            .PageWithFallback(cmd.Query);
 
-        if (cmd.TableKind == TableKind.Temporary)
-        {
-            result.TotalCount = await filteredQuery.CountAsyncLinqToDB(ct);
-            result.Entries = await dataQuery.ToArrayAsyncLinqToDB(ct);
-        }
-        else
-        {
-            result.TotalCount = await filteredQuery.CountAsyncEF(ct);
-            result.Entries = await dataQuery.ToArrayAsyncEF(ct);
-        }
+        result.TotalCount = await filteredQuery.CountAsyncEF(ct);
+        result.Entries = await dataQuery.ToArrayAsyncEF(ct);
 
         bool shouldDetach = cmd.AsNoTracking && _dbContext.Model.FindEntityType(typeof(T)) is not null;
 
@@ -107,7 +101,7 @@ public class DbServiceBase
 
         filteredQuery = filteredQuery
             .TopLevelFilterExpressionWithFallback(command.TopLevelFilterExpression)
-            .FilterWithFallback(command.LoadDataArgs);
+            .FilterWithFallback(command.Query);
 
         return filteredQuery;
     }
@@ -116,7 +110,7 @@ public class DbServiceBase
     {
         IQueryable<PresetFilterQueryObject> compositeQuery = GetBasePresetFilterQuery();
 
-        foreach ((PresetFilterEntryType entryType, string? value) in command.PresetFilterBox!.AsEnumerable())
+        foreach ((PresetFilterEntryType entryType, string? value) in command.Query!.PresetFilterBox!.AsEnumerable())
         {
             compositeQuery = compositeQuery.FilterWithFallback(value);
         }

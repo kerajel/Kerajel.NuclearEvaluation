@@ -1,4 +1,4 @@
-﻿using NuclearEvaluation.Kernel.Models.Plotting;
+﻿using NuclearEvaluation.Shared.Models.Plotting;
 
 namespace NuclearEvaluation.Server.Interfaces.Evaluation;
 

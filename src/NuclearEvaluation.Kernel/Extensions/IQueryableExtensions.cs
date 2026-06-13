@@ -1,5 +1,4 @@
-﻿using LinqToDB;
-using Radzen;
+using NuclearEvaluation.Shared.Contracts;
 using System.Linq.Dynamic.Core;
 using System.Linq.Expressions;
 
@@ -9,21 +8,21 @@ public static class IQueryableExtensions
 {
     public static IQueryable<T> OrderByWithFallback<T>(
         this IQueryable<T> query,
-        LoadDataArgs? args,
+        DataQuery? dataQuery,
         Expression<Func<T, object>> defaultOrderBy) where T : class
     {
         bool isAlreadyOrdered = IsOrdered(query);
 
-        if (args.HasOrderBy())
+        if (!string.IsNullOrWhiteSpace(dataQuery?.OrderBy))
         {
             if (isAlreadyOrdered)
             {
-                IOrderedQueryable<T> orderedQueryWithPrimary = ((IOrderedQueryable<T>)query).ThenBy(args!.OrderBy);
+                IOrderedQueryable<T> orderedQueryWithPrimary = ((IOrderedQueryable<T>)query).ThenBy(dataQuery.OrderBy);
                 return orderedQueryWithPrimary.ThenBy(defaultOrderBy);
             }
             else
             {
-                IOrderedQueryable<T> orderedQueryWithPrimary = query.OrderBy(args!.OrderBy);
+                IOrderedQueryable<T> orderedQueryWithPrimary = query.OrderBy(dataQuery.OrderBy);
                 return orderedQueryWithPrimary.ThenBy(defaultOrderBy);
             }
         }
@@ -31,7 +30,7 @@ public static class IQueryableExtensions
         {
             if (isAlreadyOrdered)
             {
-                return ((IOrderedQueryable<T>)query).ThenOrBy(defaultOrderBy);
+                return ((IOrderedQueryable<T>)query).ThenBy(defaultOrderBy);
             }
             else
             {
@@ -71,13 +70,9 @@ public static class IQueryableExtensions
 
     public static IQueryable<T> FilterWithFallback<T>(
         this IQueryable<T> query,
-        LoadDataArgs? args) where T : class
+        DataQuery? dataQuery) where T : class
     {
-        if (args is null)
-        {
-            return query;
-        }
-        return query.FilterWithFallback(args.Filter);
+        return query.FilterWithFallback(dataQuery?.Filter);
     }
 
     public static IQueryable<T> FilterWithFallback<T>(
@@ -127,9 +122,9 @@ public static class IQueryableExtensions
 
     public static IQueryable<T> PageWithFallback<T>(
         this IQueryable<T> query,
-        LoadDataArgs? args,
+        DataQuery? dataQuery,
         int take = 25) where T : class
     {
-        return query.Skip(args?.Skip ?? 0).Take(args?.Top ?? take);
+        return query.Skip(dataQuery?.Skip ?? 0).Take(dataQuery?.Top ?? take);
     }
 }

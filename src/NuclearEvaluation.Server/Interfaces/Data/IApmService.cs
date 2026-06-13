@@ -1,6 +1,6 @@
 ﻿using Kerajel.Primitives.Models;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Server.Interfaces.Data;
 

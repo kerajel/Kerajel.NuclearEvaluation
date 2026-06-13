@@ -1,13 +1,13 @@
-﻿using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Models.Domain;
-using NuclearEvaluation.Kernel.Models.Views;
-using System.Linq.Expressions;
+using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Shared.Contracts;
+using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Server.Interfaces.Evaluation;
 
 public interface IProjectService
 {
     Task<FetchDataResult<ProjectView>> GetProjectViews(FetchDataCommand<ProjectView> command);
-    Task UpdateProjectSeriesFromView(ProjectView projectView);
-    Task UpdatePropertyFromView<TProperty>(ProjectView projectView, Expression<Func<ProjectView, TProperty>> projectViewProperty, Expression<Func<Project, TProperty>> projectProperty, bool updateView = true);
+    Task UpdateField(ProjectFieldUpdate update);
+    Task UpdateProjectSeries(int projectId, IReadOnlyCollection<int> seriesIds);
+    Task<bool> IsNameAvailable(string name, int excludeId);
 }

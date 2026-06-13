@@ -1,4 +1,4 @@
-﻿using Kerajel.Primitives.Models;
+using Kerajel.Primitives.Models;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 using NuclearEvaluation.Kernel.Models.Files;
 using NuclearEvaluation.Server.Interfaces.EFS;
@@ -22,11 +22,11 @@ public class PmiReportUploadService : IPmiReportUploadService
         _logger = logger;
     }
 
-    public async Task<OperationResult<PmiReport>> Upload(PmiReportSubmission reportSubmission, CancellationToken ct = default)
+    public async Task<OperationResult<PmiReport>> Upload(string reportName, DateOnly reportDate, string fileName, Stream content, CancellationToken ct = default)
     {
         try
         {
-            OperationResult<PmiReport> createReportResult = await _pmiReportService.Create(reportSubmission, ct);
+            OperationResult<PmiReport> createReportResult = await _pmiReportService.Create(reportName, reportDate, fileName, content.Length, ct);
 
             if (!createReportResult.IsSuccessful)
             {
@@ -36,9 +36,6 @@ public class PmiReportUploadService : IPmiReportUploadService
             PmiReport pmiReport = createReportResult.Content!;
 
             Guid fileId = pmiReport.PmiReportFileMetadata.Id;
-            string fileName = pmiReport.PmiReportFileMetadata.FileName;
-            Stream content = reportSubmission.FileStream;
-
             WriteFileCommand writeFileCommand = new(fileId, fileName, content);
 
             OperationResult<FileInfo> writeFileResult = await _fileService.Write(writeFileCommand, ct);
@@ -63,7 +60,6 @@ public class PmiReportUploadService : IPmiReportUploadService
         if (!deletePmiReportResult.IsSuccessful)
         {
             _logger.LogError("Failed to delete PMI Report {pmiReportId}", pmiReportId);
-
         }
     }
 }

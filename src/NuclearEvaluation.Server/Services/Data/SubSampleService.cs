@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Shared.Models.Views;
 using NuclearEvaluation.Server.Interfaces.Data;
 using NuclearEvaluation.Server.Services.DB;
 
@@ -23,6 +23,11 @@ public class SubSampleService : DbServiceBase, ISubSampleService
         try
         {
             IQueryable<SubSampleView> baseQuery = _dbContext.SubSampleView;
+            int? projectId = command.Query?.ProjectId;
+            if (projectId.HasValue)
+            {
+                baseQuery = baseQuery.Where(x => x.Sample.Series.ProjectSeries.Any(s => s.ProjectId == projectId.Value));
+            }
             return await ExecuteQuery(baseQuery, command);
         }
         catch (Exception ex)

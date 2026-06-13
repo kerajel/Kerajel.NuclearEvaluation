@@ -4,7 +4,7 @@ using LinqToDB;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
-using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Shared.Models.Views;
 using System.Transactions;
 
 namespace NuclearEvaluation.Server.Services.PMI;
@@ -19,11 +19,25 @@ public class PmiReportService : DbServiceBase, IPmiReportService
         _guidProvider = guidProvider;
     }
 
-    public async Task<OperationResult<PmiReport>> Create(PmiReportSubmission reportSubmission, CancellationToken ct)
+    public async Task<OperationResult<PmiReport>> Create(string reportName, DateOnly reportDate, string fileName, long fileSize, CancellationToken ct)
     {
         try
         {
-            PmiReport pmiReport = PreparePmiReport(reportSubmission);
+            PmiReport pmiReport = new()
+            {
+                Id = _guidProvider.NewGuid(),
+                Name = reportName,
+                CreatedDate = reportDate,
+            };
+
+            pmiReport.PmiReportFileMetadata = new PmiReportFileMetadata
+            {
+                Id = _guidProvider.NewGuid(),
+                PmiReport = pmiReport,
+                Size = fileSize,
+                FileName = fileName,
+            };
+
             _dbContext.Add(pmiReport);
             await _dbContext.SaveChangesAsync(ct);
             return OperationResult<PmiReport>.Succeeded(pmiReport);
@@ -62,24 +76,9 @@ public class PmiReportService : DbServiceBase, IPmiReportService
         return ExecuteQuery(query, command, ct);
     }
 
-    private PmiReport PreparePmiReport(PmiReportSubmission reportSubmission)
+    public async Task<bool> IsNameAvailable(string reportName, CancellationToken ct = default)
     {
-        PmiReport pmiReport = new()
-        {
-            Name = reportSubmission.ReportName,
-            CreatedDate = reportSubmission.ReportDate!.Value,
-        };
-
-        PmiReportFileMetadata fileMetadata = new()
-        {
-            Id = _guidProvider.NewGuid(),
-            PmiReport = pmiReport,
-            Size = reportSubmission.FileStream.Length,
-            FileName = reportSubmission.FileName,
-        };
-
-        pmiReport.PmiReportFileMetadata = fileMetadata;
-
-        return pmiReport;
+        bool exists = await EntityFrameworkQueryableExtensions.AnyAsync(_dbContext.PmiReport, x => x.Name == reportName, ct);
+        return !exists;
     }
 }

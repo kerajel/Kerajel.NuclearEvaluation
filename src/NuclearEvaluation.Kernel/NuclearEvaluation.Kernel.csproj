@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
@@ -15,11 +15,12 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Radzen.Blazor" Version="5.9.8" />
+		<PackageReference Include="System.Linq.Dynamic.Core" Version="1.6.0.2" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\Kerajel.Primitives\Kerajel.Primitives.csproj" />
+	  <ProjectReference Include="..\NuclearEvaluation.Shared\NuclearEvaluation.Shared.csproj" />
 	</ItemGroup>
 
 </Project>

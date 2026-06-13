@@ -1,9 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
-using NuclearEvaluation.Kernel.Models.Domain;
-using NuclearEvaluation.Kernel.Models.Filters;
-using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
+using NuclearEvaluation.Shared.Models.Domain;
+using NuclearEvaluation.Shared.Models.Filters;
+using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Kernel.Data.Context;
 
@@ -12,6 +13,7 @@ public partial class NuclearEvaluationServerDbContext : DbContext
     private const string DboSchema = "DBO";
     private const string DataSchema = "DATA";
     private const string EvaluationSchema = "EVALUATION";
+    private const string StagingSchema = "STAGING";
 
     public NuclearEvaluationServerDbContext() { }
 
@@ -38,6 +40,9 @@ public partial class NuclearEvaluationServerDbContext : DbContext
     public DbSet<ProjectDecayCorrectedApmView> ProjectDecayCorrectedApmView { get; set; }
     public DbSet<PmiReport> PmiReport { get; set; }
 
+    public DbSet<StemPreviewEntry> StemPreviewEntry { get; set; }
+    public DbSet<StemPreviewFileMetadata> StemPreviewFileMetadata { get; set; }
+
     public DbSet<PmiReportView> PmiReportView { get; set; }
     public DbSet<PmiReportFileMetadataView> PmiReportFileMetadataView { get; set; }
 
@@ -58,6 +63,7 @@ public partial class NuclearEvaluationServerDbContext : DbContext
         OnModelBuilding(modelBuilder);
         ConfigureDboSchema(modelBuilder);
         ConfigureDataSchema(modelBuilder);
+        ConfigureStagingSchema(modelBuilder);
         ConfigureEvaluationSchema(modelBuilder);
         ConfigureDataSchemaViews(modelBuilder);
         ConfigureEvaluationSchemaViews(modelBuilder);
@@ -95,7 +101,7 @@ public partial class NuclearEvaluationServerDbContext : DbContext
             entity.ToTable("Sample", DataSchema);
             entity.Property(x => x.SampleType)
                   .HasColumnType("tinyint")
-                  .HasComputedColumnSql(Models.Domain.Sample.GetSampleTypeSqlExpression());
+                  .HasComputedColumnSql(Shared.Models.Domain.Sample.GetSampleTypeSqlExpression());
         });
 
         modelBuilder.Entity<SubSample>(entity =>
@@ -111,6 +117,23 @@ public partial class NuclearEvaluationServerDbContext : DbContext
         modelBuilder.Entity<Particle>(entity =>
         {
             entity.ToTable("Particle", DataSchema);
+        });
+    }
+
+    static void ConfigureStagingSchema(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<StemPreviewEntry>(entity =>
+        {
+            entity.ToTable("StemPreviewEntry", StagingSchema);
+            entity.HasKey(x => x.RowId);
+            entity.HasIndex(x => x.StemSessionId);
+        });
+
+        modelBuilder.Entity<StemPreviewFileMetadata>(entity =>
+        {
+            entity.ToTable("StemPreviewFile", StagingSchema);
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.StemSessionId);
         });
     }
 

@@ -35,7 +35,9 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
     protected int totalCount = 0;
     protected List<T> entries = [];
     protected bool hasFetchDataError = false;
-    protected bool isLoading = false;
+    // Start in the loading state so the first paint shows a loading indicator rather than a
+    // misleading "No records" empty template before the initial async fetch completes.
+    protected bool isLoading = true;
     protected DataGridSettings? dataGridSettings;
 
     protected virtual string DecimalFormat => "{0:0.##}";

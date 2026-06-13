@@ -33,6 +33,18 @@ body {
     --rz-body-padding: 0;
 }
 
+/* Reserve vertical space for data grids so the layout doesn't shift when async data
+   arrives (avoids the "teary" jump). Nested row-detail grids and the compact totals
+   strip size to their content instead. */
+.rz-data-grid {
+    min-height: 24rem;
+}
+
+.rz-data-grid .rz-data-grid,
+.ne-compact-grid .rz-data-grid {
+    min-height: 0;
+}
+
 a {
     color: var(--rz-link-color);
 }

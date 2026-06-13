@@ -2,8 +2,6 @@
 
 public class PmiReportSubmission
 {
-    public string AuthorId {  get; set; } = string.Empty;
-
     public string ReportName { get; set; } = string.Empty;
 
     public DateOnly? ReportDate { get; set; }

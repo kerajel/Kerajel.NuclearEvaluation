@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NuclearEvaluation.Kernel.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,50 +15,20 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 name: "DATA");
 
             migrationBuilder.EnsureSchema(
-                name: "ADMIN");
-
-            migrationBuilder.EnsureSchema(
                 name: "EVALUATION");
 
             migrationBuilder.CreateTable(
-                name: "AspNetRoles",
-                schema: "ADMIN",
+                name: "PmiReport",
+                schema: "EVALUATION",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedDate = table.Column<DateOnly>(type: "date", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetRoles", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AspNetUsers",
-                schema: "ADMIN",
-                columns: table => new
-                {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    EmailConfirmed = table.Column<bool>(type: "bit", nullable: false),
-                    SecurityStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PhoneNumberConfirmed = table.Column<bool>(type: "bit", nullable: false),
-                    TwoFactorEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    LockoutEnd = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    LockoutEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    AccessFailedCount = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                    table.PrimaryKey("PK_PmiReport", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -115,141 +85,23 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "AspNetRoleClaims",
-                schema: "ADMIN",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    RoleId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
-                        column: x => x.RoleId,
-                        principalSchema: "ADMIN",
-                        principalTable: "AspNetRoles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AspNetUserClaims",
-                schema: "ADMIN",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetUserClaims", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AspNetUserClaims_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalSchema: "ADMIN",
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AspNetUserLogins",
-                schema: "ADMIN",
-                columns: table => new
-                {
-                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ProviderKey = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ProviderDisplayName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetUserLogins", x => new { x.LoginProvider, x.ProviderKey });
-                    table.ForeignKey(
-                        name: "FK_AspNetUserLogins_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalSchema: "ADMIN",
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AspNetUserRoles",
-                schema: "ADMIN",
-                columns: table => new
-                {
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    RoleId = table.Column<string>(type: "nvarchar(450)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetUserRoles", x => new { x.UserId, x.RoleId });
-                    table.ForeignKey(
-                        name: "FK_AspNetUserRoles_AspNetRoles_RoleId",
-                        column: x => x.RoleId,
-                        principalSchema: "ADMIN",
-                        principalTable: "AspNetRoles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_AspNetUserRoles_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalSchema: "ADMIN",
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AspNetUserTokens",
-                schema: "ADMIN",
-                columns: table => new
-                {
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetUserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
-                    table.ForeignKey(
-                        name: "FK_AspNetUserTokens_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalSchema: "ADMIN",
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PmiReport",
+                name: "PmiReportFileMetadata",
                 schema: "EVALUATION",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    AuthorId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CreatedDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false)
+                    PmiReportId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Size = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PmiReport", x => x.Id);
+                    table.PrimaryKey("PK_PmiReportFileMetadata", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_PmiReport_AspNetUsers_AuthorId",
-                        column: x => x.AuthorId,
-                        principalSchema: "ADMIN",
-                        principalTable: "AspNetUsers",
+                        name: "FK_PmiReportFileMetadata_PmiReport_PmiReportId",
+                        column: x => x.PmiReportId,
+                        principalSchema: "EVALUATION",
+                        principalTable: "PmiReport",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -329,29 +181,6 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                         column: x => x.SeriesId,
                         principalSchema: "DATA",
                         principalTable: "Series",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PmiReportDistributionEntry",
-                schema: "EVALUATION",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PmiReportId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    DistributionChannel = table.Column<int>(type: "int", nullable: false),
-                    DistributionStatus = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PmiReportDistributionEntry", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_PmiReportDistributionEntry_PmiReport_PmiReportId",
-                        column: x => x.PmiReportId,
-                        principalSchema: "EVALUATION",
-                        principalTable: "PmiReport",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -450,68 +279,17 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 column: "SubSampleId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AspNetRoleClaims_RoleId",
-                schema: "ADMIN",
-                table: "AspNetRoleClaims",
-                column: "RoleId");
-
-            migrationBuilder.CreateIndex(
-                name: "RoleNameIndex",
-                schema: "ADMIN",
-                table: "AspNetRoles",
-                column: "NormalizedName",
-                unique: true,
-                filter: "[NormalizedName] IS NOT NULL");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AspNetUserClaims_UserId",
-                schema: "ADMIN",
-                table: "AspNetUserClaims",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AspNetUserLogins_UserId",
-                schema: "ADMIN",
-                table: "AspNetUserLogins",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AspNetUserRoles_RoleId",
-                schema: "ADMIN",
-                table: "AspNetUserRoles",
-                column: "RoleId");
-
-            migrationBuilder.CreateIndex(
-                name: "EmailIndex",
-                schema: "ADMIN",
-                table: "AspNetUsers",
-                column: "NormalizedEmail");
-
-            migrationBuilder.CreateIndex(
-                name: "UserNameIndex",
-                schema: "ADMIN",
-                table: "AspNetUsers",
-                column: "NormalizedUserName",
-                unique: true,
-                filter: "[NormalizedUserName] IS NOT NULL");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Particle_SubSampleId",
                 schema: "DATA",
                 table: "Particle",
                 column: "SubSampleId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PmiReport_AuthorId",
+                name: "IX_PmiReportFileMetadata_PmiReportId",
                 schema: "EVALUATION",
-                table: "PmiReport",
-                column: "AuthorId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PmiReportDistributionEntry_PmiReportId",
-                schema: "EVALUATION",
-                table: "PmiReportDistributionEntry",
-                column: "PmiReportId");
+                table: "PmiReportFileMetadata",
+                column: "PmiReportId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_PresetFilterEntry_PresetFilterId",
@@ -553,31 +331,11 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 schema: "DATA");
 
             migrationBuilder.DropTable(
-                name: "AspNetRoleClaims",
-                schema: "ADMIN");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUserClaims",
-                schema: "ADMIN");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUserLogins",
-                schema: "ADMIN");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUserRoles",
-                schema: "ADMIN");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUserTokens",
-                schema: "ADMIN");
-
-            migrationBuilder.DropTable(
                 name: "Particle",
                 schema: "DATA");
 
             migrationBuilder.DropTable(
-                name: "PmiReportDistributionEntry",
+                name: "PmiReportFileMetadata",
                 schema: "EVALUATION");
 
             migrationBuilder.DropTable(
@@ -587,10 +345,6 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
             migrationBuilder.DropTable(
                 name: "ProjectSeries",
                 schema: "EVALUATION");
-
-            migrationBuilder.DropTable(
-                name: "AspNetRoles",
-                schema: "ADMIN");
 
             migrationBuilder.DropTable(
                 name: "SubSample",
@@ -611,10 +365,6 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
             migrationBuilder.DropTable(
                 name: "Sample",
                 schema: "DATA");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUsers",
-                schema: "ADMIN");
 
             migrationBuilder.DropTable(
                 name: "Series",

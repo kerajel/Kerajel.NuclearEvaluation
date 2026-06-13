@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Server.Interfaces.Cache;
 using NuclearEvaluation.Server.Services.Cache;
-using NuclearEvaluation.Server.Services.Security;
 using NuclearEvaluation.Server.Validators;
 using Radzen;
 
@@ -31,7 +30,6 @@ public static class TestStartup
         }, ServiceLifetime.Transient);
 
         services.AddScoped<ISessionCache, SessionCache>();
-        services.AddScoped<SecurityService>();
 
         services.AddScoped<PresetFilterValidator>();
         services.AddScoped<ProjectViewValidator>();

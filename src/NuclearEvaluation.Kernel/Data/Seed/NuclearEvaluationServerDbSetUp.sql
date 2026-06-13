@@ -773,19 +773,7 @@ AS
 SELECT    pr.Id
         , pr.Name AS Name
         , pr.CreatedDate AS DateUploaded
-        , anu.UserName
-        , pr.Status
-FROM [EVALUATION].[PmiReport] AS pr
-INNER JOIN [ADMIN].[AspNetUsers] anu ON pr.AuthorId = anu.Id;
-GO
-
-CREATE OR ALTER VIEW [EVALUATION].PmiReportDistributionEntryView
-AS
-SELECT    de.Id
-        , de.PmiReportId
-        , de.DistributionChannel
-        , de.DistributionStatus
-FROM [EVALUATION].[PmiReportDistributionEntry] AS de;
+FROM [EVALUATION].[PmiReport] AS pr;
 GO
 
 CREATE OR ALTER VIEW [EVALUATION].PmiReportFileMetadataView

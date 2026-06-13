@@ -11,7 +11,5 @@ public class PmiReportView
 
     public required DateOnly DateUploaded { get; init; }
 
-    public required string UserName { get; init; }
-
     public required PmiReportFileMetadataView FileMetadata { get; init; }
 }

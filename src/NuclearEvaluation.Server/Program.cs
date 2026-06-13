@@ -1,9 +1,5 @@
 using Radzen;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.OData;
-using Microsoft.OData.ModelBuilder;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -11,7 +7,7 @@ using LinqToDB.EntityFrameworkCore;
 
 internal class Program
 {
-    const string logTemlate = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
+    const string logTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
 
     private static async Task Main(string[] args)
     {
@@ -28,7 +24,7 @@ internal class Program
         builder.Services.AddRazorPages();
         builder.Services.AddServerSideBlazor().AddHubOptions(o =>
         {
-            o.MaximumReceiveMessageSize = 10 * 1024 * 1024;  // 100 MB
+            o.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB
         });
         builder.Services.AddRadzenComponents();
 
@@ -44,12 +40,12 @@ internal class Program
             .Enrich.FromLogContext()
             .WriteTo.Console(
                 theme: AnsiConsoleTheme.Grayscale,
-                outputTemplate: logTemlate)
+                outputTemplate: logTemplate)
             .WriteTo.File(
                 path: "logs/log-.txt",
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 3,
-                outputTemplate: logTemlate)
+                outputTemplate: logTemplate)
             .CreateLogger();
 
         builder.Services.AddScoped<ISessionCache, SessionCache>();
@@ -90,30 +86,6 @@ internal class Program
 
         LinqToDBForEFTools.Initialize();
 
-        builder.Services.AddHttpClient("NuclearEvaluation.Server").ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { UseCookies = false }).AddHeaderPropagation(o => o.Headers.Add("Cookie"));
-        builder.Services.AddHeaderPropagation(o => o.Headers.Add("Cookie"));
-        builder.Services.AddAuthentication();
-        builder.Services.AddAuthorization();
-        builder.Services.AddScoped<SecurityService>();
-        builder.Services.AddIdentity<ApplicationUser, ApplicationRole>().AddEntityFrameworkStores<NuclearEvaluationServerDbContext>().AddDefaultTokenProviders();
-        builder.Services.AddControllers().AddOData(o =>
-        {
-            ODataConventionModelBuilder oDataBuilder = new();
-            oDataBuilder.EntitySet<ApplicationUser>("ApplicationUsers");
-            StructuralTypeConfiguration usersType = oDataBuilder.StructuralTypes.First(x => x.ClrType == typeof(ApplicationUser));
-            usersType.AddProperty(typeof(ApplicationUser).GetProperty(nameof(ApplicationUser.Password)));
-            usersType.AddProperty(typeof(ApplicationUser).GetProperty(nameof(ApplicationUser.ConfirmPassword)));
-            oDataBuilder.EntitySet<ApplicationRole>("ApplicationRoles");
-            o.AddRouteComponents("odata/Identity", oDataBuilder.GetEdmModel()).Count().Filter().OrderBy().Expand().Select().SetMaxTop(null).TimeZone = TimeZoneInfo.Utc;
-        });
-        builder.Services.AddScoped<AuthenticationStateProvider, ApplicationAuthenticationStateProvider>();
-
-        builder.Services.ConfigureApplicationCookie(options =>
-        {
-            options.ExpireTimeSpan = TimeSpan.FromHours(8);
-            options.SlidingExpiration = true;
-        });
-
         WebApplication app = builder.Build();
 
         if (!app.Environment.IsDevelopment())
@@ -123,14 +95,11 @@ internal class Program
         }
 
         app.UseHttpsRedirection();
-        app.UseHeaderPropagation();
         app.UseStaticFiles();
         app.UseRouting();
-        app.UseAuthentication();
-        app.UseAuthorization();
-        app.MapControllers();
+        app.MapRazorPages();
         app.MapBlazorHub();
         app.MapFallbackToPage("/_Host");
-        app.Run();
+        await app.RunAsync();
     }
 }

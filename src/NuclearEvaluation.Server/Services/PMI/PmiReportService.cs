@@ -67,8 +67,6 @@ public class PmiReportService : DbServiceBase, IPmiReportService
         PmiReport pmiReport = new()
         {
             Name = reportSubmission.ReportName,
-            AuthorId = reportSubmission.AuthorId,
-            Author = null!,
             CreatedDate = reportSubmission.ReportDate!.Value,
         };
 

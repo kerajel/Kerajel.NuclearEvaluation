@@ -1,10 +1,8 @@
-﻿using Kerajel.Primitives.Helpers;
+using Kerajel.Primitives.Helpers;
 using Kerajel.Primitives.Models;
 using LinqToDB;
 using Microsoft.EntityFrameworkCore;
-using NuclearEvaluation.Abstractions.Enums;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 using NuclearEvaluation.Kernel.Models.Views;
 using System.Transactions;
@@ -42,7 +40,7 @@ public class PmiReportService : DbServiceBase, IPmiReportService
         {
             using TransactionScope ts = TransactionProvider.CreateScope();
 
-            await _dbContext.PmiReportDistributionEntry.Where(x => x.PmiReportId == pmiReportId)
+            await _dbContext.Set<PmiReportFileMetadata>().Where(x => x.PmiReportId == pmiReportId)
                 .DeleteAsync(ct);
             await _dbContext.PmiReport.Where(x => x.Id == pmiReportId)
                 .DeleteAsync(ct);
@@ -58,16 +56,11 @@ public class PmiReportService : DbServiceBase, IPmiReportService
 
     public Task<FetchDataResult<PmiReportView>> GetPmiReportViews(FetchDataCommand<PmiReportView> command, CancellationToken ct = default)
     {
-        Func<IQueryable<PmiReportView>, IQueryable<PmiReportView>> distributionInclude = (IQueryable<PmiReportView> query) => query.Include(x => x.DistributionEntries);
-        Func<IQueryable<PmiReportView>, IQueryable<PmiReportView>> fileMetadataInclude = (IQueryable<PmiReportView> query) => query.Include(x => x.FileMetadata);
-
-        IQueryable<PmiReportView> query = _dbContext.PmiReportView.AsNoTracking();
-        query = distributionInclude(query);
-        query = fileMetadataInclude(query);
+        IQueryable<PmiReportView> query = _dbContext.PmiReportView.AsNoTracking()
+            .Include(x => x.FileMetadata);
 
         return ExecuteQuery(query, command, ct);
     }
-
 
     private PmiReport PreparePmiReport(PmiReportSubmission reportSubmission)
     {
@@ -77,20 +70,7 @@ public class PmiReportService : DbServiceBase, IPmiReportService
             AuthorId = reportSubmission.AuthorId,
             Author = null!,
             CreatedDate = reportSubmission.ReportDate!.Value,
-            Status = PmiReportStatus.Uploaded,
         };
-
-        //OPTIONAL add options to control which channels are active
-        foreach (PmiReportDistributionChannel channel in Enum.GetValues<PmiReportDistributionChannel>())
-        {
-            PmiReportDistributionEntry entry = new()
-            {
-                PmiReport = pmiReport,
-                DistributionChannel = channel,
-                DistributionStatus = PmiReportDistributionStatus.Pending,
-            };
-            pmiReport.PmiReportDistributionEntries.Add(entry);
-        }
 
         PmiReportFileMetadata fileMetadata = new()
         {

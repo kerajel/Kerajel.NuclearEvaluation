@@ -41,10 +41,8 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
     public DbSet<ProjectDecayCorrectedParticleView> ProjectDecayCorrectedParticleView { get; set; }
     public DbSet<ProjectDecayCorrectedApmView> ProjectDecayCorrectedApmView { get; set; }
     public DbSet<PmiReport> PmiReport { get; set; }
-    public DbSet<PmiReportDistributionEntry> PmiReportDistributionEntry { get; set; }
 
     public DbSet<PmiReportView> PmiReportView { get; set; }
-    public DbSet<PmiReportDistributionEntryView> PmiReportDistributionEntryView { get; set; }
     public DbSet<PmiReportFileMetadataView> PmiReportFileMetadataView { get; set; }
 
     partial void OnModelBuilding(ModelBuilder builder);
@@ -187,9 +185,6 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
         {
             entity.ToTable("PmiReport", EvaluationSchema);
             entity.HasKey(pr => pr.Id);
-            entity.HasMany(pr => pr.PmiReportDistributionEntries)
-                  .WithOne(de => de.PmiReport)
-                  .HasForeignKey(de => de.PmiReportId);
             entity.HasOne(pr => pr.Author)
                   .WithMany()
                   .HasForeignKey(pr => pr.AuthorId)
@@ -197,15 +192,6 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
             entity.HasOne(pr => pr.PmiReportFileMetadata)
                   .WithOne(fm => fm.PmiReport)
                   .HasForeignKey<PmiReportFileMetadata>(fm => fm.PmiReportId);
-        });
-
-        modelBuilder.Entity<PmiReportDistributionEntry>(entity =>
-        {
-            entity.ToTable("PmiReportDistributionEntry", EvaluationSchema);
-            entity.HasKey(de => de.Id);
-            entity.HasOne(de => de.PmiReport)
-                  .WithMany(pr => pr.PmiReportDistributionEntries)
-                  .HasForeignKey(de => de.PmiReportId);
         });
 
         modelBuilder.Entity<PmiReportFileMetadata>(entity =>
@@ -296,12 +282,6 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
         {
             entity.HasAlternateKey(x => x.Id);
             entity.ToView("PmiReportView", EvaluationSchema);
-        });
-
-        modelBuilder.Entity<PmiReportDistributionEntryView>(entity =>
-        {
-            entity.HasAlternateKey(x => x.Id);
-            entity.ToView("PmiReportDistributionEntryView", EvaluationSchema);
         });
 
         modelBuilder.Entity<PmiReportFileMetadataView>(entity =>

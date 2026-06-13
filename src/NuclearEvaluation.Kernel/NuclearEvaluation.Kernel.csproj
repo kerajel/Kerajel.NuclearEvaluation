@@ -23,7 +23,6 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\Kerajel.Primitives\Kerajel.Primitives.csproj" />
-	  <ProjectReference Include="..\NuclearEvaluation.Abstractions\NuclearEvaluation.Abstractions.csproj" />
 	</ItemGroup>
 
 </Project>

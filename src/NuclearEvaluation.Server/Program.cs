@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Server.Interfaces.STEM;
+using NuclearEvaluation.Server.Services.Captcha;
 using NuclearEvaluation.Server.Services.Sandbox;
 using NuclearEvaluation.Shared;
 using Serilog;
@@ -61,6 +62,9 @@ internal class Program
         builder.Services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
         builder.Services.AddHostedService<SandboxMaintenanceService>();
 
+        builder.Services.Configure<CaptchaSettings>(builder.Configuration.GetSection("Captcha"));
+        builder.Services.AddSingleton<ICaptchaService, CaptchaService>();
+
         string connectionString = builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection")
             ?? throw new InvalidOperationException("Connection string 'NuclearEvaluationServerDbConnection' is not configured.");
 
@@ -92,6 +96,7 @@ internal class Program
         app.UseStaticFiles();
         app.UseRouting();
         app.UseRateLimiter();
+        app.UseMiddleware<CaptchaGateMiddleware>();
         app.MapControllers();
         app.MapFallbackToFile("index.html");
 

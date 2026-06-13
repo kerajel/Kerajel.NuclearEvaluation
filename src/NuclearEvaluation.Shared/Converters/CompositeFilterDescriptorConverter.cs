@@ -30,7 +30,7 @@ public class CompositeFilterDescriptorConverter : JsonConverter<CompositeFilterD
         if (root.TryGetProperty(_typePropertyName, out JsonElement typeProp) &&
             root.TryGetProperty(nameof(CompositeFilterDescriptor.FilterValue), out JsonElement valueProp))
         {
-            Type type = Type.GetType(typeProp.GetString()) ?? typeof(object);
+            Type type = Type.GetType(typeProp.GetString() ?? string.Empty) ?? typeof(object);
             descriptor.FilterValue = JsonSerializer.Deserialize(valueProp.GetRawText(), type, options);
         }
 

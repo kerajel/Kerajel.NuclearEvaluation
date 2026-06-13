@@ -1,0 +1,36 @@
+@if (_verified)
+{
+    @ChildContent
+}
+else if (_checking)
+{
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;">
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+}
+else
+{
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;padding:1rem;">
+        <RadzenCard Style="max-width:420px;width:100%;text-align:center;">
+            <RadzenImage Path="images/nuclear-logo.png" Style="width:96px;height:96px;margin-bottom:1rem;" AlternateText="Logo" />
+            <RadzenText TextStyle="TextStyle.H5">Quick human check</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body1" class="rz-my-3">
+                This site is open to everyone. To keep automated abuse out, your browser will
+                solve a small proof-of-work puzzle. No personal data is collected.
+            </RadzenText>
+
+            @if (_error is not null)
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Warning" ShowIcon="false" Variant="Variant.Flat" Shade="Shade.Lighter">
+                    @_error
+                </RadzenAlert>
+            }
+
+            <RadzenButton Text="@(_solving ? "Verifying…" : "Verify I'm human")"
+                          Icon="verified_user"
+                          Disabled="_solving"
+                          Click="@Solve"
+                          Style="width:100%;" />
+        </RadzenCard>
+    </div>
+}

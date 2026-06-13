@@ -170,4 +170,16 @@ public class NuclearEvaluationApiClient : INuclearEvaluationApi
 
     public async Task DeleteStemPreviewFile(Guid sessionId, Guid fileId, CancellationToken ct = default)
         => (await _http.DeleteAsync($"api/stem/{sessionId}/files/{fileId}", ct)).EnsureSuccessStatusCode();
+
+    public async Task<CaptchaStatus> GetCaptchaStatus(CancellationToken ct = default)
+        => await _http.GetFromJsonAsync<CaptchaStatus>("api/captcha/status", JsonOptions, ct) ?? new CaptchaStatus();
+
+    public async Task<CaptchaChallenge> GetCaptchaChallenge(CancellationToken ct = default)
+        => await _http.GetFromJsonAsync<CaptchaChallenge>("api/captcha/challenge", JsonOptions, ct) ?? new CaptchaChallenge();
+
+    public async Task<CaptchaStatus> VerifyCaptcha(CaptchaSolution solution, CancellationToken ct = default)
+    {
+        HttpResponseMessage response = await _http.PostAsJsonAsync("api/captcha/verify", solution, JsonOptions, ct);
+        return await response.Content.ReadFromJsonAsync<CaptchaStatus>(JsonOptions, ct) ?? new CaptchaStatus();
+    }
 }

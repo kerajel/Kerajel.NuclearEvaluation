@@ -57,4 +57,9 @@ public interface INuclearEvaluationApi
     // STEM preview
     Task<OperationOutcome> UploadStemPreviewFile(Guid sessionId, string fileName, Stream content, CancellationToken ct = default);
     Task DeleteStemPreviewFile(Guid sessionId, Guid fileId, CancellationToken ct = default);
+
+    // Proof-of-work captcha
+    Task<CaptchaStatus> GetCaptchaStatus(CancellationToken ct = default);
+    Task<CaptchaChallenge> GetCaptchaChallenge(CancellationToken ct = default);
+    Task<CaptchaStatus> VerifyCaptcha(CaptchaSolution solution, CancellationToken ct = default);
 }

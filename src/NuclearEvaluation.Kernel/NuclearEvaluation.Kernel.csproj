@@ -23,4 +23,8 @@
 	  <ProjectReference Include="..\NuclearEvaluation.Shared\NuclearEvaluation.Shared.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <EmbeddedResource Include="Data\Seed\NuclearEvaluationServerDbSetUp.sql" />
+	</ItemGroup>
+
 </Project>

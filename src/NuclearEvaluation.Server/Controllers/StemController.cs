@@ -1,6 +1,8 @@
 using Kerajel.Primitives.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using NuclearEvaluation.Server.Interfaces.STEM;
+using NuclearEvaluation.Server.Services.Sandbox;
 using NuclearEvaluation.Shared;
 using NuclearEvaluation.Shared.Contracts;
 
@@ -11,13 +13,16 @@ namespace NuclearEvaluation.Server.Controllers;
 public class StemController : ControllerBase
 {
     readonly IStemPreviewService _stemPreviewService;
+    readonly IStorageQuotaService _storageQuotaService;
 
-    public StemController(IStemPreviewService stemPreviewService)
+    public StemController(IStemPreviewService stemPreviewService, IStorageQuotaService storageQuotaService)
     {
         _stemPreviewService = stemPreviewService;
+        _storageQuotaService = storageQuotaService;
     }
 
     [HttpPost("{sessionId:guid}/files")]
+    [EnableRateLimiting(RateLimitPolicies.Uploads)]
     [RequestSizeLimit(UploadLimits.MaxStemPreviewFileSizeBytes + 8192)]
     public async Task<OperationOutcome> Upload(Guid sessionId, IFormFile file, CancellationToken ct)
     {
@@ -29,10 +34,16 @@ public class StemController : ControllerBase
         {
             return OperationOutcome.Fail("File exceeds the size limit.");
         }
+        if (!_storageQuotaService.CanAccept(file.Length))
+        {
+            return OperationOutcome.Fail("The site has reached its storage limit. Please try again later.");
+        }
 
         Guid fileId = Guid.NewGuid();
         await using Stream stream = file.OpenReadStream();
         OperationResult result = await _stemPreviewService.UploadStemPreviewFile(sessionId, stream, fileId, file.FileName, ct);
+
+        _storageQuotaService.Invalidate();
 
         return result.IsSuccessful
             ? OperationOutcome.Ok()

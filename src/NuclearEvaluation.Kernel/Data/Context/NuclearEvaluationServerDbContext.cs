@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata;
 using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
 using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
+using NuclearEvaluation.Kernel.Models.Sandbox;
 using NuclearEvaluation.Shared.Models.Domain;
 using NuclearEvaluation.Shared.Models.Filters;
 using NuclearEvaluation.Shared.Models.Views;
@@ -43,6 +44,8 @@ public partial class NuclearEvaluationServerDbContext : DbContext
     public DbSet<StemPreviewEntry> StemPreviewEntry { get; set; }
     public DbSet<StemPreviewFileMetadata> StemPreviewFileMetadata { get; set; }
 
+    public DbSet<SandboxState> SandboxState { get; set; }
+
     public DbSet<PmiReportView> PmiReportView { get; set; }
     public DbSet<PmiReportFileMetadataView> PmiReportFileMetadataView { get; set; }
 
@@ -73,6 +76,12 @@ public partial class NuclearEvaluationServerDbContext : DbContext
 
     static void ConfigureDboSchema(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<SandboxState>(entity =>
+        {
+            entity.ToTable("SandboxState", DboSchema);
+            entity.HasKey(x => x.Id);
+        });
+
         modelBuilder.Entity<PresetFilter>(entity =>
         {
             entity.ToTable("PresetFilter", EvaluationSchema);

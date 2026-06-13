@@ -35,6 +35,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.ToTable("PmiReport", "EVALUATION");
@@ -62,6 +65,102 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("PmiReportFileMetadata", "EVALUATION");
+                });
+
+            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.Stem.StemPreviewEntry", b =>
+                {
+                    b.Property<long>("RowId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
+
+                    b.Property<DateOnly>("AnalysisDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal?>("ErU234")
+                        .HasPrecision(38, 15)
+                        .HasColumnType("decimal(38,15)");
+
+                    b.Property<decimal?>("ErU235")
+                        .HasPrecision(38, 15)
+                        .HasColumnType("decimal(38,15)");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Id")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<bool>("IsNu")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LabCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("StemSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("U234")
+                        .HasPrecision(38, 15)
+                        .HasColumnType("decimal(38,15)");
+
+                    b.Property<decimal?>("U235")
+                        .HasPrecision(38, 15)
+                        .HasColumnType("decimal(38,15)");
+
+                    b.HasKey("RowId");
+
+                    b.HasIndex("StemSessionId");
+
+                    b.ToTable("StemPreviewEntry", "STAGING");
+                });
+
+            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.Stem.StemPreviewFileMetadata", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsFullyUploaded")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("StemSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StemSessionId");
+
+                    b.ToTable("StemPreviewFile", "STAGING");
+                });
+
+            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Sandbox.SandboxState", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("LastResetUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SandboxState", "DBO");
                 });
 
             modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Apm", b =>

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Server.Interfaces.STEM;
+using NuclearEvaluation.Server.Services.Sandbox;
 using NuclearEvaluation.Shared;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -20,6 +21,11 @@ internal class Program
         });
 
         builder.Services.AddControllers();
+
+        builder.Services.Configure<SandboxSettings>(builder.Configuration.GetSection("Sandbox"));
+        SandboxSettings sandboxSettings = builder.Configuration.GetSection("Sandbox").Get<SandboxSettings>() ?? new SandboxSettings();
+
+        builder.Services.AddRateLimiter(options => RateLimitPolicies.Configure(options, sandboxSettings));
 
         builder.Services.AddSerilog();
 
@@ -51,6 +57,10 @@ internal class Program
         builder.Services.AddScoped<IEfsFileService, EfsFileService>();
         builder.Services.AddSingleton<IGuidProvider, GuidProvider>();
 
+        builder.Services.AddSingleton<IStorageQuotaService, StorageQuotaService>();
+        builder.Services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
+        builder.Services.AddHostedService<SandboxMaintenanceService>();
+
         string connectionString = builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection")
             ?? throw new InvalidOperationException("Connection string 'NuclearEvaluationServerDbConnection' is not configured.");
 
@@ -64,6 +74,13 @@ internal class Program
 
         WebApplication app = builder.Build();
 
+        if (app.Configuration.GetValue("Sandbox:SeedOnStartup", true))
+        {
+            using IServiceScope scope = app.Services.CreateScope();
+            IDatabaseSeeder seeder = scope.ServiceProvider.GetRequiredService<IDatabaseSeeder>();
+            await seeder.EnsureCreatedAndSeededAsync();
+        }
+
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Error");
@@ -74,6 +91,7 @@ internal class Program
         app.UseBlazorFrameworkFiles();
         app.UseStaticFiles();
         app.UseRouting();
+        app.UseRateLimiter();
         app.MapControllers();
         app.MapFallbackToFile("index.html");
 

@@ -1,8 +1,10 @@
 using Kerajel.Primitives.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Server.Interfaces.EFS;
 using NuclearEvaluation.Server.Interfaces.PMI;
+using NuclearEvaluation.Server.Services.Sandbox;
 using NuclearEvaluation.Shared;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Views;
@@ -16,21 +18,25 @@ public class PmiReportsController : ControllerBase
     readonly IPmiReportUploadService _uploadService;
     readonly IPmiReportService _pmiReportService;
     readonly IEfsFileService _efsFileService;
+    readonly IStorageQuotaService _storageQuotaService;
     readonly ILogger<PmiReportsController> _logger;
 
     public PmiReportsController(
         IPmiReportUploadService uploadService,
         IPmiReportService pmiReportService,
         IEfsFileService efsFileService,
+        IStorageQuotaService storageQuotaService,
         ILogger<PmiReportsController> logger)
     {
         _uploadService = uploadService;
         _pmiReportService = pmiReportService;
         _efsFileService = efsFileService;
+        _storageQuotaService = storageQuotaService;
         _logger = logger;
     }
 
     [HttpPost]
+    [EnableRateLimiting(RateLimitPolicies.Uploads)]
     [RequestSizeLimit(UploadLimits.MaxPmiReportFileSizeBytes + 8192)]
     public async Task<OperationOutcome> Upload(
         [FromForm] string reportName,
@@ -50,10 +56,16 @@ public class PmiReportsController : ControllerBase
         {
             return OperationOutcome.Fail("File must be a .docx document.");
         }
+        if (!_storageQuotaService.CanAccept(file.Length))
+        {
+            return OperationOutcome.Fail("The site has reached its storage limit. Please try again later.");
+        }
 
         await using Stream stream = file.OpenReadStream();
         OperationResult<NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport> result =
             await _uploadService.Upload(reportName, reportDate, file.FileName, stream, ct);
+
+        _storageQuotaService.Invalidate();
 
         return result.IsSuccessful
             ? OperationOutcome.Ok()

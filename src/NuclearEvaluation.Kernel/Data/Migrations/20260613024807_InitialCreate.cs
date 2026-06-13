@@ -17,6 +17,12 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
             migrationBuilder.EnsureSchema(
                 name: "EVALUATION");
 
+            migrationBuilder.EnsureSchema(
+                name: "DBO");
+
+            migrationBuilder.EnsureSchema(
+                name: "STAGING");
+
             migrationBuilder.CreateTable(
                 name: "PmiReport",
                 schema: "EVALUATION",
@@ -24,7 +30,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedDate = table.Column<DateOnly>(type: "date", nullable: false)
+                    CreatedDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    UploadedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -65,6 +72,20 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "SandboxState",
+                schema: "DBO",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    LastResetUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SandboxState", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Series",
                 schema: "DATA",
                 columns: table => new
@@ -82,6 +103,46 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Series", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StemPreviewEntry",
+                schema: "STAGING",
+                columns: table => new
+                {
+                    RowId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StemSessionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<decimal>(type: "decimal(10,2)", precision: 10, scale: 2, nullable: false),
+                    LabCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    AnalysisDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    IsNu = table.Column<bool>(type: "bit", nullable: false),
+                    U234 = table.Column<decimal>(type: "decimal(38,15)", precision: 38, scale: 15, nullable: true),
+                    ErU234 = table.Column<decimal>(type: "decimal(38,15)", precision: 38, scale: 15, nullable: true),
+                    U235 = table.Column<decimal>(type: "decimal(38,15)", precision: 38, scale: 15, nullable: true),
+                    ErU235 = table.Column<decimal>(type: "decimal(38,15)", precision: 38, scale: 15, nullable: true),
+                    FileId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StemPreviewEntry", x => x.RowId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StemPreviewFile",
+                schema: "STAGING",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StemSessionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsFullyUploaded = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StemPreviewFile", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -317,6 +378,18 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 column: "SeriesId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_StemPreviewEntry_StemSessionId",
+                schema: "STAGING",
+                table: "StemPreviewEntry",
+                column: "StemSessionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StemPreviewFile_StemSessionId",
+                schema: "STAGING",
+                table: "StemPreviewFile",
+                column: "StemSessionId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SubSample_SampleId",
                 schema: "DATA",
                 table: "SubSample",
@@ -345,6 +418,18 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
             migrationBuilder.DropTable(
                 name: "ProjectSeries",
                 schema: "EVALUATION");
+
+            migrationBuilder.DropTable(
+                name: "SandboxState",
+                schema: "DBO");
+
+            migrationBuilder.DropTable(
+                name: "StemPreviewEntry",
+                schema: "STAGING");
+
+            migrationBuilder.DropTable(
+                name: "StemPreviewFile",
+                schema: "STAGING");
 
             migrationBuilder.DropTable(
                 name: "SubSample",

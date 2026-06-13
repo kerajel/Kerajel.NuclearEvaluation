@@ -451,6 +451,30 @@ VALUES
     ('Radioactive Contamination Analysis'), ('Nuclear Data Compilation'), ('Nuclear Reactor Design Optimization'),
     ('Accelerator-Driven System Development'), ('Fusion Energy Research');
 
+-- Clear existing domain, evaluation, and staging data so this script is idempotent
+-- and can be re-run by the nightly sandbox reset. FK-safe deletion order.
+DELETE FROM [DATA].[Apm];
+DELETE FROM [DATA].[Particle];
+DELETE FROM [DATA].[SubSample];
+DELETE FROM [DATA].[Sample];
+DELETE FROM [EVALUATION].[ProjectSeries];
+IF OBJECT_ID('[EVALUATION].[PmiReportFileMetadata]', 'U') IS NOT NULL DELETE FROM [EVALUATION].[PmiReportFileMetadata];
+IF OBJECT_ID('[EVALUATION].[PmiReport]', 'U') IS NOT NULL DELETE FROM [EVALUATION].[PmiReport];
+IF OBJECT_ID('[EVALUATION].[PresetFilterEntry]', 'U') IS NOT NULL DELETE FROM [EVALUATION].[PresetFilterEntry];
+IF OBJECT_ID('[EVALUATION].[PresetFilter]', 'U') IS NOT NULL DELETE FROM [EVALUATION].[PresetFilter];
+DELETE FROM [EVALUATION].[Project];
+DELETE FROM [DATA].[Series];
+IF OBJECT_ID('[STAGING].[StemPreviewEntry]', 'U') IS NOT NULL DELETE FROM [STAGING].[StemPreviewEntry];
+IF OBJECT_ID('[STAGING].[StemPreviewFile]', 'U') IS NOT NULL DELETE FROM [STAGING].[StemPreviewFile];
+
+DBCC CHECKIDENT ('[DATA].[Series]', RESEED, 9999);
+DBCC CHECKIDENT ('[DATA].[Sample]', RESEED, 0);
+DBCC CHECKIDENT ('[DATA].[SubSample]', RESEED, 0);
+DBCC CHECKIDENT ('[DATA].[Particle]', RESEED, 0);
+DBCC CHECKIDENT ('[DATA].[Apm]', RESEED, 0);
+DBCC CHECKIDENT ('[EVALUATION].[Project]', RESEED, 0);
+GO
+
 -- Seed Series
 ;WITH numbers AS (
     SELECT TOP (100000)

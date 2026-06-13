@@ -28,6 +28,7 @@ public class PmiReportService : DbServiceBase, IPmiReportService
                 Id = _guidProvider.NewGuid(),
                 Name = reportName,
                 CreatedDate = reportDate,
+                UploadedAt = DateTime.UtcNow,
             };
 
             pmiReport.PmiReportFileMetadata = new PmiReportFileMetadata

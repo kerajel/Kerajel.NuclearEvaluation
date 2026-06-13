@@ -104,6 +104,38 @@ public class EfsFileService : IEfsFileService
 
         return result;
     }
+    public long GetTotalSizeBytes()
+    {
+        DirectoryInfo storageDirectory = GetStorageDirectory();
+        return storageDirectory
+            .EnumerateFiles("*", SearchOption.AllDirectories)
+            .Sum(f => f.Length);
+    }
+
+    public int PurgeOlderThan(DateTime cutoffUtc)
+    {
+        DirectoryInfo storageDirectory = GetStorageDirectory();
+        int removed = 0;
+
+        foreach (DirectoryInfo fileDirectory in storageDirectory.EnumerateDirectories())
+        {
+            if (fileDirectory.LastWriteTimeUtc < cutoffUtc)
+            {
+                try
+                {
+                    fileDirectory.Delete(recursive: true);
+                    removed++;
+                }
+                catch
+                {
+                    // best-effort purge; a locked folder will be retried next sweep
+                }
+            }
+        }
+
+        return removed;
+    }
+
     static DirectoryInfo GetStorageDirectory()
     {
         string currentDirectory = Directory.GetCurrentDirectory();

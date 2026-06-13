@@ -24,7 +24,7 @@ public class StemController : ControllerBase
     [HttpPost("{sessionId:guid}/files")]
     [EnableRateLimiting(RateLimitPolicies.Uploads)]
     [RequestSizeLimit(UploadLimits.MaxStemPreviewFileSizeBytes + 8192)]
-    public async Task<OperationOutcome> Upload(Guid sessionId, IFormFile file, CancellationToken ct)
+    public async Task<OperationOutcome> Upload(Guid sessionId, [FromForm] Guid fileId, IFormFile file, CancellationToken ct)
     {
         if (file is null || file.Length == 0)
         {
@@ -39,7 +39,12 @@ public class StemController : ControllerBase
             return OperationOutcome.Fail("The site has reached its storage limit. Please try again later.");
         }
 
-        Guid fileId = Guid.NewGuid();
+        // The client supplies the file id so it can later delete exactly this file's staged rows.
+        if (fileId == Guid.Empty)
+        {
+            fileId = Guid.NewGuid();
+        }
+
         await using Stream stream = file.OpenReadStream();
         OperationResult result = await _stemPreviewService.UploadStemPreviewFile(sessionId, stream, fileId, file.FileName, ct);
 

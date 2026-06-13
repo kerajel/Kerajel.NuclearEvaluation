@@ -26,8 +26,10 @@
 
     @if (files.Any())
     {
-        <FileUploadGrid Data="@files" 
-                        OnRemoveFile="@RemoveFile" />
+        <div class="ne-compact-grid">
+            <FileUploadGrid Data="@files"
+                            OnRemoveFile="@RemoveFile" />
+        </div>
     }
 
     @if (files.Any(f => f.Status == FileStatus.Pending))

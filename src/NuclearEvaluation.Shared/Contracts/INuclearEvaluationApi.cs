@@ -49,7 +49,7 @@ public interface INuclearEvaluationApi
     Task<bool> IsPresetFilterNameAvailable(string name, int excludeId, CancellationToken ct = default);
 
     // STEM preview
-    Task<OperationOutcome> UploadStemPreviewFile(Guid sessionId, string fileName, Stream content, CancellationToken ct = default);
+    Task<OperationOutcome> UploadStemPreviewFile(Guid sessionId, Guid fileId, string fileName, Stream content, CancellationToken ct = default);
     Task DeleteStemPreviewFile(Guid sessionId, Guid fileId, CancellationToken ct = default);
 
     // Proof-of-work captcha

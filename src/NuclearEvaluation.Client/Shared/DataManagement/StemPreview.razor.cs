@@ -126,6 +126,7 @@ public partial class StemPreview
                 await using Stream stream = browserFile.OpenReadStream(maxPreviewFileSize, file.FileCancellationTokenSource.Token);
                 OperationOutcome result = await Api.UploadStemPreviewFile(
                       sessionId,
+                      file.Id,
                       browserFile.Name,
                       stream,
                       file.FileCancellationTokenSource.Token);

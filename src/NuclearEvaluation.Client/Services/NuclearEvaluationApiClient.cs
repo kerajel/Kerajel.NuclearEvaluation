@@ -130,9 +130,10 @@ public class NuclearEvaluationApiClient : INuclearEvaluationApi
     public async Task<bool> IsPresetFilterNameAvailable(string name, int excludeId, CancellationToken ct = default)
         => await _http.GetFromJsonAsync<bool>($"api/preset-filters/name-available?name={Uri.EscapeDataString(name)}&excludeId={excludeId}", JsonOptions, ct);
 
-    public async Task<OperationOutcome> UploadStemPreviewFile(Guid sessionId, string fileName, Stream content, CancellationToken ct = default)
+    public async Task<OperationOutcome> UploadStemPreviewFile(Guid sessionId, Guid fileId, string fileName, Stream content, CancellationToken ct = default)
     {
         using MultipartFormDataContent form = new();
+        form.Add(new StringContent(fileId.ToString()), "fileId");
         StreamContent fileContent = new(content);
         form.Add(fileContent, "file", fileName);
 

@@ -12,15 +12,15 @@
 <RadzenCard Variant="Variant.Outlined" style="padding: 1rem;">
     <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Multiple Files Upload</RadzenText>
 
-    <InputFile @ref="fileInput"
-               OnChange="OnInputFileChange"
-               Multiple
-               style="display:none" />
-
-    <RadzenButton Text="Select files..."
-                  Icon="folder_open"
-                  Click="TriggerFileInputClick"
-                  Style="margin-bottom:10px;" />
+    <div class="stem-dropzone">
+        <InputFile @ref="fileInput"
+                   OnChange="OnInputFileChange"
+                   Multiple
+                   class="stem-dropzone-input"
+                   title="Drag and drop files here, or click to browse" />
+        <RadzenIcon Icon="cloud_upload" />
+        <RadzenText TextStyle="TextStyle.Body1" class="rz-mb-0">Drag &amp; drop STEM files here, or click to browse</RadzenText>
+    </div>
 
     @if (files.Any())
     {

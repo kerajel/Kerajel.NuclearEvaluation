@@ -45,6 +45,43 @@ body {
     min-height: 0;
 }
 
+/* STEM upload drop zone: a styled area with a transparent file input overlaid on top so
+   the same control handles both click-to-browse and drag-and-drop (no JS interop needed). */
+.stem-dropzone {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 2px dashed var(--rz-input-border-color, #5b6770);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.stem-dropzone:hover {
+    border-color: var(--rz-primary, #1b6ec2);
+    background-color: rgba(127, 127, 127, 0.06);
+}
+
+.stem-dropzone .rzi {
+    font-size: 2.5rem;
+    color: var(--rz-text-secondary-color);
+}
+
+.stem-dropzone-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
 a {
     color: var(--rz-link-color);
 }

@@ -205,14 +205,16 @@
                                       Size="ButtonSize.Medium"
                                       Variant="Variant.Flat"
                                       @onclick:stopPropagation="true" />
-                        <RadzenButton ButtonStyle="ButtonStyle.Danger"
-                                      Click="@(args => DeleteRow(series))"
-                                      Icon="delete"
-                                      Disabled="@(!CanDeleteSeries(series))"
-                                      MouseEnter="@(args => HandleDeleteSeriesButtonMouseover(args, series))" Size="ButtonSize.Medium"
-                                      Variant="Variant.Flat"
-                                      class="rz-my-1 rz-ms-1"
-                                      @onclick:stopPropagation="true" />
+                        <span title="@(CanDeleteSeries(series) ? null : "Series contains samples")">
+                            <RadzenButton ButtonStyle="ButtonStyle.Danger"
+                                          Click="@(args => DeleteRow(series))"
+                                          Icon="delete"
+                                          Disabled="@(!CanDeleteSeries(series))"
+                                          Size="ButtonSize.Medium"
+                                          Variant="Variant.Flat"
+                                          class="rz-my-1 rz-ms-1"
+                                          @onclick:stopPropagation="true" />
+                        </span>
                     </Template>
                     <EditTemplate Context="series">
                         <RadzenButton ButtonStyle="ButtonStyle.Success"
@@ -236,21 +238,3 @@
 
 </div>
 
-@code {
-    void HandleDeleteSeriesButtonMouseover(ElementReference elementReference, SeriesView seriesView)
-    {
-        if (CanDeleteSeries(seriesView))
-        {
-            return;
-        }
-
-        TooltipOptions tooltipOptions = new TooltipOptions
-            {
-                Position = TooltipPosition.Top,
-                Text = "Series contains samples",
-                Style = "background-color: rgba(255, 165, 0, 0.9); color: white",
-            };
-
-        TooltipService.Open(elementReference, "Series contains samples", tooltipOptions);
-    }
-}

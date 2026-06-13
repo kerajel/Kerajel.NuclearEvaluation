@@ -18,9 +18,6 @@ public partial class StemPreview
     public string ComponentId { get; set; } = Guid.NewGuid().ToString();
 
     [Inject]
-    protected IJSRuntime JsRuntime { get; set; } = null!;
-
-    [Inject]
     protected INuclearEvaluationApi Api { get; set; } = null!;
 
     [Inject]
@@ -158,7 +155,9 @@ public partial class StemPreview
 
     private async Task RemoveFile(UploadedFile file)
     {
-        if (file.Status == FileStatus.Uploaded || file.Status == FileStatus.Uploading)
+        FileStatus previousStatus = file.Status;
+
+        if (previousStatus == FileStatus.Uploaded || previousStatus == FileStatus.Uploading)
         {
             bool? confirmDelete = await DialogService.Confirm(
                 $"Are you sure you want to delete '{file.BrowserFile.Name}'?",
@@ -172,31 +171,30 @@ public partial class StemPreview
             }
         }
 
-        file.Status = FileStatus.Deleting;
-
-        await InvokeAsync(StateHasChanged);
-        await Task.Yield();
-
-        if (file.Status == FileStatus.Uploading)
+        // Abort an in-flight (or queued) upload before its status changes, so the request
+        // is cancelled rather than allowed to run to completion.
+        if (previousStatus == FileStatus.Uploading || previousStatus == FileStatus.Pending)
         {
             await file.FileCancellationTokenSource.CancelAsync();
         }
 
+        // Update the UI immediately rather than waiting for the server round-trip.
+        file.Status = FileStatus.Removed;
         files.Remove(file);
         files = new(files);
-
-        await Api.DeleteStemPreviewFile(sessionId, file.Id);
-        await stemPreviewEntryGrid.Refresh();
-
-        file.Status = FileStatus.Removed;
-
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
-    }
 
-    async Task TriggerFileInputClick()
-    {
-        await JsRuntime.InvokeVoidAsync("clickElement", fileInput.Element);
+        // Best-effort server-side cleanup of any rows already staged for this file.
+        try
+        {
+            await Api.DeleteStemPreviewFile(sessionId, file.Id);
+            await stemPreviewEntryGrid.Refresh();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to clean up STEM file {fileId} after removal.", file.Id);
+        }
     }
 
     private bool ShowStemPreviewEntryGrid()

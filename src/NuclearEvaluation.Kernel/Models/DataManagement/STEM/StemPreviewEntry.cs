@@ -1,18 +1,15 @@
-using Microsoft.EntityFrameworkCore;
+using LinqToDB;
+using LinqToDB.Mapping;
 
 namespace NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
 /// <summary>
-/// Staged STEM preview row. Rows are keyed by the anonymous visitor's preview session
-/// and purged by the retention job; they never join the permanent DATA schema.
+/// A staged STEM preview row. These live only in per-session global temporary tables
+/// (throwaway, never in the real schema) and are dropped when the session is evicted.
 /// </summary>
 public class StemPreviewEntry
 {
-    public long RowId { get; set; }
-
-    public Guid StemSessionId { get; set; }
-
-    [Precision(10, 2)]
+    [Column(DataType = DataType.Decimal, Precision = 10, Scale = 2)]
     public decimal Id { get; set; }
 
     public string LabCode { get; set; } = string.Empty;
@@ -21,16 +18,16 @@ public class StemPreviewEntry
 
     public bool IsNu { get; set; }
 
-    [Precision(38, 15)]
+    [Column(DataType = DataType.Decimal, Precision = 38, Scale = 15)]
     public decimal? U234 { get; set; }
 
-    [Precision(38, 15)]
+    [Column(DataType = DataType.Decimal, Precision = 38, Scale = 15)]
     public decimal? ErU234 { get; set; }
 
-    [Precision(38, 15)]
+    [Column(DataType = DataType.Decimal, Precision = 38, Scale = 15)]
     public decimal? U235 { get; set; }
 
-    [Precision(38, 15)]
+    [Column(DataType = DataType.Decimal, Precision = 38, Scale = 15)]
     public decimal? ErU235 { get; set; }
 
     public Guid FileId { get; set; }

@@ -12,7 +12,7 @@ using NuclearEvaluation.Kernel.Data.Context;
 namespace NuclearEvaluation.Kernel.Data.Migrations
 {
     [DbContext(typeof(NuclearEvaluationServerDbContext))]
-    [Migration("20260613024807_InitialCreate")]
+    [Migration("20260613110533_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -24,131 +24,6 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateOnly>("CreatedDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PmiReport", "EVALUATION");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReportFileMetadata", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("PmiReportId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<long>("Size")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PmiReportId")
-                        .IsUnique();
-
-                    b.ToTable("PmiReportFileMetadata", "EVALUATION");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.Stem.StemPreviewEntry", b =>
-                {
-                    b.Property<long>("RowId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
-
-                    b.Property<DateOnly>("AnalysisDate")
-                        .HasColumnType("date");
-
-                    b.Property<decimal?>("ErU234")
-                        .HasPrecision(38, 15)
-                        .HasColumnType("decimal(38,15)");
-
-                    b.Property<decimal?>("ErU235")
-                        .HasPrecision(38, 15)
-                        .HasColumnType("decimal(38,15)");
-
-                    b.Property<Guid>("FileId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Id")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<bool>("IsNu")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LabCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("StemSessionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal?>("U234")
-                        .HasPrecision(38, 15)
-                        .HasColumnType("decimal(38,15)");
-
-                    b.Property<decimal?>("U235")
-                        .HasPrecision(38, 15)
-                        .HasColumnType("decimal(38,15)");
-
-                    b.HasKey("RowId");
-
-                    b.HasIndex("StemSessionId");
-
-                    b.ToTable("StemPreviewEntry", "STAGING");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.Stem.StemPreviewFileMetadata", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsFullyUploaded")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("StemSessionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StemSessionId");
-
-                    b.ToTable("StemPreviewFile", "STAGING");
-                });
 
             modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Sandbox.SandboxState", b =>
                 {
@@ -608,50 +483,6 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToView("ParticleView", "DATA");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.PmiReportFileMetadataView", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("PmiReportId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<long>("Size")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PmiReportId")
-                        .IsUnique();
-
-                    b.ToTable((string)null);
-
-                    b.ToView("PmiReportFileMetadataView", "EVALUATION");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.PmiReportView", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateOnly>("DateUploaded")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable((string)null);
-
-                    b.ToView("PmiReportView", "EVALUATION");
-                });
-
             modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ProjectDecayCorrectedApmView", b =>
                 {
                     b.Property<int>("Id")
@@ -958,17 +789,6 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToView("SubSampleView", "DATA");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReportFileMetadata", b =>
-                {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport", "PmiReport")
-                        .WithOne("PmiReportFileMetadata")
-                        .HasForeignKey("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReportFileMetadata", "PmiReportId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("PmiReport");
-                });
-
             modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Apm", b =>
                 {
                     b.HasOne("NuclearEvaluation.Shared.Models.Domain.SubSample", "SubSample")
@@ -1065,17 +885,6 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("SubSample");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.PmiReportFileMetadataView", b =>
-                {
-                    b.HasOne("NuclearEvaluation.Shared.Models.Views.PmiReportView", "PmiReport")
-                        .WithOne("FileMetadata")
-                        .HasForeignKey("NuclearEvaluation.Shared.Models.Views.PmiReportFileMetadataView", "PmiReportId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("PmiReport");
-                });
-
             modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ProjectDecayCorrectedApmView", b =>
                 {
                     b.HasOne("NuclearEvaluation.Shared.Models.Views.SubSampleView", "SubSample")
@@ -1139,12 +948,6 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("Sample");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport", b =>
-                {
-                    b.Navigation("PmiReportFileMetadata")
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Project", b =>
                 {
                     b.Navigation("ProjectSeries");
@@ -1172,12 +975,6 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
             modelBuilder.Entity("NuclearEvaluation.Shared.Models.Filters.PresetFilter", b =>
                 {
                     b.Navigation("Entries");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.PmiReportView", b =>
-                {
-                    b.Navigation("FileMetadata")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ProjectView", b =>

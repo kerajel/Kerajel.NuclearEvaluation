@@ -41,9 +41,6 @@ public class NuclearEvaluationApiClient : INuclearEvaluationApi
     public Task<DataResult<ProjectView>> GetProjectViews(DataQuery query, CancellationToken ct = default)
         => PostQuery<ProjectView>("api/views/projects", query, ct);
 
-    public Task<DataResult<PmiReportView>> GetPmiReportViews(DataQuery query, CancellationToken ct = default)
-        => PostQuery<PmiReportView>("api/views/pmi-reports", query, ct);
-
     public Task<DataResult<StemPreviewEntryView>> GetStemPreviewEntryViews(DataQuery query, CancellationToken ct = default)
         => PostQuery<StemPreviewEntryView>("api/views/stem-entries", query, ct);
 
@@ -132,27 +129,6 @@ public class NuclearEvaluationApiClient : INuclearEvaluationApi
 
     public async Task<bool> IsPresetFilterNameAvailable(string name, int excludeId, CancellationToken ct = default)
         => await _http.GetFromJsonAsync<bool>($"api/preset-filters/name-available?name={Uri.EscapeDataString(name)}&excludeId={excludeId}", JsonOptions, ct);
-
-    public async Task<bool> IsPmiReportNameAvailable(string name, CancellationToken ct = default)
-        => await _http.GetFromJsonAsync<bool>($"api/pmi-reports/name-available?name={Uri.EscapeDataString(name)}", JsonOptions, ct);
-
-    public async Task<OperationOutcome> UploadPmiReport(string reportName, DateOnly reportDate, string fileName, Stream content, CancellationToken ct = default)
-    {
-        using MultipartFormDataContent form = new();
-        form.Add(new StringContent(reportName), "reportName");
-        form.Add(new StringContent(reportDate.ToString("yyyy-MM-dd")), "reportDate");
-        StreamContent fileContent = new(content);
-        form.Add(fileContent, "file", fileName);
-
-        HttpResponseMessage response = await _http.PostAsync("api/pmi-reports", form, ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            return OperationOutcome.Fail($"Upload failed ({(int)response.StatusCode}).");
-        }
-        return await response.Content.ReadFromJsonAsync<OperationOutcome>(JsonOptions, ct) ?? OperationOutcome.Fail("Empty response.");
-    }
-
-    public string GetPmiReportDownloadUrl(Guid reportId) => $"api/pmi-reports/{reportId}/download";
 
     public async Task<OperationOutcome> UploadStemPreviewFile(Guid sessionId, string fileName, Stream content, CancellationToken ct = default)
     {

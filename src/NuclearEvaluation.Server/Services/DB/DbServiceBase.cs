@@ -52,6 +52,14 @@ public class DbServiceBase
             .OrderByWithFallback(cmd.Query, lambdaKeyPropertyAccess)
             .PageWithFallback(cmd.Query);
 
+        // Apply includes last: the Z.EntityFramework.Plus IncludeOptimized provider does not
+        // support the dynamic-LINQ string Where/OrderBy used above, so navigations are loaded
+        // only on the final paged query.
+        foreach (dynamic include in cmd.Includes)
+        {
+            dataQuery = QueryIncludeOptimizedExtensions.IncludeOptimized(dataQuery, include);
+        }
+
         result.TotalCount = await filteredQuery.CountAsyncEF(ct);
         result.Entries = await dataQuery.ToArrayAsyncEF(ct);
 
@@ -73,11 +81,6 @@ public class DbServiceBase
 
     protected IQueryable<T> GetFilteredQuery<T>(IQueryable<T> query, FetchDataCommand<T> command) where T : class
     {
-        foreach (dynamic include in command.Includes)
-        {
-            query = QueryIncludeOptimizedExtensions.IncludeOptimized(query, include);
-        }
-
         IQueryable<T> filteredQuery = query;
 
         PropertyInfo keyProperty = GetKeyProperty<T>();

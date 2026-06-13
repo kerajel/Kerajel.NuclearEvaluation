@@ -18,7 +18,6 @@ public interface INuclearEvaluationApi
     Task<DataResult<ApmView>> GetApmViews(DataQuery query, CancellationToken ct = default);
     Task<DataResult<ParticleView>> GetParticleViews(DataQuery query, CancellationToken ct = default);
     Task<DataResult<ProjectView>> GetProjectViews(DataQuery query, CancellationToken ct = default);
-    Task<DataResult<PmiReportView>> GetPmiReportViews(DataQuery query, CancellationToken ct = default);
     Task<DataResult<StemPreviewEntryView>> GetStemPreviewEntryViews(DataQuery query, CancellationToken ct = default);
 
     // Aggregates / lookups
@@ -48,11 +47,6 @@ public interface INuclearEvaluationApi
     // Name availability (inline validation)
     Task<bool> IsProjectNameAvailable(string name, int excludeId, CancellationToken ct = default);
     Task<bool> IsPresetFilterNameAvailable(string name, int excludeId, CancellationToken ct = default);
-    Task<bool> IsPmiReportNameAvailable(string name, CancellationToken ct = default);
-
-    // PMI reports
-    Task<OperationOutcome> UploadPmiReport(string reportName, DateOnly reportDate, string fileName, Stream content, CancellationToken ct = default);
-    string GetPmiReportDownloadUrl(Guid reportId);
 
     // STEM preview
     Task<OperationOutcome> UploadStemPreviewFile(Guid sessionId, string fileName, Stream content, CancellationToken ct = default);

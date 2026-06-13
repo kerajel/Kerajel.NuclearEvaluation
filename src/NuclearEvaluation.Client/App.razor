@@ -1,3 +1,5 @@
+<RadzenTheme @ref="_theme" Theme="software-dark" />
+
 <CaptchaGate>
     <Router AppAssembly="@typeof(Program).Assembly">
         <Found Context="routeData">
@@ -16,3 +18,7 @@
         </NotFound>
     </Router>
 </CaptchaGate>
+
+@code {
+    RadzenTheme _theme = null!;
+}

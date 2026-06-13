@@ -1,107 +1,57 @@
-using LinqToDB;
-using LinqToDB.Data;
-using LinqToDB.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using NuclearEvaluation.Shared.Models.Views;
 using NuclearEvaluation.Server.Interfaces.STEM;
-using NuclearEvaluation.Server.Services.DB;
-using System.Runtime.CompilerServices;
 
 namespace NuclearEvaluation.Server.Services.STEM;
 
 /// <summary>
-/// Stages STEM preview rows in the persistent STAGING schema, scoped by the visitor's
-/// preview session. Rows are bulk-copied for throughput and purged by the retention job.
+/// Routes STEM staging operations to the per-session throwaway temp tables held by the
+/// <see cref="IStemSessionManager"/>.
 /// </summary>
-public class StemPreviewEntryService : DbServiceBase, IStemPreviewEntryService
+public class StemPreviewEntryService : IStemPreviewEntryService
 {
-    const int maxBatchSize = 10_000;
-    const int bulkCopyTimeout = 60 * 5;
+    readonly IStemSessionManager _sessionManager;
+    readonly ILogger<StemPreviewEntryService> _logger;
 
-    public StemPreviewEntryService(NuclearEvaluationServerDbContext dbContext) : base(dbContext)
+    public StemPreviewEntryService(IStemSessionManager sessionManager, ILogger<StemPreviewEntryService> logger)
     {
+        _sessionManager = sessionManager;
+        _logger = logger;
     }
 
     public async Task<FetchDataResult<StemPreviewEntryView>> GetStemPreviewEntryViews(Guid stemSessionId, FetchDataCommand<StemPreviewEntryView> command)
     {
-        IQueryable<StemPreviewEntryView> baseQuery =
-            from entry in _dbContext.StemPreviewEntry
-            join file in _dbContext.StemPreviewFileMetadata on entry.FileId equals file.Id
-            where entry.StemSessionId == stemSessionId
-                && file.IsFullyUploaded
-                && !file.IsDeleted
-            select new StemPreviewEntryView
-            {
-                Id = entry.Id,
-                LabCode = entry.LabCode,
-                AnalysisDate = entry.AnalysisDate,
-                IsNu = entry.IsNu,
-                U234 = entry.U234,
-                ErU234 = entry.ErU234,
-                U235 = entry.U235,
-                ErU235 = entry.ErU235,
-                FileId = file.Id,
-                FileName = file.Name,
-            };
-
-        if (!command.HasOrderBy)
+        StemSession? session = _sessionManager.TryGet(stemSessionId);
+        if (session is null)
         {
-            baseQuery = baseQuery.OrderBy(x => x.Id).ThenBy(x => x.FileId);
+            return FetchDataResult<StemPreviewEntryView>.Succeeded([]);
         }
-
-        return await ExecuteQuery(baseQuery, command);
+        return await session.QueryViewsAsync(command);
     }
 
-    public async Task InsertStemPreviewFileMetadata(Guid stemSessionId, StemPreviewFileMetadata fileMetadata, CancellationToken ct = default)
-    {
-        fileMetadata.StemSessionId = stemSessionId;
-        _dbContext.StemPreviewFileMetadata.Add(fileMetadata);
-        await _dbContext.SaveChangesAsync(ct);
-    }
+    public Task InsertStemPreviewFileMetadata(Guid stemSessionId, StemPreviewFileMetadata fileMetadata, CancellationToken ct = default)
+        => _sessionManager.GetOrCreate(stemSessionId).InsertFileMetadataAsync(fileMetadata, ct);
 
     public async Task InsertStemPreviewEntries(Guid stemSessionId, IAsyncEnumerable<StemPreviewEntry> entries, CancellationToken ct = default)
     {
-        BulkCopyOptions options = new()
+        StemSession session = _sessionManager.GetOrCreate(stemSessionId);
+        await session.BulkCopyEntriesAsync(entries, ct);
+
+        // The index on the throwaway table is a query optimisation; never fail an upload over it.
+        try
         {
-            BulkCopyTimeout = bulkCopyTimeout,
-            MaxBatchSize = maxBatchSize,
-            KeepIdentity = false,
-        };
-
-        using DataConnection dataConnection = _dbContext.CreateLinqToDBConnection();
-        await dataConnection.BulkCopyAsync(options, WithSession(entries, stemSessionId, ct), ct);
-    }
-
-    public async Task SetStemPreviewFileAsFullyUploaded(Guid stemSessionId, Guid fileId)
-    {
-        await _dbContext.StemPreviewFileMetadata
-            .Where(x => x.StemSessionId == stemSessionId && x.Id == fileId)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.IsFullyUploaded, true));
-    }
-
-    public async Task DeleteFileData(Guid stemSessionId, Guid fileId)
-    {
-        await _dbContext.StemPreviewFileMetadata
-            .Where(x => x.StemSessionId == stemSessionId && x.Id == fileId)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.IsDeleted, true));
-
-        await _dbContext.StemPreviewEntry
-            .Where(x => x.StemSessionId == stemSessionId && x.FileId == fileId)
-            .ExecuteDeleteAsync();
-    }
-
-    static async IAsyncEnumerable<StemPreviewEntry> WithSession(
-        IAsyncEnumerable<StemPreviewEntry> source,
-        Guid stemSessionId,
-        [EnumeratorCancellation] CancellationToken ct = default)
-    {
-        await foreach (StemPreviewEntry entry in source.WithCancellation(ct))
+            await session.EnsureIndexAsync(ct);
+        }
+        catch (Exception ex)
         {
-            entry.StemSessionId = stemSessionId;
-            yield return entry;
+            _logger.LogWarning(ex, "Could not create index on STEM preview temp table for session {SessionId}.", stemSessionId);
         }
     }
+
+    public Task SetStemPreviewFileAsFullyUploaded(Guid stemSessionId, Guid fileId)
+        => _sessionManager.GetOrCreate(stemSessionId).SetFileFullyUploadedAsync(fileId);
+
+    public Task DeleteFileData(Guid stemSessionId, Guid fileId)
+        => _sessionManager.GetOrCreate(stemSessionId).MarkFileDeletedAsync(fileId);
 }

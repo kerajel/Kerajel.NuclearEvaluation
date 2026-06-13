@@ -28,6 +28,5 @@ builder.Services.AddRadzenCookieThemeService(options =>
 
 builder.Services.AddScoped<ProjectViewValidator>();
 builder.Services.AddScoped<PresetFilterValidator>();
-builder.Services.AddScoped<PmiReportSubmissionValidator>();
 
 await builder.Build().RunAsync();

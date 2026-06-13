@@ -75,7 +75,7 @@ public class StemPreviewService(
                 return OperationResult.Faulted(writeFileResult);
             }
 
-            StemPreviewFileMetadata fileMetadata = new(fileId, sessionId, fileName);
+            StemPreviewFileMetadata fileMetadata = new(fileId, fileName);
 
             await stemPreviewEntryService.InsertStemPreviewFileMetadata(sessionId, fileMetadata, linkedCts.Token);
 

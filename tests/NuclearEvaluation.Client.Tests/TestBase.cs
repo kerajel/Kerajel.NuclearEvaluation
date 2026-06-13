@@ -29,7 +29,6 @@ public abstract class TestBase : IDisposable
         TestContext.Services.AddSingleton<ISessionCache, SessionCache>();
         TestContext.Services.AddScoped<ProjectViewValidator>();
         TestContext.Services.AddScoped<PresetFilterValidator>();
-        TestContext.Services.AddScoped<PmiReportSubmissionValidator>();
         TestContext.Services.AddRadzenComponents();
     }
 

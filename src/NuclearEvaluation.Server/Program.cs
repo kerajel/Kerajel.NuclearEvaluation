@@ -51,12 +51,10 @@ internal class Program
         builder.Services.AddTransient<ISeriesService, SeriesService>();
         builder.Services.AddTransient<IChartService, ChartService>();
         builder.Services.AddTransient<IGenericDbService, GenericDbService>();
+        builder.Services.AddSingleton<IStemSessionManager, StemSessionManager>();
         builder.Services.AddTransient<IStemPreviewEntryService, StemPreviewEntryService>();
         builder.Services.AddTransient<IStemPreviewService, StemPreviewService>();
         builder.Services.AddTransient<IStemPreviewParser, StemPreviewParser>();
-
-        builder.Services.AddTransient<IPmiReportService, PmiReportService>();
-        builder.Services.AddTransient<IPmiReportUploadService, PmiReportUploadService>();
 
         // Stateless filesystem service; safe and convenient as a singleton (consumed by the
         // singleton storage-quota service as well as scoped upload services).

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Models.Sandbox;
 using NuclearEvaluation.Server.Interfaces.EFS;
+using NuclearEvaluation.Server.Services.STEM;
 
 namespace NuclearEvaluation.Server.Services.Sandbox;
 
@@ -15,17 +16,20 @@ public class SandboxMaintenanceService : BackgroundService
 {
     readonly IServiceScopeFactory _scopeFactory;
     readonly IStorageQuotaService _storageQuotaService;
+    readonly IStemSessionManager _stemSessionManager;
     readonly SandboxSettings _settings;
     readonly ILogger<SandboxMaintenanceService> _logger;
 
     public SandboxMaintenanceService(
         IServiceScopeFactory scopeFactory,
         IStorageQuotaService storageQuotaService,
+        IStemSessionManager stemSessionManager,
         IOptions<SandboxSettings> settings,
         ILogger<SandboxMaintenanceService> logger)
     {
         _scopeFactory = scopeFactory;
         _storageQuotaService = storageQuotaService;
+        _stemSessionManager = stemSessionManager;
         _settings = settings.Value;
         _logger = logger;
     }
@@ -48,7 +52,8 @@ public class SandboxMaintenanceService : BackgroundService
     {
         try
         {
-            await PurgeExpiredUploadsAsync(ct);
+            PurgeExpiredFiles();
+            await _stemSessionManager.EvictIdleAsync(TimeSpan.FromMinutes(Math.Max(1, _settings.StemSessionIdleMinutes)));
             await ResetIfDueAsync(ct);
             _storageQuotaService.Invalidate();
         }
@@ -58,35 +63,17 @@ public class SandboxMaintenanceService : BackgroundService
         }
     }
 
-    async Task PurgeExpiredUploadsAsync(CancellationToken ct)
+    void PurgeExpiredFiles()
     {
         DateTime cutoff = DateTime.UtcNow.AddHours(-_settings.UploadRetentionHours);
 
         using IServiceScope scope = _scopeFactory.CreateScope();
-        NuclearEvaluationServerDbContext db = scope.ServiceProvider.GetRequiredService<NuclearEvaluationServerDbContext>();
         IEfsFileService efs = scope.ServiceProvider.GetRequiredService<IEfsFileService>();
 
         int removedFolders = efs.PurgeOlderThan(cutoff);
-
-        int stemEntries = await db.StemPreviewEntry
-            .Where(x => db.StemPreviewFileMetadata.Any(f => f.Id == x.FileId && f.CreatedAt < cutoff))
-            .ExecuteDeleteAsync(ct);
-        int stemFiles = await db.StemPreviewFileMetadata
-            .Where(x => x.CreatedAt < cutoff)
-            .ExecuteDeleteAsync(ct);
-
-        int pmiFiles = await db.Set<Kernel.Models.DataManagement.PMI.PmiReportFileMetadata>()
-            .Where(x => db.PmiReport.Any(r => r.Id == x.PmiReportId && r.UploadedAt < cutoff))
-            .ExecuteDeleteAsync(ct);
-        int pmiReports = await db.PmiReport
-            .Where(x => x.UploadedAt < cutoff)
-            .ExecuteDeleteAsync(ct);
-
-        if (removedFolders + stemEntries + stemFiles + pmiFiles + pmiReports > 0)
+        if (removedFolders > 0)
         {
-            _logger.LogInformation(
-                "Purged expired uploads: {Folders} file folders, {StemFiles} STEM files, {PmiReports} PMI reports.",
-                removedFolders, stemFiles, pmiReports);
+            _logger.LogInformation("Purged {Folders} expired upload folders.", removedFolders);
         }
     }
 

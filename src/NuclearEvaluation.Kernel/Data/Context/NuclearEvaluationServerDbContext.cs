@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
-using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using NuclearEvaluation.Kernel.Models.Sandbox;
 using NuclearEvaluation.Shared.Models.Domain;
 using NuclearEvaluation.Shared.Models.Filters;
@@ -14,7 +12,6 @@ public partial class NuclearEvaluationServerDbContext : DbContext
     private const string DboSchema = "DBO";
     private const string DataSchema = "DATA";
     private const string EvaluationSchema = "EVALUATION";
-    private const string StagingSchema = "STAGING";
 
     public NuclearEvaluationServerDbContext() { }
 
@@ -39,15 +36,8 @@ public partial class NuclearEvaluationServerDbContext : DbContext
     public DbSet<ProjectViewSeriesView> ProjectViewSeriesView { get; set; }
     public DbSet<ProjectDecayCorrectedParticleView> ProjectDecayCorrectedParticleView { get; set; }
     public DbSet<ProjectDecayCorrectedApmView> ProjectDecayCorrectedApmView { get; set; }
-    public DbSet<PmiReport> PmiReport { get; set; }
-
-    public DbSet<StemPreviewEntry> StemPreviewEntry { get; set; }
-    public DbSet<StemPreviewFileMetadata> StemPreviewFileMetadata { get; set; }
 
     public DbSet<SandboxState> SandboxState { get; set; }
-
-    public DbSet<PmiReportView> PmiReportView { get; set; }
-    public DbSet<PmiReportFileMetadataView> PmiReportFileMetadataView { get; set; }
 
     partial void OnModelBuilding(ModelBuilder builder);
 
@@ -66,7 +56,6 @@ public partial class NuclearEvaluationServerDbContext : DbContext
         OnModelBuilding(modelBuilder);
         ConfigureDboSchema(modelBuilder);
         ConfigureDataSchema(modelBuilder);
-        ConfigureStagingSchema(modelBuilder);
         ConfigureEvaluationSchema(modelBuilder);
         ConfigureDataSchemaViews(modelBuilder);
         ConfigureEvaluationSchemaViews(modelBuilder);
@@ -129,23 +118,6 @@ public partial class NuclearEvaluationServerDbContext : DbContext
         });
     }
 
-    static void ConfigureStagingSchema(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<StemPreviewEntry>(entity =>
-        {
-            entity.ToTable("StemPreviewEntry", StagingSchema);
-            entity.HasKey(x => x.RowId);
-            entity.HasIndex(x => x.StemSessionId);
-        });
-
-        modelBuilder.Entity<StemPreviewFileMetadata>(entity =>
-        {
-            entity.ToTable("StemPreviewFile", StagingSchema);
-            entity.HasKey(x => x.Id);
-            entity.HasIndex(x => x.StemSessionId);
-        });
-    }
-
     static void ConfigureEvaluationSchema(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Project>(entity =>
@@ -165,20 +137,6 @@ public partial class NuclearEvaluationServerDbContext : DbContext
                   .HasForeignKey(ps => ps.SeriesId);
         });
 
-        modelBuilder.Entity<PmiReport>(entity =>
-        {
-            entity.ToTable("PmiReport", EvaluationSchema);
-            entity.HasKey(pr => pr.Id);
-            entity.HasOne(pr => pr.PmiReportFileMetadata)
-                  .WithOne(fm => fm.PmiReport)
-                  .HasForeignKey<PmiReportFileMetadata>(fm => fm.PmiReportId);
-        });
-
-        modelBuilder.Entity<PmiReportFileMetadata>(entity =>
-        {
-            entity.ToTable("PmiReportFileMetadata", EvaluationSchema);
-            entity.HasKey(fm => fm.Id);
-        });
     }
 
     static void ConfigureDataSchemaViews(ModelBuilder modelBuilder)
@@ -258,17 +216,6 @@ public partial class NuclearEvaluationServerDbContext : DbContext
             entity.HasBaseType(null as Type);
         });
 
-        modelBuilder.Entity<PmiReportView>(entity =>
-        {
-            entity.HasAlternateKey(x => x.Id);
-            entity.ToView("PmiReportView", EvaluationSchema);
-        });
-
-        modelBuilder.Entity<PmiReportFileMetadataView>(entity =>
-        {
-            entity.HasAlternateKey(x => x.Id);
-            entity.ToView("PmiReportFileMetadataView", EvaluationSchema);
-        });
     }
 
     static void ConfigureDefaultOnDeleteBehavior(ModelBuilder modelBuilder)

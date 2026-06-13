@@ -15,6 +15,9 @@ public class SandboxSettings
     /// <summary>Uploaded files and staged rows older than this are purged.</summary>
     public int UploadRetentionHours { get; set; } = 24;
 
+    /// <summary>Idle STEM preview sessions (and their throwaway temp tables) are evicted after this.</summary>
+    public int StemSessionIdleMinutes { get; set; } = 30;
+
     /// <summary>How often the maintenance sweep runs.</summary>
     public int SweepIntervalMinutes { get; set; } = 30;
 

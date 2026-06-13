@@ -3,7 +3,6 @@ using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Server.Interfaces.Data;
 using NuclearEvaluation.Server.Interfaces.DB;
 using NuclearEvaluation.Server.Interfaces.Evaluation;
-using NuclearEvaluation.Server.Interfaces.PMI;
 using NuclearEvaluation.Server.Interfaces.STEM;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Views;
@@ -20,7 +19,6 @@ public class ViewsController : ControllerBase
     readonly IApmService _apmService;
     readonly IParticleService _particleService;
     readonly IProjectService _projectService;
-    readonly IPmiReportService _pmiReportService;
     readonly IStemPreviewEntryService _stemPreviewEntryService;
     readonly IGenericDbService _genericDbService;
 
@@ -31,7 +29,6 @@ public class ViewsController : ControllerBase
         IApmService apmService,
         IParticleService particleService,
         IProjectService projectService,
-        IPmiReportService pmiReportService,
         IStemPreviewEntryService stemPreviewEntryService,
         IGenericDbService genericDbService)
     {
@@ -41,7 +38,6 @@ public class ViewsController : ControllerBase
         _apmService = apmService;
         _particleService = particleService;
         _projectService = projectService;
-        _pmiReportService = pmiReportService;
         _stemPreviewEntryService = stemPreviewEntryService;
         _genericDbService = genericDbService;
     }
@@ -80,10 +76,6 @@ public class ViewsController : ControllerBase
         command.Include(x => x.ProjectSeries);
         return (await _projectService.GetProjectViews(command)).ToDataResult();
     }
-
-    [HttpPost("pmi-reports")]
-    public async Task<DataResult<PmiReportView>> PmiReports([FromBody] DataQuery query, CancellationToken ct)
-        => (await _pmiReportService.GetPmiReportViews(query.ToCommand<PmiReportView>(), ct)).ToDataResult();
 
     [HttpPost("stem-entries")]
     public async Task<DataResult<StemPreviewEntryView>> StemEntries([FromBody] DataQuery query, CancellationToken ct)

@@ -1,27 +1,26 @@
+using LinqToDB.Mapping;
+
 namespace NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
+/// <summary>File-level metadata for a staged STEM upload, held in a per-session temp table.</summary>
 public class StemPreviewFileMetadata
 {
     public StemPreviewFileMetadata()
     {
     }
 
-    public StemPreviewFileMetadata(Guid id, Guid stemSessionId, string name)
+    public StemPreviewFileMetadata(Guid id, string name)
     {
         Id = id;
-        StemSessionId = stemSessionId;
         Name = name;
     }
 
+    [PrimaryKey]
     public Guid Id { get; set; }
-
-    public Guid StemSessionId { get; set; }
 
     public string Name { get; set; } = string.Empty;
 
     public bool IsFullyUploaded { get; set; }
 
     public bool IsDeleted { get; set; }
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

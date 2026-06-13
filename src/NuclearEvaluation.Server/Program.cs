@@ -55,7 +55,9 @@ internal class Program
         builder.Services.AddTransient<IPmiReportService, PmiReportService>();
         builder.Services.AddTransient<IPmiReportUploadService, PmiReportUploadService>();
 
-        builder.Services.AddScoped<IEfsFileService, EfsFileService>();
+        // Stateless filesystem service; safe and convenient as a singleton (consumed by the
+        // singleton storage-quota service as well as scoped upload services).
+        builder.Services.AddSingleton<IEfsFileService, EfsFileService>();
         builder.Services.AddSingleton<IGuidProvider, GuidProvider>();
 
         builder.Services.AddSingleton<IStorageQuotaService, StorageQuotaService>();

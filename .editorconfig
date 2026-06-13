@@ -1,0 +1,23 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+[*.{cs,razor}]
+indent_size = 4
+csharp_style_namespace_declarations = file_scoped:suggestion
+csharp_prefer_braces = true:suggestion
+dotnet_sort_system_directives_first = true
+
+[*.{csproj,props,targets}]
+indent_size = 2
+
+[*.{json,yml,yaml,html,css,js}]
+indent_size = 2
+
+[*.sln]
+indent_style = tab

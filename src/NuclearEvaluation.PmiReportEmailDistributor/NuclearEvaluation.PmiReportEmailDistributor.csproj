@@ -15,7 +15,7 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives.csproj" />
+		<ProjectReference Include="..\Kerajel.Primitives\Kerajel.Primitives.csproj" />
 		<ProjectReference Include="..\NuclearEvaluation.Messaging\NuclearEvaluation.Messaging.csproj" />
 		<ProjectReference Include="..\NuclearEvaluation.PmiReportDistributionContracts\NuclearEvaluation.PmiReportDistributionContracts.csproj" />
 	</ItemGroup>

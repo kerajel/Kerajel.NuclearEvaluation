@@ -2,19 +2,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 16.0.0.0
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TabularDataReader", "TabularDataReader", "{81135EB1-F106-4880-9482-315B5C4A06E8}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Primitives", "Primitives", "{D11CD112-E5C0-4F1D-AE5D-90B64E40FC71}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuclearEvaluation", "NuclearEvaluation", "{6B6EF2DA-420B-4261-8F5B-E439F2CED469}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuclearEvaluation.Tests", "NuclearEvaluation.Tests", "{36E8C17C-B7EC-433F-9057-9F8579552F0C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kerajel.TabularDataReader", "..\Kerajel.TabularDataReader\Kerajel.TabularDataReader\Kerajel.TabularDataReader.csproj", "{3F49F014-F416-4B4D-A1B4-BB55961E3736}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kerajel.TabularDataReader", "src\Kerajel.TabularDataReader\Kerajel.TabularDataReader.csproj", "{3F49F014-F416-4B4D-A1B4-BB55961E3736}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kerajel.Primitives", "..\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives\Kerajel.Primitives.csproj", "{104AF79A-809B-4725-AC75-2EBAF02232A0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kerajel.Primitives", "src\Kerajel.Primitives\Kerajel.Primitives.csproj", "{104AF79A-809B-4725-AC75-2EBAF02232A0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kerajel.TabularDataReader.Tests", "..\Kerajel.TabularDataReader\Kerajel.TabularDataReader.Tests\Kerajel.TabularDataReader.Tests.csproj", "{3FE1A856-0A9B-448A-9315-7AFEB6BB4F84}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kerajel.TabularDataReader.Tests", "tests\Kerajel.TabularDataReader.Tests\Kerajel.TabularDataReader.Tests.csproj", "{3FE1A856-0A9B-448A-9315-7AFEB6BB4F84}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuclearEvaluation.Kernel", "src\NuclearEvaluation.Kernel\NuclearEvaluation.Kernel.csproj", "{102A49BF-9753-45CB-82A2-FD7DCE25AF34}"
 EndProject
@@ -153,9 +149,9 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{3F49F014-F416-4B4D-A1B4-BB55961E3736} = {81135EB1-F106-4880-9482-315B5C4A06E8}
-		{104AF79A-809B-4725-AC75-2EBAF02232A0} = {D11CD112-E5C0-4F1D-AE5D-90B64E40FC71}
-		{3FE1A856-0A9B-448A-9315-7AFEB6BB4F84} = {81135EB1-F106-4880-9482-315B5C4A06E8}
+		{3F49F014-F416-4B4D-A1B4-BB55961E3736} = {6B6EF2DA-420B-4261-8F5B-E439F2CED469}
+		{104AF79A-809B-4725-AC75-2EBAF02232A0} = {6B6EF2DA-420B-4261-8F5B-E439F2CED469}
+		{3FE1A856-0A9B-448A-9315-7AFEB6BB4F84} = {36E8C17C-B7EC-433F-9057-9F8579552F0C}
 		{102A49BF-9753-45CB-82A2-FD7DCE25AF34} = {6B6EF2DA-420B-4261-8F5B-E439F2CED469}
 		{66B932E0-BB9B-4C8A-970B-5F24839A1634} = {6B6EF2DA-420B-4261-8F5B-E439F2CED469}
 		{D472F804-4485-4CE4-8830-9BD86B4C3D22} = {36E8C17C-B7EC-433F-9057-9F8579552F0C}

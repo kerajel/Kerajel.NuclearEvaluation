@@ -20,6 +20,7 @@ public partial class CaptchaGate : ComponentBase
     bool _checking = true;
     bool _verified;
     bool _solving;
+    bool _cookiesAccepted;
     string? _error;
 
     protected override async Task OnInitializedAsync()
@@ -41,6 +42,12 @@ public partial class CaptchaGate : ComponentBase
 
     async Task Solve()
     {
+        if (!_cookiesAccepted)
+        {
+            _error = "Please accept the use of cookies to continue.";
+            return;
+        }
+
         _solving = true;
         _error = null;
         StateHasChanged();

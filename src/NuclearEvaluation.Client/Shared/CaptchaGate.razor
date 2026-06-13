@@ -19,6 +19,14 @@ else
                 solve a small proof-of-work puzzle. No personal data is collected.
             </RadzenText>
 
+            <div style="display:flex;align-items:flex-start;gap:0.5rem;text-align:left;margin-bottom:1rem;">
+                <RadzenCheckBox @bind-Value="_cookiesAccepted" Name="cookieConsent" TValue="bool" Change="@(_ => _error = null)" />
+                <RadzenLabel Component="cookieConsent" Style="cursor:pointer;">
+                    I accept the essential cookies this site uses to remember that I passed this
+                    check. The site cannot be used without them.
+                </RadzenLabel>
+            </div>
+
             @if (_error is not null)
             {
                 <RadzenAlert AlertStyle="AlertStyle.Warning" ShowIcon="false" Variant="Variant.Flat" Shade="Shade.Lighter">
@@ -26,9 +34,9 @@ else
                 </RadzenAlert>
             }
 
-            <RadzenButton Text="@(_solving ? "Verifying…" : "Verify I'm human")"
+            <RadzenButton Text="@(_solving ? "Verifying…" : "Accept & verify I'm human")"
                           Icon="verified_user"
-                          Disabled="_solving"
+                          Disabled="@(_solving || !_cookiesAccepted)"
                           Click="@Solve"
                           Style="width:100%;" />
         </RadzenCard>

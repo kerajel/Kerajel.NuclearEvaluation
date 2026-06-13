@@ -91,10 +91,11 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
         int sequence = ++_loadSequence;
         string key = $"{GetType().Name}|{ComponentId}|{JsonSerializer.Serialize(query)}";
 
-        if (ResultCache.TryGet(key, out List<T> cachedEntries, out int cachedTotal))
+        GridCacheHit<T> cached = await ResultCache.TryGetAsync<T>(key);
+        if (cached.Found)
         {
-            entries = cachedEntries;
-            totalCount = cachedTotal;
+            entries = cached.Entries;
+            totalCount = cached.TotalCount;
             hasFetchDataError = false;
             isLoading = false;
             _ = RefreshInBackground(sequence, key, fetchDataFunction);
@@ -128,7 +129,7 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
 
         if (result.IsSuccessful)
         {
-            ResultCache.Set(key, entries, totalCount);
+            await ResultCache.SetAsync(key, entries, totalCount);
         }
     }
 

@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.git/
+**/.github/
+**/node_modules/
+**/*.user
+docs/
+logs/
+NuclearEvaluationStorage/
+src/NuclearEvaluationStorage/
+**/appsettings.Development.json
+README.md
+REPOSITORY_KNOWLEDGE.md

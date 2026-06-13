@@ -80,9 +80,7 @@ internal class Program
 
         if (app.Configuration.GetValue("Sandbox:SeedOnStartup", true))
         {
-            using IServiceScope scope = app.Services.CreateScope();
-            IDatabaseSeeder seeder = scope.ServiceProvider.GetRequiredService<IDatabaseSeeder>();
-            await seeder.EnsureCreatedAndSeededAsync();
+            await InitializeDatabaseWithRetryAsync(app);
         }
 
         if (!app.Environment.IsDevelopment())
@@ -101,5 +99,26 @@ internal class Program
         app.MapFallbackToFile("index.html");
 
         await app.RunAsync();
+    }
+
+    // SQL Server in docker may still be warming up when the app starts; retry a few times.
+    static async Task InitializeDatabaseWithRetryAsync(WebApplication app)
+    {
+        const int maxAttempts = 10;
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                using IServiceScope scope = app.Services.CreateScope();
+                IDatabaseSeeder seeder = scope.ServiceProvider.GetRequiredService<IDatabaseSeeder>();
+                await seeder.EnsureCreatedAndSeededAsync();
+                return;
+            }
+            catch (Exception ex) when (attempt < maxAttempts)
+            {
+                Log.Warning(ex, "Database not ready (attempt {Attempt}/{Max}); retrying in 5s.", attempt, maxAttempts);
+                await Task.Delay(TimeSpan.FromSeconds(5));
+            }
+        }
     }
 }

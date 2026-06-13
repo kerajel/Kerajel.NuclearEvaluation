@@ -40,7 +40,8 @@ public class CaptchaController : ControllerBase
         Response.Cookies.Append(CaptchaSettings.CookieName, token, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            // Secure only over HTTPS so local HTTP (docker) still works; production is HTTPS.
+            Secure = Request.IsHttps,
             SameSite = SameSiteMode.Lax,
             MaxAge = TimeSpan.FromDays(_settings.VerificationTtlDays),
             IsEssential = true,

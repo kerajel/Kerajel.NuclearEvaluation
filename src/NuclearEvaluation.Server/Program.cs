@@ -21,7 +21,10 @@ internal class Program
             options.Limits.MaxRequestBodySize = UploadLimits.MaxStemPreviewFileSizeBytes + (1 * 1024 * 1024);
         });
 
-        builder.Services.AddControllers();
+        builder.Services.AddControllers()
+            .AddJsonOptions(o =>
+                // View models carry navigation back-references (e.g. ProjectView <-> ProjectViewSeriesView).
+                o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
 
         builder.Services.Configure<SandboxSettings>(builder.Configuration.GetSection("Sandbox"));
         SandboxSettings sandboxSettings = builder.Configuration.GetSection("Sandbox").Get<SandboxSettings>() ?? new SandboxSettings();

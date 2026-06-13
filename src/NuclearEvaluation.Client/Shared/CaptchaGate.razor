@@ -22,8 +22,9 @@ else
             <div style="display:flex;align-items:flex-start;gap:0.5rem;text-align:left;margin-bottom:1rem;">
                 <RadzenCheckBox @bind-Value="_cookiesAccepted" Name="cookieConsent" TValue="bool" Change="@(_ => _error = null)" />
                 <RadzenLabel Component="cookieConsent" Style="cursor:pointer;">
-                    I accept the essential cookies this site uses to remember that I passed this
-                    check. The site cannot be used without them.
+                    Sorry, we use cookies 🍪 — exactly one, and the only thing it's enriched with
+                    is the memory that you're human (half-life: ~30 days). No tracking, no uranium.
+                    I accept.
                 </RadzenLabel>
             </div>
 

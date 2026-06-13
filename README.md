@@ -2,8 +2,8 @@
 
 A .NET 9 web application for exploring nuclear-material evaluation data: particle samples,
 sub-samples, and APM (Alpha Particle Measurement) records organised into series and projects,
-with uranium-isotope analysis, decay correction, a query builder, and PMI (Post-Measurement
-Investigation) report uploads. UI built with [Radzen](https://blazor.radzen.com/) Blazor components.
+with uranium-isotope analysis, decay correction, and a query builder. UI built with
+[Radzen](https://blazor.radzen.com/) Blazor components.
 
 Originally a server-side Blazor app, it is now a **Blazor WebAssembly client + ASP.NET Core
 Web API**, deployed as a single site. It runs **anonymously** — no accounts — behind a
@@ -79,11 +79,11 @@ nightly reset.
 Because the site is public and anonymous, the `Sandbox` configuration section governs:
 
 - **Rate limiting** — per-IP request window plus a stricter per-IP daily cap on uploads.
-- **Upload caps** — ~20 MB per file (`UploadLimits`) and a global storage ceiling that blocks
+- **Upload caps** — ~64 MB per file (`UploadLimits`) and a global storage ceiling that blocks
   uploads once exceeded.
-- **Ephemeral data** — a background service purges uploaded files, STEM staging rows, and PMI
-  reports older than the retention window, and resets the database to seed once per interval
-  (tracked in `DBO.SandboxState` so it survives app-pool recycling).
+- **Ephemeral data** — a background service purges expired upload folders, evicts idle STEM
+  sessions (dropping their throwaway temp tables), and resets the database to seed once per
+  interval (tracked in `DBO.SandboxState` so it survives app-pool recycling).
 
 The proof-of-work captcha secret and difficulty live under the `Captcha` section. Override
 both `Captcha:Secret` and the connection string in production.

@@ -35,6 +35,21 @@ public partial class PresetFilterDropDown : ComponentBase
     string _submitIcon = "save";
     string _cancelIcon = "clear_all";
 
+    // Mirror PresetFilterValidator's length rule so the save button can be gated synchronously.
+    const int MinNameLength = 5;
+    const int MaxNameLength = 25;
+
+    // The button must not enable on the stale "valid" state ReInitialize() leaves behind for a
+    // blank name. The length check rejects that synchronously; IsValid covers the async uniqueness
+    // rule once the name has been validated.
+    bool CanSubmitFilter()
+    {
+        string name = _activeFilter.Name ?? string.Empty;
+        return name.Length >= MinNameLength
+            && name.Length <= MaxNameLength
+            && (_validatedTextBoxRef?.IsValid ?? false);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await LoadFilters();

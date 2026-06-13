@@ -99,6 +99,12 @@ internal class Program
         app.UseRateLimiter();
         app.UseMiddleware<CaptchaGateMiddleware>();
         app.MapControllers();
+
+        // Unmatched API routes must not fall through to the SPA shell. This fallback is more
+        // specific than the catch-all file fallback below, so it wins for /api/* only and
+        // returns a proper 404 instead of index.html with HTTP 200.
+        app.MapFallback("/api/{**slug}", () => Results.NotFound());
+
         app.MapFallbackToFile("index.html");
 
         await app.RunAsync();

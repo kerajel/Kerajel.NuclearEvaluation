@@ -55,6 +55,14 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
     [Parameter]
     public EventCallback<bool> OnValidationStateChanged { get; set; }
 
+    /// <summary>
+    /// Fires after every validation pass with the current validity, even when the
+    /// validity did not flip. Lets a parent re-evaluate dependent UI (e.g. a save
+    /// button) for a value that is set in one go and never produces an invalid step.
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> OnValidated { get; set; }
+
     [Parameter]
     public decimal TooltipOffsetX { get; set; } = 0;
 
@@ -235,6 +243,8 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
             {
                 await InvokeAsync(() => OnValidationStateChanged.InvokeAsync(IsValid));
             }
+
+            await InvokeAsync(() => OnValidated.InvokeAsync(IsValid));
 
             await InvokeAsync(StateHasChanged);
             await Task.Yield();

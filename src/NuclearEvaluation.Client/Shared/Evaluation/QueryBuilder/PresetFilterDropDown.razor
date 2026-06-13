@@ -10,6 +10,7 @@
                       AutoCompleteType="AutoCompleteType.Off"
                       Name="FilterName"
                       TooltipOffsetX="-200"
+                      OnValidated="@(_ => StateHasChanged())"
                       Style="width: 200px; flex-grow: 1;" />
 
     <RadzenDropDown Data="@_filters"
@@ -22,7 +23,7 @@
     <RadzenButton ButtonStyle="ButtonStyle.Light"
                   Icon="@_submitIcon"
                   Style="margin: 0 5px; padding: 5px 10px;"
-                  Disabled="@(_operationMode == OperationMode.Editing && !(_validatedTextBoxRef?.IsValid ?? false))"
+                  Disabled="@(_operationMode == OperationMode.Editing && !CanSubmitFilter())"
                   Click="@SubmitAction" />
     <RadzenButton ButtonStyle="ButtonStyle.Light"
                   Icon="@_cancelIcon"

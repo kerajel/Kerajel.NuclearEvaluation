@@ -51,7 +51,7 @@ services:
         condition: service_started
     environment:
       E2E_BASE_URL: "http://nuclear-evaluation.test:8080"
-      E2E_WORKERS: "${E2E_WORKERS:-4}"
+      E2E_WORKERS: "${E2E_WORKERS:-2}"
       CI: "1"
     volumes:
       - ./tests/e2e/test-results:/e2e/test-results

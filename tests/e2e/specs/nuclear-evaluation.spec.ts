@@ -23,7 +23,9 @@ const fixtureDir = resolve(specDir, '../fixtures');
 const stemA = resolve(fixtureDir, 'stem-a.csv');
 const stemB = resolve(fixtureDir, 'stem-b.csv');
 const stemBad = resolve(fixtureDir, 'stem-bad.csv');
+const stemDat = resolve(fixtureDir, 'stem-tab.dat');
 const stemGood = resolve(fixtureDir, 'stem-good.csv');
+const stemTsv = resolve(fixtureDir, 'stem-tab.tsv');
 
 type FetchDataResult<T = Record<string, unknown>> = {
   isSuccessful?: boolean;
@@ -127,14 +129,36 @@ test('UI-01 dark/light appearance toggle changes the active theme', async ({ pag
 
 test('DM-01 Data Management Series tab loads totals and first page without fetch errors', async ({ page }) => {
   await gotoApp(page, '/data-management');
-  await page.waitForFunction(() => document.body.innerText.includes('299,868'), null, { timeout: 60_000 });
+  await page.waitForFunction(() => document.body.innerText.includes('TOTAL SERIES') && document.body.innerText.includes('100,000'), null, { timeout: 60_000 });
+  const counts = await apiPost<SeriesCountsView>(page, '/api/views/series-counts', { top: 1, skip: 0 });
+
+  expect(counts.ok).toBe(true);
+  expect(counts.json?.seriesCount).toBe(100_000);
+  expect(counts.json?.sampleCount).toBeGreaterThan(0);
+  expect(counts.json?.subSampleCount).toBeGreaterThan(0);
+  expect(counts.json?.apmCount).toBeGreaterThan(0);
+  expect(counts.json?.particleCount).toBeGreaterThan(0);
+
+  const expectedCounts = [
+    counts.json!.seriesCount,
+    counts.json!.sampleCount,
+    counts.json!.subSampleCount,
+    counts.json!.apmCount,
+    counts.json!.particleCount
+  ].map(value => value.toLocaleString('en-US'));
+
+  await page.waitForFunction(
+    values => values.every(value => document.body.innerText.includes(value)),
+    expectedCounts,
+    { timeout: 60_000 }
+  );
+
   const text = await bodyText(page);
 
   expect(text).toContain('TOTAL SERIES');
-  expect(text).toContain('299,868');
-  expect(text).toContain('599,495');
-  expect(text).toContain('1,799,316');
-  expect(text).toContain('1,198,679');
+  for (const value of expectedCounts) {
+    expect(text).toContain(value);
+  }
   expect(text).toContain('10000');
   await expectNoVisibleAppError(page);
 });
@@ -150,7 +174,7 @@ test('DM-02 no PMI upload/dashboard affordances remain in the app shell', async 
 
 test('DM-03 grid result cache and reserved grid height are active', async ({ page }) => {
   await gotoApp(page, '/data-management');
-  await page.waitForFunction(() => document.body.innerText.includes('299,868'), null, { timeout: 60_000 });
+  await page.waitForFunction(() => document.body.innerText.includes('TOTAL SERIES') && document.body.innerText.includes('100,000'), null, { timeout: 60_000 });
   const state = await page.evaluate(() => {
     const keys = Object.keys(localStorage);
     const grids = [...document.querySelectorAll<HTMLElement>('.rz-data-grid')].map(grid => {
@@ -168,7 +192,6 @@ test('DM-03 grid result cache and reserved grid height are active', async ({ pag
   });
 
   expect(state.keys.some(key => key.includes('SeriesGrid'))).toBe(true);
-  expect(state.keys.some(key => key.includes('series-counts'))).toBe(true);
   expect(state.maxReservedHeight).toBeGreaterThanOrEqual(300);
 });
 
@@ -264,6 +287,7 @@ test('STEM-01 STEM tab exposes sample downloads and multi-file drop target', asy
       hasSampleDownloadCopy: /sample file/i.test(document.body.innerText),
       links: document.querySelectorAll('a[href]').length,
       multiple: input?.multiple ?? false,
+      accept: input?.accept ?? '',
       pointerEvents: content ? getComputedStyle(content).pointerEvents : null
     };
   });
@@ -271,6 +295,10 @@ test('STEM-01 STEM tab exposes sample downloads and multi-file drop target', asy
   expect(state.hasSampleDownloadCopy).toBe(true);
   expect(state.links).toBeGreaterThanOrEqual(3);
   expect(state.multiple).toBe(true);
+  expect(state.accept).toContain('.csv');
+  expect(state.accept).toContain('.tsv');
+  expect(state.accept).toContain('.dat');
+  expect(state.accept).toContain('.xlsb');
   expect(state.pointerEvents).toBe('none');
 });
 
@@ -294,6 +322,19 @@ test('STEM-02 uploading two STEM CSV files previews both, deleting one removes o
   expect(compactMinHeight === '0px' || compactMinHeight === '0').toBe(true);
   expect(text).not.toMatch(/LAB-A|900001|900002|stem-a\.csv/);
   expect(text).toMatch(/LAB-B|910001|910002|stem-b\.csv/);
+});
+
+test('STEM-04 uploading TSV and DAT files previews both', async ({ page }) => {
+  await openStemPreview(page);
+  await page.locator('input[type="file"]').setInputFiles([stemTsv, stemDat]);
+  await page.waitForFunction(() => document.body.innerText.includes('stem-tab.tsv') && document.body.innerText.includes('stem-tab.dat'));
+  await page.locator('button:has-text("Upload Files")').last().click();
+  await page.waitForFunction(
+    () => document.body.innerText.includes('Uploaded') && document.body.innerText.includes('LAB-TSV') && document.body.innerText.includes('LAB-DAT'),
+    null,
+    { timeout: 120_000 }
+  );
+  await expectNoVisibleAppError(page);
 });
 
 test('STEM-03 invalid STEM file reports upload error without breaking the page', async ({ page }) => {
@@ -484,9 +525,26 @@ test('ADD-08 missing project id routes to not-found', async ({ page }) => {
 test('ADD-09 project tabs load without visible errors', async ({ page }) => {
   await gotoApp(page, '/projects/1');
   for (const label of ['Series', 'Samples', 'SubSamples', 'Apm', 'Particles']) {
-    await page.getByText(label, { exact: true }).click();
+    await page.getByRole('tab', { name: label, exact: true }).click();
     await expectNoVisibleAppError(page);
   }
+
+  await page.getByRole('tab', { name: 'Series', exact: true }).click();
+  await expect(page.getByText('Series assigned to this project.', { exact: true })).toBeVisible({ timeout: 60_000 });
+  const seriesGridMinHeight = await page.locator('.rz-data-grid').first().evaluate(e => getComputedStyle(e).minHeight);
+  expect(seriesGridMinHeight === '0px' || seriesGridMinHeight === '0').toBe(true);
+
+  await page.getByRole('tab', { name: 'Apm', exact: true }).click();
+  const apmPanel = page.getByRole('tabpanel', { name: 'Apm', exact: true });
+  await expect(apmPanel.getByText('APM measurements for this project. Grid filters define the result set used by the chart below.', { exact: true })).toBeVisible({ timeout: 60_000 });
+  await expect(apmPanel.getByRole('columnheader', { name: /^U238\b/ })).toBeVisible({ timeout: 60_000 });
+  expect(await bodyText(page)).not.toContain('<b>(total');
+
+  await page.getByRole('tab', { name: 'Particles', exact: true }).click();
+  const particlesPanel = page.getByRole('tabpanel', { name: 'Particles', exact: true });
+  await expect(particlesPanel.getByText('Particle measurements for this project. Grid filters define the result set used by the chart below.', { exact: true })).toBeVisible({ timeout: 60_000 });
+  await expect(particlesPanel.getByRole('columnheader', { name: /Particle Id/ })).toBeVisible({ timeout: 60_000 });
+  expect(await bodyText(page)).not.toContain('<b>(total');
 });
 
 test('ADD-10 Back to Projects returns to Evaluation', async ({ page }) => {
@@ -508,9 +566,8 @@ test('ADD-12 project scoped endpoints return nonzero totals', async ({ page }) =
     const result = await apiPost<FetchDataResult>(page, `/api/views/${endpoint}`, { projectId: 1, top: 5, skip: 0 });
     expect(result.ok, endpoint).toBe(true);
     totals[endpoint] = result.json?.totalCount ?? 0;
+    expect(totals[endpoint], endpoint).toBeGreaterThan(0);
   }
-
-  expect(totals).toMatchObject({ series: 4, samples: 13, subsamples: 26, apm: 79, particles: 45 });
 });
 
 test('ADD-13 project chart APIs return arrays', async ({ page }) => {

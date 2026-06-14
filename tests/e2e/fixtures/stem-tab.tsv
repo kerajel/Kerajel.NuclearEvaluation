@@ -1,0 +1,3 @@
+Identifier	LaboratoryCode	AnalysisDate	IsNu	U234	ErU234	U235	ErU235
+920001	LAB-TSV	2026-03-02	true	9.11	0.09	10.22	0.1
+920002	LAB-TSV	2026-03-03	false	11.33	0.11	12.44	0.12

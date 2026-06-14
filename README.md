@@ -18,7 +18,7 @@ self-hosted proof-of-work captcha, with abuse limits and an ephemeral, self-rese
 | `NuclearEvaluation.Shared` | Class library | View models, enums, query-builder filters, and the `INuclearEvaluationApi` contract (referenced by both client and server) |
 | `NuclearEvaluation.Kernel` | Class library | EF Core `DbContext`, domain entities, migrations, query execution, embedded seed script |
 | `Kerajel.Primitives` | Class library | Vendored helper types (`OperationResult`, `Debouncer`, …) |
-| `Kerajel.TabularDataReader` | Class library | Vendored CSV/Excel reader used by STEM preview parsing |
+| `Kerajel.TabularDataReader` | Class library | Vendored delimited-text/Excel reader used by STEM preview parsing |
 
 The client talks to the server only through the typed `INuclearEvaluationApi` (HTTP + JSON).
 Grids translate Radzen `LoadDataArgs` into a serializable `DataQuery`; the server maps that
@@ -115,10 +115,12 @@ Or run the browser suite through Docker Compose, which starts the app dependenci
 docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e
 ```
 
-The Docker e2e profile defaults to 4 Playwright workers. Override with `E2E_WORKERS`, for example:
+The Docker e2e profile defaults to 2 Playwright workers, which keeps the local SQL Server
+container steadier while still running tests in parallel. Override with `E2E_WORKERS` for a
+faster stress run, for example:
 
 ```powershell
-$env:E2E_WORKERS = "2"
+$env:E2E_WORKERS = "4"
 docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e
 ```
 ## Production deployment

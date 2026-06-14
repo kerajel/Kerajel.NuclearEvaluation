@@ -6,7 +6,7 @@ const configuredWorkers = Number.parseInt(process.env.E2E_WORKERS ?? '', 10);
 const workers = Number.isFinite(configuredWorkers) && configuredWorkers > 0
   ? configuredWorkers
   : process.env.CI
-    ? 4
+    ? 2
     : undefined;
 
 export default defineConfig({

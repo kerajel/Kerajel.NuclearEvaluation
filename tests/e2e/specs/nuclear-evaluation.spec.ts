@@ -960,6 +960,56 @@ test('ADD-41 query-aware chart APIs respect grid filters', async ({ page }) => {
   expect(particle.ok).toBe(true);
   expect(particle.json).toEqual([]);
 });
+
+test('ADD-42 chart APIs accept Radzen nullable comparison filters', async ({ page }) => {
+  const query = { projectId: 1, filter: 'x => ((x.U234 ?? null) > 1)' };
+  const apm = await apiPost<ChartBinCounts[]>(page, '/api/charts/apm-bin-counts', query);
+  const particle = await apiPost<ChartBinCounts[]>(page, '/api/charts/particle-bin-counts', query);
+
+  expect(apm.ok).toBe(true);
+  expect(Array.isArray(apm.json)).toBe(true);
+  expect(particle.ok).toBe(true);
+  expect(Array.isArray(particle.json)).toBe(true);
+});
+
+test('ADD-43 Preset create accepts enabled entries with null navigation payloads', async ({ page }) => {
+  const name = `QAPresetEntry${Date.now().toString().slice(-10)}`;
+  const created = await apiPost<number>(page, '/api/preset-filters', {
+    id: 0,
+    name,
+    entries: [
+      {
+        id: 0,
+        presetFilterEntryType: 2,
+        logicalFilterOperator: 0,
+        isEnabled: true,
+        presetFilterId: 0,
+        presetFilter: null,
+        serializedDescriptors: '[{"Property":"Sample.Sequence","Type":"System.String","FilterValue":"b","FilterOperator":6,"LogicalFilterOperator":0,"Filters":null}]'
+      }
+    ]
+  });
+  const id = Number(created.text);
+
+  try {
+    expect(created.ok).toBe(true);
+    expect(id).toBeGreaterThan(0);
+
+    const filters = await apiGet<PresetFilter[]>(page, '/api/preset-filters');
+    const row = filters.json?.find(filter => filter.id === id);
+
+    expect(row?.entries).toHaveLength(1);
+    expect(row?.entries[0]).toMatchObject({
+      presetFilterEntryType: 2,
+      isEnabled: true,
+      serializedDescriptors: expect.stringContaining('Sample.Sequence')
+    });
+  } finally {
+    if (Number.isFinite(id) && id > 0) {
+      await apiDelete(page, `/api/preset-filters/${id}`);
+    }
+  }
+});
 async function themeState(page: Page) {
   return page.evaluate(() => ({
     href: [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')]

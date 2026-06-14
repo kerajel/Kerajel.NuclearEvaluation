@@ -19,7 +19,7 @@ Last reviewed: 2026-06-14
 
 ## Summary
 
-- Captured cases: 62
+- Captured cases: 64
 - Executed cases: 62
 - Passed: 62
 - Failed: 0
@@ -123,6 +123,8 @@ The previously failing rebuild checks now pass:
 | ADD-39 | Backend/API | Chart APIs return empty arrays for missing project ids | GET APM and particle chart APIs for a missing project id | Endpoints return HTTP 200 with empty arrays. | PASS | Both chart APIs returned empty arrays. |
 | ADD-40 | UI/Layout | Project detail fits a mobile viewport | Open `/projects/1` at 390px width; measure document width | Project detail renders without horizontal overflow or app error UI. | PASS | Mobile project detail stayed within viewport. |
 | ADD-41 | Backend/API | Query-aware chart APIs respect grid filters | POST APM and particle chart APIs with an impossible grid filter | Endpoints return HTTP 200 with empty arrays. | PASS | Both query-aware chart APIs returned empty arrays for an impossible `Id` filter. |
+| ADD-42 | Backend/API | Chart APIs accept Radzen nullable comparison filters | POST APM and particle chart APIs with `x => ((x.U234 ?? null) > 1)` | Endpoints return HTTP 200 with chart arrays instead of a dynamic-LINQ comparison error. | NOT RUN | Added as executable coverage; not run per request to skip UI/e2e tests unless explicitly asked. |
+| ADD-43 | Backend/API | Preset create accepts enabled entries with null navigation payloads | POST a preset filter with enabled sample descriptors and a null navigation property | Endpoint creates the preset and returns it with its entry payload. | NOT RUN | Added as executable coverage; not run per request to skip UI/e2e tests unless explicitly asked. |
 
 ## Superseded Checks
 

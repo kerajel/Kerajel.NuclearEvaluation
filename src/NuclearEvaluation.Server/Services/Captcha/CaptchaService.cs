@@ -12,7 +12,7 @@ public class CaptchaSettings
     public string Secret { get; set; } = "change-me-nuclear-evaluation-dev-secret";
 
     /// <summary>Upper bound of the proof-of-work search space (difficulty).</summary>
-    public int MaxNumber { get; set; } = 60_000;
+    public int MaxNumber { get; set; } = 500_000;
 
     /// <summary>How long an issued challenge remains solvable.</summary>
     public int ChallengeTtlMinutes { get; set; } = 10;

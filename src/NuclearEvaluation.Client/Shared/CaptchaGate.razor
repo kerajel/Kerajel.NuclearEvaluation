@@ -22,8 +22,9 @@ else
             <div style="display:flex;align-items:flex-start;gap:0.5rem;text-align:left;margin-bottom:1rem;">
                 <RadzenCheckBox @bind-Value="_cookiesAccepted" Name="cookieConsent" TValue="bool" Change="@(_ => _error = null)" />
                 <RadzenLabel Component="cookieConsent" Style="cursor:pointer;">
-                    Sorry, we use cookies 🍪 — exactly one, and the only thing it's enriched with
-                    is the memory that you're human (half-life: ~30 days). No tracking, no uranium.
+                    Use an essential cookie to remember this human check for 30 days.
+                    The only enrichment is a signed expiry with a tidy little half-life. No tracking,
+                    no personal data, and the uranium stays in the tables.
                     I accept.
                 </RadzenLabel>
             </div>
@@ -35,7 +36,7 @@ else
                 </RadzenAlert>
             }
 
-            <RadzenButton Text="@(_solving ? "Verifying…" : "Accept & verify I'm human")"
+            <RadzenButton Text="@(_solving ? "Verifying..." : "Accept & verify I'm human")"
                           Icon="verified_user"
                           Disabled="@(_solving || !_cookiesAccepted)"
                           Click="@Solve"

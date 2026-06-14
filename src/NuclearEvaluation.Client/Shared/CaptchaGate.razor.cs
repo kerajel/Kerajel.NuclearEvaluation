@@ -44,7 +44,7 @@ public partial class CaptchaGate : ComponentBase
     {
         if (!_cookiesAccepted)
         {
-            _error = "Please accept the use of cookies to continue.";
+            _error = "Please allow the human-check cookie to continue.";
             return;
         }
 

@@ -21,15 +21,16 @@ public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilt
         get
         {
             presetFilterEntry ??= PresetFilterEntry.Create(EntryType, [], true);
-            presetFilterEntry.Descriptors = filter.Filters;
-            presetFilterEntry.LogicalFilterOperator = filter.LogicalFilterOperator;
+            presetFilterEntry.Descriptors = GetCurrentFilters();
+            presetFilterEntry.LogicalFilterOperator = logicalFilterOperator;
             return presetFilterEntry;
         }
         set
         {
             presetFilterEntry = value;
-            filter.Filters = value.Descriptors;
+            currentFilters = value.Descriptors?.ToArray() ?? [];
             logicalFilterOperator = value.LogicalFilterOperator;
+            RefreshFilter();
             StateHasChanged();
         }
     }
@@ -40,18 +41,47 @@ public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilt
     {
         get
         {
-            return filter.Filters.IsNullOrEmpty() ? null : filter.ToFilterString();
+            IEnumerable<CompositeFilterDescriptor> filters = GetCurrentFilters();
+            return filters.IsNullOrEmpty()
+                ? null
+                : filters.ToFilterString<TItem>(
+                    logicalFilterOperator,
+                    filter?.FilterCaseSensitivity ?? FilterCaseSensitivity.Default);
         }
     }
 
     protected RadzenDataFilter<TItem> filter = null!;
     protected PresetFilterEntry? presetFilterEntry;
     protected LogicalFilterOperator logicalFilterOperator = LogicalFilterOperator.And;
+    IEnumerable<CompositeFilterDescriptor> currentFilters = [];
 
     public void Reset()
     {
         presetFilterEntry = PresetFilterEntry.Create(EntryType, [], true);
         logicalFilterOperator = LogicalFilterOperator.And;
-        filter.Filters = [];
+        currentFilters = [];
+        RefreshFilter();
+    }
+
+    IEnumerable<CompositeFilterDescriptor> GetCurrentFilters()
+    {
+        if (filter is not null)
+        {
+            currentFilters = filter.Filters?.ToArray() ?? [];
+            logicalFilterOperator = filter.LogicalFilterOperator;
+        }
+
+        return currentFilters;
+    }
+
+    void RefreshFilter()
+    {
+        if (filter is null)
+        {
+            return;
+        }
+
+        filter.Filters = currentFilters;
+        filter.Filter();
     }
 }

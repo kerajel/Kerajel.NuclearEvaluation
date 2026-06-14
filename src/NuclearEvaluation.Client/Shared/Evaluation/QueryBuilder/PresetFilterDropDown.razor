@@ -1,4 +1,4 @@
-﻿<div style="padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+<div style="display: flex; align-items: center; gap: 8px; width: 100%;">
     <ValidatedTextBox TModel="PresetFilter"
                       @ref="_validatedTextBoxRef"
                       Model="@_activeFilter"
@@ -11,27 +11,39 @@
                       Name="FilterName"
                       TooltipOffsetX="-200"
                       OnValidated="@(_ => StateHasChanged())"
-                      Style="width: 200px; flex-grow: 1;" />
+                      Style="min-width: 180px; flex: 1 1 220px;" />
 
     <RadzenDropDown Data="@_filters"
                     Visible="@(_operationMode == OperationMode.Browsing)"
                     TextProperty="@(nameof(PresetFilter.Name))"
-                    Change="@OnDropDownChange"
-                    Style="width: auto; flex-grow: 1;"
-                    @bind-Value="@_activeFilter" />
+                    ValueProperty="@(nameof(PresetFilter.Id))"
+                    Placeholder="Select saved filter"
+                    Value="@ActiveFilterId"
+                    ValueChanged="@OnDropDownChange"
+                    TValue="int?"
+                    Style="min-width: 180px; flex: 1 1 220px;" />
 
     <RadzenButton ButtonStyle="ButtonStyle.Light"
-                  Icon="@_submitIcon"
-                  Style="margin: 0 5px; padding: 5px 10px;"
+                  Icon="@SubmitIcon"
+                  Text="@SubmitText"
+                  title="@SubmitTitle"
+                  aria-label="@SubmitTitle"
+                  Style="@ToolbarButtonStyle"
                   Disabled="@(_operationMode == OperationMode.Editing && !CanSubmitFilter())"
                   Click="@SubmitAction" />
     <RadzenButton ButtonStyle="ButtonStyle.Light"
-                  Icon="@_cancelIcon"
-                  Style="margin: 0 5px; padding: 5px 10px;"
+                  Icon="@CancelIcon"
+                  Text="@CancelText"
+                  title="@CancelTitle"
+                  aria-label="@CancelTitle"
+                  Style="@ToolbarButtonStyle"
                   Click="@CancelAction" />
     <RadzenButton ButtonStyle="ButtonStyle.Light"
                   Icon="delete_forever"
-                  Style="padding: 5px 10px;"
+                  Text="Delete"
+                  title="Delete the selected saved filter."
+                  aria-label="Delete the selected saved filter."
+                  Style="@ToolbarButtonStyle"
                   Click="@ConfirmDelete"
                   Disabled="@(_activeFilter.Id == 0)" />
 </div>

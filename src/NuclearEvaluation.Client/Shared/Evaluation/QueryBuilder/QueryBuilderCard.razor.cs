@@ -40,20 +40,19 @@ public partial class QueryBuilderCard : ComponentBase
         _particleGrid,
     ];
 
-    IPresetFilterComponent[]? _presetFilterComponents;
     IPresetFilterComponent[] PresetFilterComponents
     {
         get
         {
-            _presetFilterComponents ??=
-                [
-                    _seriesFilter,
-                    _sampleFilter,
-                    _subSampleFilter,
-                    _apmFilter,
-                    _particleFilter,
-                ];
-            return _presetFilterComponents.Where(x => x != null).ToArray();
+            IPresetFilterComponent?[] components =
+            [
+                _seriesFilter,
+                _sampleFilter,
+                _subSampleFilter,
+                _apmFilter,
+                _particleFilter,
+            ];
+            return components.Where(x => x != null).ToArray()!;
         }
     }
 
@@ -61,6 +60,10 @@ public partial class QueryBuilderCard : ComponentBase
     string CheckBoxWithHeadingStyle { get; } = "display: flex; align-items: center;";
     string CheckBoxStyle { get; } = "margin-right: 10px;";
     string HeadingSize { get; } = "H4";
+    string ToolbarStyle { get; } = "display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap;";
+    string ToolbarGroupStyle { get; } = "display: flex; flex-direction: column; gap: 4px; min-width: 220px;";
+    string PresetToolbarGroupStyle { get; } = "display: flex; flex-direction: column; gap: 4px; min-width: 420px; flex: 1 1 420px;";
+    string ToolbarLabelStyle { get; } = "font-size: 0.875rem; margin-bottom: 0;";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -90,21 +93,23 @@ public partial class QueryBuilderCard : ComponentBase
         foreach (IPresetFilterComponent filterComponent in PresetFilterComponents)
         {
             PresetFilterEntry filterEntry = _activeFilter.EnsurePresetFilterEntry(filterComponent.EntryType);
-            if (filterEntry.IsEnabled)
+            string? filterString = filterComponent.FilterString;
+            if (filterEntry.IsEnabled && !string.IsNullOrWhiteSpace(filterString))
             {
-                presetFilterBox.Set(filterComponent.EntryType, filterComponent.FilterString);
+                presetFilterBox.Set(filterComponent.EntryType, filterString);
             }
         }
         return presetFilterBox;
     }
 
 
-    void OnPresetFilterCheckBoxChanged(bool value, PresetFilterEntryType entryType)
+    async Task OnPresetFilterCheckBoxChanged(bool value, PresetFilterEntryType entryType)
     {
         PresetFilterEntry filterEntry = _activeFilter.EnsurePresetFilterEntry(entryType);
         filterEntry.IsEnabled = value;
 
         StateHasChanged();
+        await ReloadActiveGrid();
     }
 
     bool GetFilterCheckBoxVisibility(PresetFilterEntryType entryType)
@@ -122,10 +127,11 @@ public partial class QueryBuilderCard : ComponentBase
         return _activeGrid == dataGrid;
     }
 
-    void OnPresetFilterSelected(PresetFilter presetFilter)
+    async Task OnPresetFilterSelected(PresetFilter presetFilter)
     {
         _activeFilter = presetFilter;
         ReRenderPresetFilters(_activeFilter);
+        await ReloadActiveGrid();
     }
 
     void ReRenderPresetFilters(PresetFilter presetFilter)
@@ -150,15 +156,25 @@ public partial class QueryBuilderCard : ComponentBase
 
     async Task ApplyPresetFilter()
     {
+        await ReloadActiveGrid();
+    }
+
+    async Task ReloadActiveGrid()
+    {
+        if (_activeGrid is null)
+        {
+            return;
+        }
+
         await JSRuntime.InvokeVoidAsync("forceUpdateNumericInputs");
         await _activeGrid.Reset(false, false);
     }
 
     async Task OnDataGridSelected(IDataGridComponent dataGrid)
     {
-        await dataGrid.Reset();
         _activeGrid = dataGrid;
         await InvokeAsync(StateHasChanged);
+        await dataGrid.Reset();
         await Task.Yield();
     }
 }

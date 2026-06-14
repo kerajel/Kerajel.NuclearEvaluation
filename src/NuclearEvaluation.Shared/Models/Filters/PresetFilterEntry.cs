@@ -56,7 +56,8 @@ public class PresetFilterEntry
     [ForeignKey(nameof(PresetFilter))]
     public int PresetFilterId { get; set; }
 
-    public PresetFilter PresetFilter { get; set; } = null!;
+    [JsonIgnore]
+    public PresetFilter? PresetFilter { get; set; }
 
     [NotMapped]
     [JsonIgnore]
@@ -85,7 +86,8 @@ public class PresetFilterEntry
         }
         set
         {
-            bool deserialized = JsonExtensions.TryDeserialize(value, out ICollection<CompositeFilterDescriptor>? descriptors, _serializerOptions);
+            _serializedDescriptors = value ?? string.Empty;
+            bool deserialized = JsonExtensions.TryDeserialize(_serializedDescriptors, out ICollection<CompositeFilterDescriptor>? descriptors, _serializerOptions);
             if (deserialized)
             {
                 _descriptors = descriptors!;

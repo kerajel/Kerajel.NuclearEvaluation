@@ -23,7 +23,7 @@ public class PresetFiltersController : ControllerBase
     {
         return await _dbContext.PresetFilter
             .AsNoTracking()
-            .IncludeOptimized(x => x.Entries)
+            .Include(x => x.Entries)
             .OrderBy(x => x.Name)
             .ToListAsync();
     }

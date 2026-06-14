@@ -32,8 +32,31 @@ public partial class PresetFilterDropDown : ComponentBase
     ValidatedTextBox<PresetFilter> _validatedTextBoxRef = null!;
     PresetFilter _activeFilter = new();
 
-    string _submitIcon = "save";
-    string _cancelIcon = "clear_all";
+    int? ActiveFilterId => _activeFilter.Id == 0 ? null : _activeFilter.Id;
+
+    string SubmitIcon => _operationMode == OperationMode.Editing
+        ? "check"
+        : _activeFilter.Id == 0 ? "save" : "edit";
+
+    string SubmitText => _operationMode == OperationMode.Editing
+        ? "Save"
+        : _activeFilter.Id == 0 ? "Save preset" : "Edit preset";
+
+    string SubmitTitle => _operationMode == OperationMode.Editing
+        ? "Save the current query builder filters."
+        : _activeFilter.Id == 0
+            ? "Save the current query builder filters as a preset."
+            : "Rename or update the selected saved filter.";
+
+    string CancelIcon => _operationMode == OperationMode.Editing ? "close" : "filter_alt_off";
+
+    string CancelText => _operationMode == OperationMode.Editing ? "Cancel" : "Clear preset";
+
+    string CancelTitle => _operationMode == OperationMode.Editing
+        ? "Cancel editing this saved filter."
+        : "Clear the selected saved filter and reload the results.";
+
+    string ToolbarButtonStyle { get; } = "padding: 5px 10px; white-space: nowrap;";
 
     // Mirror PresetFilterValidator's length rule so the save button can be gated synchronously.
     const int MinNameLength = 5;
@@ -120,10 +143,13 @@ public partial class PresetFilterDropDown : ComponentBase
 
     async Task CancelAction()
     {
-        await ToggleOperationMode(OperationMode.Browsing);
-        _activeFilter = new();
-        await OnPresetFilterSelected.InvokeAsync(_activeFilter);
-        _validatedTextBoxRef.CancelValidation();
+        if (_operationMode == OperationMode.Editing)
+        {
+            await ToggleOperationMode(OperationMode.Browsing);
+            return;
+        }
+
+        await ClearSelectedFilter();
     }
 
     async Task ConfirmDelete()
@@ -132,7 +158,7 @@ public partial class PresetFilterDropDown : ComponentBase
         if (result.HasValue && result.Value)
         {
             await DeleteFilter();
-            await OnDropDownChange();
+            await NotifyActiveFilterChanged();
         }
     }
 
@@ -152,22 +178,31 @@ public partial class PresetFilterDropDown : ComponentBase
 
         if (operationMode == OperationMode.Editing)
         {
-            _submitIcon = "check";
-
             _validatedTextBoxRef.ReInitialize();
             await _validatedTextBoxRef.FocusAsync();
         }
         else
         {
-            _submitIcon = "save";
-            _cancelIcon = "clear_all";
             _validatedTextBoxRef.CancelValidation();
         }
     }
 
-    async Task OnDropDownChange()
+    async Task ClearSelectedFilter()
+    {
+        _activeFilter = new();
+        await NotifyActiveFilterChanged();
+    }
+
+    async Task OnDropDownChange(int? value)
+    {
+        _activeFilter = _filters.FirstOrDefault(x => x.Id == value) ?? new();
+        await NotifyActiveFilterChanged();
+    }
+
+    async Task NotifyActiveFilterChanged()
     {
         await OnPresetFilterSelected.InvokeAsync(_activeFilter);
         _validatedTextBoxRef.ReInitialize();
+        await InvokeAsync(StateHasChanged);
     }
 }

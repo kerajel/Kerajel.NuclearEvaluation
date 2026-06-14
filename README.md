@@ -1,13 +1,12 @@
 # Nuclear Evaluation
 
-A .NET 10 web application for exploring nuclear-material evaluation data: particle samples,
-sub-samples, and APM (Alpha Particle Measurement) records organised into series and projects,
-with uranium-isotope analysis, decay correction, and a query builder. UI built with
-[Radzen](https://blazor.radzen.com/) Blazor components.
+A .NET 10 web application for exploring nuclear-material evaluation data across projects,
+series, particle samples, sub-samples, and APM (Alpha Particle Measurement) records. It brings
+uranium-isotope analysis, decay correction, grids, charts, STEM upload previews, and reusable
+query presets into one evaluation workspace.
 
-Originally a server-side Blazor app, it is now a **Blazor WebAssembly client + ASP.NET Core
-Web API**, deployed as a single site. It runs **anonymously** — no accounts — behind a
-self-hosted proof-of-work captcha, with abuse limits and an ephemeral, self-resetting dataset.
+The public sandbox is anonymous by design. A self-hosted proof-of-work captcha, rate limits,
+upload caps, and scheduled resets keep the demo available without user accounts.
 
 ## Architecture
 

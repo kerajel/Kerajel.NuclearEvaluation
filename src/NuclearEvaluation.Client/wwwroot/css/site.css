@@ -37,12 +37,27 @@ body {
    arrives (avoids the "teary" jump). Nested row-detail grids and the compact totals
    strip size to their content instead. */
 .rz-data-grid {
-    min-height: 24rem;
+    min-height: var(--ne-grid-min-height, 24rem);
 }
 
 .rz-data-grid .rz-data-grid,
 .ne-compact-grid .rz-data-grid {
     min-height: 0;
+}
+
+.ne-grid-caption,
+.ne-chart-caption {
+    color: var(--rz-text-secondary-color);
+    font-size: 0.875rem;
+    line-height: 1.35;
+}
+
+.ne-grid-caption {
+    margin: 0.25rem 0 0.65rem;
+}
+
+.ne-chart-caption {
+    margin: 0.9rem 0 0.25rem;
 }
 
 /* STEM upload drop zone: a styled area with a transparent file input overlaid on top so

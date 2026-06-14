@@ -74,11 +74,17 @@ public class NuclearEvaluationApiClient : INuclearEvaluationApi
         return await response.Content.ReadFromJsonAsync<List<int>>(JsonOptions, ct) ?? [];
     }
 
-    public async Task<List<IsotopeBinCounts>> GetProjectApmUraniumBinCounts(int projectId, CancellationToken ct = default)
-        => await _http.GetFromJsonAsync<List<IsotopeBinCounts>>($"api/charts/apm-bin-counts/{projectId}", JsonOptions, ct) ?? [];
+    public async Task<List<IsotopeBinCounts>> GetProjectApmUraniumBinCounts(DataQuery query, CancellationToken ct = default)
+    {
+        HttpResponseMessage response = await _http.PostAsJsonAsync("api/charts/apm-bin-counts", query, JsonOptions, ct);
+        return await response.Content.ReadFromJsonAsync<List<IsotopeBinCounts>>(JsonOptions, ct) ?? [];
+    }
 
-    public async Task<List<IsotopeBinCounts>> GetProjectParticleUraniumBinCounts(int projectId, CancellationToken ct = default)
-        => await _http.GetFromJsonAsync<List<IsotopeBinCounts>>($"api/charts/particle-bin-counts/{projectId}", JsonOptions, ct) ?? [];
+    public async Task<List<IsotopeBinCounts>> GetProjectParticleUraniumBinCounts(DataQuery query, CancellationToken ct = default)
+    {
+        HttpResponseMessage response = await _http.PostAsJsonAsync("api/charts/particle-bin-counts", query, JsonOptions, ct);
+        return await response.Content.ReadFromJsonAsync<List<IsotopeBinCounts>>(JsonOptions, ct) ?? [];
+    }
 
     public async Task<int> CreateSeries(SeriesView seriesView, CancellationToken ct = default)
     {

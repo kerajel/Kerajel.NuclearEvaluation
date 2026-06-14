@@ -25,8 +25,8 @@ public interface INuclearEvaluationApi
     Task<List<int>> GetEnumFilterOptions(string entity, EnumFilterRequest request, CancellationToken ct = default);
 
     // Charts
-    Task<List<IsotopeBinCounts>> GetProjectApmUraniumBinCounts(int projectId, CancellationToken ct = default);
-    Task<List<IsotopeBinCounts>> GetProjectParticleUraniumBinCounts(int projectId, CancellationToken ct = default);
+    Task<List<IsotopeBinCounts>> GetProjectApmUraniumBinCounts(DataQuery query, CancellationToken ct = default);
+    Task<List<IsotopeBinCounts>> GetProjectParticleUraniumBinCounts(DataQuery query, CancellationToken ct = default);
 
     // Series CRUD
     Task<int> CreateSeries(SeriesView seriesView, CancellationToken ct = default);

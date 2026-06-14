@@ -6,6 +6,11 @@
         <ResetGridButton Click="@(() => Reset())" />
     </GridButtonRibbon>
 
+    @if (HasCaption)
+    {
+        <div class="ne-grid-caption">@Caption</div>
+    }
+
     <RadzenDataGrid @bind-Settings="@GridSettings"
                     @ref="grid"
                     AllowAlternatingRows="false"
@@ -26,6 +31,7 @@
                     FilterPopupRenderMode="PopupRenderMode.OnDemand"
                     EmptyTemplate="@EmptyTemplate"
                     PagingSummaryFormat="@("Displaying page {0:N0} of {1:N0} <b>(total {2:N0} records)</b>")"
+                    Style="@GridMinHeightStyle"
                     FilterMode="FilterMode.Advanced">
 
         <Columns>

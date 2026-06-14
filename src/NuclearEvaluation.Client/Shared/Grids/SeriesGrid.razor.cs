@@ -140,7 +140,7 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
 
     protected void RowRender(RowRenderEventArgs<SeriesView> args)
     {
-        args.Expandable = args.Data.SampleCount > 0;
+        args.Expandable = args.Data?.SampleCount > 0;
     }
 
     protected async Task EditRow(SeriesView seriesView)
@@ -193,7 +193,10 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
     protected async Task SaveRow(SeriesView seriesView)
     {
         await grid.UpdateRow(seriesView);
-        _ = OnSeriesSetChanged.InvokeAsync(currentQuery);
+        if (currentQuery is not null)
+        {
+            _ = OnSeriesSetChanged.InvokeAsync(currentQuery);
+        }
     }
 
     protected async Task CancelEdit(SeriesView seriesView)

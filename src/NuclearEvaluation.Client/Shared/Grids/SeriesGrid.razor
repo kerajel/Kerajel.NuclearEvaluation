@@ -19,6 +19,11 @@
         </RadzenRow>
     </RadzenCard>
 
+    @if (HasCaption)
+    {
+        <div class="ne-grid-caption">@Caption</div>
+    }
+
     <RadzenDataGrid @bind-SelectedItems="SelectedEntryIds"
                     @bind-Settings="GridSettings"
                     @ref="grid"
@@ -50,6 +55,7 @@
                     FilterMode="FilterMode.Advanced"
                     ExpandMode="DataGridExpandMode.Multiple"
                     EmptyTemplate="@EmptyTemplate"
+                    Style="@GridMinHeightStyle"
                     PagingSummaryFormat="@("Displaying page {0:N0} of {1:N0} <b>(total {2:N0} records)</b>")">
 
         <Template Context="series">
@@ -240,4 +246,3 @@
     </RadzenDataGrid>
 
 </div>
-

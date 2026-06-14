@@ -34,6 +34,9 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
     public bool Visible { get; set; } = true;
 
     [Parameter]
+    public string? Caption { get; set; }
+
+    [Parameter]
     public Func<PresetFilterBox>? GetPresetFilterBox { get; set; }
 
     protected int totalCount = 0;
@@ -48,6 +51,10 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
     protected virtual string DateOnlyFormat => "{0:yyyy-MM-dd}";
 
     protected string GridSettingsKey => $"{ComponentId}_{nameof(DataGridSettings)}";
+
+    protected string GridMinHeightStyle => $"--ne-grid-min-height: {GetGridMinHeightRem()}rem;";
+
+    protected bool HasCaption => !string.IsNullOrWhiteSpace(Caption);
 
     protected DataGridSettings? GridSettings
     {
@@ -72,6 +79,27 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
     public abstract Task LoadData(LoadDataArgs args);
 
     public abstract Task Reset(bool resetColumnState = true, bool resetRowState = false);
+
+    int GetGridMinHeightRem()
+    {
+        const int emptyGridHeightRem = 9;
+        const int gridChromeHeightRem = 7;
+        const int rowHeightRem = 2;
+        const int maxGridHeightRem = 24;
+        const int maxReservedRows = 9;
+
+        int rowCount = entries.Count;
+        if (rowCount == 0 && !isLoading)
+        {
+            return emptyGridHeightRem;
+        }
+
+        int reservedRows = isLoading && rowCount == 0
+            ? maxReservedRows
+            : Math.Clamp(rowCount, 1, maxReservedRows);
+
+        return Math.Min(maxGridHeightRem, gridChromeHeightRem + reservedRows * rowHeightRem);
+    }
 
     int _loadSequence;
 

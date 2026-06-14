@@ -16,6 +16,9 @@ public partial class ApmGrid : BaseGridGeneric<ApmView>
     [Parameter]
     public int? ProjectId { get; set; }
 
+    [Parameter]
+    public EventCallback<DataQuery> OnQueryChanged { get; set; }
+
     public override string EntityDisplayName => nameof(Apm);
 
     protected RadzenDataGrid<ApmView> grid = null!;
@@ -32,6 +35,8 @@ public partial class ApmGrid : BaseGridGeneric<ApmView>
         await FetchData(query, () => Api.GetApmViews(query));
 
         isLoading = false;
+
+        _ = OnQueryChanged.InvokeAsync(query);
     }
 
     public override async Task Reset(bool resetColumnState = true, bool resetRowState = false)

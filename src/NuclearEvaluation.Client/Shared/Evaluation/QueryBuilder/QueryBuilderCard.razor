@@ -84,22 +84,27 @@
     <SeriesGrid @ref="_seriesGrid"
                           Visible="GetDataGridVisibility(_seriesGrid)"
                           GetPresetFilterBox="GetPresetFilterBox"
+                          Caption="Series returned by the current query."
                           AllowEdit="false" />
 
     <SampleGrid @ref="_sampleGrid"
                           Visible="GetDataGridVisibility(_sampleGrid)"
+                          Caption="Samples returned by the current query."
                           GetPresetFilterBox="GetPresetFilterBox" />
 
     <SubSampleGrid @ref="_subSampleGrid"
                              Visible="GetDataGridVisibility(_subSampleGrid)"
+                             Caption="Subsamples returned by the current query."
                              GetPresetFilterBox="GetPresetFilterBox" />
 
     <ApmGrid @ref="_apmGrid"
                        Visible="GetDataGridVisibility(_apmGrid)"
+                       Caption="APM measurements returned by the current query."
                        GetPresetFilterBox="GetPresetFilterBox" />
 
     <ParticleGrid @ref="_particleGrid"
                             Visible="GetDataGridVisibility(_particleGrid)"
+                            Caption="Particle measurements returned by the current query."
                             GetPresetFilterBox="GetPresetFilterBox" />
 
 </CascadingValue>

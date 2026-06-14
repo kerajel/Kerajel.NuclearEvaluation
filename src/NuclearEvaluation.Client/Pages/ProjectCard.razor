@@ -72,6 +72,7 @@ else
             <SeriesGrid @ref="_seriesGridRef"
                         Visible="_isEditingSeries"
                         ComponentId="fb7e7455-b562-4852-892c-2b8e51197fa6"
+                        Caption="Available series. Selected rows are saved as this project's series membership."
                         SelectedEntryIds="_selectedSeriesIds"
                         OnEntriesSelected="OnSeriesSelectionChange"
                         OnEntriesDeselected="OnSeriesSelectionChange"
@@ -102,37 +103,56 @@ else
 
                 <RadzenTabsItem Text="Series" Style="margin-right: 5px;">
                     <SeriesGrid ComponentId="bea40ae9-0cce-41c1-bdeb-71451d85451c"
+                                Caption="Series assigned to this project."
                                 AllowEdit="false"
                                 ProjectId="@_projectView.Id" />
                 </RadzenTabsItem>
 
                 <RadzenTabsItem Text="Samples" Style="margin-right: 5px;">
                     <SampleGrid ComponentId="bea40ae9-0cce-41c1-bdeb-71451d85451c"
+                                Caption="Samples linked through this project's assigned series."
                                 ProjectId="@_projectView.Id" />
                 </RadzenTabsItem>
 
 
                 <RadzenTabsItem Text="SubSamples" Style="margin-right: 5px;">
                     <SubSampleGrid ComponentId="3d8e07c1-6f46-4a6e-818c-9ef3be34090a"
+                                   Caption="Subsamples linked through this project's samples."
                                    ProjectId="@_projectView.Id" />
                 </RadzenTabsItem>
 
                 <RadzenTabsItem Text="Apm" Style="margin-right: 5px;">
                     <ApmGrid @ref="apmGrid"
                              ComponentId="6e6ed866-a4e3-4b41-9eaf-e63dd2415fcf"
+                             Caption="APM measurements for this project. Grid filters define the result set used by the chart below."
                              EnableDecayCorrection="@( _projectView.DecayCorrectionDate.HasValue)"
-                             ProjectId="@_projectView.Id" />
+                             ProjectId="@_projectView.Id"
+                             OnQueryChanged="OnApmQueryChanged" />
 
-                    <ProjectApmUraniumBinCountsChart @ref="apmBinChart" ProjectId="@Id" />
+                    @if (tabManager.SelectedTabIndex == ApmTabIndex)
+                    {
+                        <ProjectApmUraniumBinCountsChart @ref="apmBinChart"
+                                                          ProjectId="@Id"
+                                                          Query="@ApmChartQuery"
+                                                          Caption="Uranium isotope bin counts for all APM rows matching the grid filters." />
+                    }
                 </RadzenTabsItem>
 
                 <RadzenTabsItem Text="Particles" Style="margin-right: 5px;">
                     <ParticleGrid @ref="particleGrid"
                                   ComponentId="05dbb724-079b-4a39-9cf8-1318c29091ac"
+                                  Caption="Particle measurements for this project. Grid filters define the result set used by the chart below."
                                   EnableDecayCorrection="@( _projectView.DecayCorrectionDate.HasValue)"
-                                  ProjectId="@_projectView.Id" />
+                                  ProjectId="@_projectView.Id"
+                                  OnQueryChanged="OnParticleQueryChanged" />
 
-                    <ProjectParticleUraniumBinCountsChart @ref="particleBinChart" ProjectId="@Id" />
+                    @if (tabManager.SelectedTabIndex == ParticleTabIndex)
+                    {
+                        <ProjectParticleUraniumBinCountsChart @ref="particleBinChart"
+                                                               ProjectId="@Id"
+                                                               Query="@ParticleChartQuery"
+                                                               Caption="Uranium isotope bin counts for all particle rows matching the grid filters." />
+                    }
                 </RadzenTabsItem>
             </Tabs>
         </RadzenTabs>

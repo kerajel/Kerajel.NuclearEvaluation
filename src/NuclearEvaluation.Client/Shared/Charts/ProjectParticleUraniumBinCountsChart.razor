@@ -1,4 +1,9 @@
-﻿<RadzenChart>
+@if (!string.IsNullOrWhiteSpace(Caption))
+{
+    <div class="ne-chart-caption">@Caption</div>
+}
+
+<RadzenChart>
     <RadzenChartTooltipOptions Shared="@true" />
     <RadzenLineSeries Smooth="@true" Data="@(_particleUraniumBinCounts[nameof(ParticleBase.U234)])" CategoryProperty="Name" Title="@nameof(ParticleBase.U234)" LineType="LineType.Dashed" ValueProperty="Count">
         <RadzenMarkers Visible="@true" MarkerType="MarkerType.Square" />

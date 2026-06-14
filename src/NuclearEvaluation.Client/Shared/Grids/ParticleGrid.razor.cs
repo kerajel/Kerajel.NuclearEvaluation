@@ -16,6 +16,9 @@ public partial class ParticleGrid : BaseGridGeneric<ParticleView>
     [Parameter]
     public int? ProjectId { get; set; }
 
+    [Parameter]
+    public EventCallback<DataQuery> OnQueryChanged { get; set; }
+
     public override string EntityDisplayName => nameof(Particle);
 
     protected RadzenDataGrid<ParticleView> grid = null!;
@@ -32,6 +35,8 @@ public partial class ParticleGrid : BaseGridGeneric<ParticleView>
         await FetchData(query, () => Api.GetParticleViews(query));
 
         isLoading = false;
+
+        _ = OnQueryChanged.InvokeAsync(query);
     }
 
     public override async Task Reset(bool resetColumnState = true, bool resetRowState = false)

@@ -13,6 +13,9 @@ namespace NuclearEvaluation.Client.Pages;
 
 public partial class ProjectCard : ComponentBase
 {
+    const int ApmTabIndex = 4;
+    const int ParticleTabIndex = 5;
+
     [Parameter]
     public int Id { get; set; }
 
@@ -46,13 +49,20 @@ public partial class ProjectCard : ComponentBase
 
     DateTime? _decayCorrectionDateInput;
 
-    ApmGrid apmGrid = null!;
-    ParticleGrid particleGrid = null!;
+    ApmGrid? apmGrid;
+    ParticleGrid? particleGrid;
 
-    ProjectParticleUraniumBinCountsChart particleBinChart = null!;
-    ProjectApmUraniumBinCountsChart apmBinChart = null!;
+    ProjectParticleUraniumBinCountsChart? particleBinChart;
+    ProjectApmUraniumBinCountsChart? apmBinChart;
+
+    DataQuery? _apmChartQuery;
+    DataQuery? _particleChartQuery;
 
     protected TabManager tabManager = null!;
+
+    DataQuery ApmChartQuery => _apmChartQuery ?? CreateProjectChartQuery();
+
+    DataQuery ParticleChartQuery => _particleChartQuery ?? CreateProjectChartQuery();
 
     protected override async Task OnInitializedAsync()
     {
@@ -72,8 +82,8 @@ public partial class ProjectCard : ComponentBase
                   .AddTab("series", 1)
                   .AddTab("samples", 2)
                   .AddTab("subsamples", 3)
-                  .AddTab("apm", 4)
-                  .AddTab("particles", 5)
+                  .AddTab("apm", ApmTabIndex)
+                  .AddTab("particles", ParticleTabIndex)
                   .Initialize();
 
         _projectView = projectView;
@@ -208,15 +218,61 @@ public partial class ProjectCard : ComponentBase
             StateHasChanged();
             await Task.Yield();
 
-            await apmGrid.Refresh();
-            await particleGrid.Refresh();
+            if (apmGrid != null)
+            {
+                await apmGrid.Refresh();
+            }
+            if (particleGrid != null)
+            {
+                await particleGrid.Refresh();
+            }
 
-            await apmBinChart.Refresh();
-            await particleBinChart.Refresh();
+            if (apmBinChart != null)
+            {
+                await apmBinChart.Refresh();
+            }
+            if (particleBinChart != null)
+            {
+                await particleBinChart.Refresh();
+            }
         }
     }
 
     #endregion
+
+    async Task OnApmQueryChanged(DataQuery query)
+    {
+        _apmChartQuery = ToChartQuery(query);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task OnParticleQueryChanged(DataQuery query)
+    {
+        _particleChartQuery = ToChartQuery(query);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    DataQuery CreateProjectChartQuery()
+    {
+        return new DataQuery
+        {
+            ProjectId = _projectView.Id,
+            DecayCorrected = _projectView.DecayCorrectionDate.HasValue,
+        };
+    }
+
+    static DataQuery ToChartQuery(DataQuery query)
+    {
+        return new DataQuery
+        {
+            Filter = query.Filter,
+            PresetFilterBox = query.PresetFilterBox,
+            ProjectId = query.ProjectId,
+            DecayCorrected = query.DecayCorrected,
+            StemSessionId = query.StemSessionId,
+            PriorityIds = query.PriorityIds is null ? null : [.. query.PriorityIds],
+        };
+    }
 
     async Task OnTabChanged(int index)
     {

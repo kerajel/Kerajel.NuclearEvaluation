@@ -141,9 +141,10 @@ else
                              EnableDecayCorrection="@( _projectView.DecayCorrectionDate.HasValue)"
                              ProjectId="@_projectView.Id"
                              ReserveHeight="false"
+                             OnLoadStarted="OnApmGridLoadStarted"
                              OnQueryChanged="OnApmQueryChanged" />
 
-                    @if (tabManager.SelectedTabIndex == ApmTabIndex)
+                    @if (tabManager.SelectedTabIndex == ApmTabIndex && _apmGridLoaded)
                     {
                         <ProjectApmUraniumBinCountsChart @ref="apmBinChart"
                                                           ProjectId="@Id"
@@ -159,9 +160,10 @@ else
                                   EnableDecayCorrection="@( _projectView.DecayCorrectionDate.HasValue)"
                                   ProjectId="@_projectView.Id"
                                   ReserveHeight="false"
+                                  OnLoadStarted="OnParticleGridLoadStarted"
                                   OnQueryChanged="OnParticleQueryChanged" />
 
-                    @if (tabManager.SelectedTabIndex == ParticleTabIndex)
+                    @if (tabManager.SelectedTabIndex == ParticleTabIndex && _particleGridLoaded)
                     {
                         <ProjectParticleUraniumBinCountsChart @ref="particleBinChart"
                                                                ProjectId="@Id"

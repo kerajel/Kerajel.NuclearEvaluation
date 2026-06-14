@@ -19,12 +19,16 @@ public partial class ApmGrid : BaseGridGeneric<ApmView>
     [Parameter]
     public EventCallback<DataQuery> OnQueryChanged { get; set; }
 
+    [Parameter]
+    public EventCallback OnLoadStarted { get; set; }
+
     public override string EntityDisplayName => nameof(Apm);
 
     protected RadzenDataGrid<ApmView> grid = null!;
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
+        await OnLoadStarted.InvokeAsync();
         isLoading = true;
 
         DataQuery query = loadDataArgs.ToDataQuery(
@@ -36,7 +40,7 @@ public partial class ApmGrid : BaseGridGeneric<ApmView>
 
         isLoading = false;
 
-        _ = OnQueryChanged.InvokeAsync(query);
+        await OnQueryChanged.InvokeAsync(query);
     }
 
     public override async Task Reset(bool resetColumnState = true, bool resetRowState = false)

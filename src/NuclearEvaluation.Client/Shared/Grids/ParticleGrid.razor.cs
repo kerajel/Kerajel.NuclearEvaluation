@@ -19,12 +19,16 @@ public partial class ParticleGrid : BaseGridGeneric<ParticleView>
     [Parameter]
     public EventCallback<DataQuery> OnQueryChanged { get; set; }
 
+    [Parameter]
+    public EventCallback OnLoadStarted { get; set; }
+
     public override string EntityDisplayName => nameof(Particle);
 
     protected RadzenDataGrid<ParticleView> grid = null!;
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
+        await OnLoadStarted.InvokeAsync();
         isLoading = true;
 
         DataQuery query = loadDataArgs.ToDataQuery(
@@ -36,7 +40,7 @@ public partial class ParticleGrid : BaseGridGeneric<ParticleView>
 
         isLoading = false;
 
-        _ = OnQueryChanged.InvokeAsync(query);
+        await OnQueryChanged.InvokeAsync(query);
     }
 
     public override async Task Reset(bool resetColumnState = true, bool resetRowState = false)

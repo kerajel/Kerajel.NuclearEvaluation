@@ -23,6 +23,8 @@ public partial class ProjectParticleUraniumBinCountsChart
             .ToLookup(pair => pair.Item1, pair => pair.Item2);
 
     string? _lastQueryKey;
+    bool _isReady;
+    int _loadSequence;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -50,10 +52,20 @@ public partial class ProjectParticleUraniumBinCountsChart
 
     async Task Load(DataQuery query)
     {
+        int sequence = ++_loadSequence;
+        _isReady = false;
+        await InvokeAsync(StateHasChanged);
+
         List<IsotopeBinCounts> data = await Api.GetProjectParticleUraniumBinCounts(query);
+        if (sequence != _loadSequence)
+        {
+            return;
+        }
+
         _particleUraniumBinCounts = data
             .SelectMany(x => x.Bins.Select(b => (x.Isotope, Bin: b)))
             .ToLookup(x => x.Isotope, x => x.Bin);
-        StateHasChanged();
+        _isReady = true;
+        await InvokeAsync(StateHasChanged);
     }
 }

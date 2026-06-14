@@ -61,6 +61,8 @@ public partial class ProjectCard : ComponentBase
 
     DataQuery? _apmChartQuery;
     DataQuery? _particleChartQuery;
+    bool _apmGridLoaded;
+    bool _particleGridLoaded;
 
     protected TabManager tabManager = null!;
 
@@ -258,29 +260,34 @@ public partial class ProjectCard : ComponentBase
             {
                 await particleGrid.Refresh();
             }
-
-            if (apmBinChart != null)
-            {
-                await apmBinChart.Refresh();
-            }
-            if (particleBinChart != null)
-            {
-                await particleBinChart.Refresh();
-            }
         }
     }
 
     #endregion
 
+    async Task OnApmGridLoadStarted()
+    {
+        _apmGridLoaded = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
     async Task OnApmQueryChanged(DataQuery query)
     {
         _apmChartQuery = ToChartQuery(query);
+        _apmGridLoaded = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task OnParticleGridLoadStarted()
+    {
+        _particleGridLoaded = false;
         await InvokeAsync(StateHasChanged);
     }
 
     async Task OnParticleQueryChanged(DataQuery query)
     {
         _particleChartQuery = ToChartQuery(query);
+        _particleGridLoaded = true;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -328,19 +335,19 @@ public partial class ProjectCard : ComponentBase
         {
             await particleGrid.Refresh();
         }
-
-        if (apmBinChart != null)
-        {
-            await apmBinChart.Refresh();
-        }
-        if (particleBinChart != null)
-        {
-            await particleBinChart.Refresh();
-        }
     }
 
     async Task OnTabChanged(int index)
     {
+        if (index == ApmTabIndex)
+        {
+            _apmGridLoaded = false;
+        }
+        if (index == ParticleTabIndex)
+        {
+            _particleGridLoaded = false;
+        }
+
         await tabManager.OnTabChanged(index);
     }
 

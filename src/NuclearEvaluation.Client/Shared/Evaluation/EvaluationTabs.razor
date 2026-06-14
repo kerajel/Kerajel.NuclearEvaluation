@@ -1,6 +1,6 @@
 ﻿@using NuclearEvaluation.Client.Shared.Evaluation.QueryBuilder
 
-<RadzenTabs @bind-SelectedIndex="tabManager.SelectedTabIndex" Change="OnTabChanged" Style="min-height: 600px;">
+<RadzenTabs @bind-SelectedIndex="tabManager.SelectedTabIndex" Change="OnTabChanged" Style="min-height: 600px;" RenderMode="TabRenderMode.Client">
     <Tabs>
         <RadzenTabsItem Text="Projects">
             <ProjectGrid ComponentId="evaluation-projects"

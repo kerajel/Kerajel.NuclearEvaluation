@@ -10,6 +10,10 @@ public partial class TabularDataReaderTests
     [Theory]
     [InlineData("TestData/001.SampleExcel.xlsx")]
     [InlineData("TestData/002.SampleCsv.csv")]
+    [InlineData("TestData/003.SampleTabDat.dat")]
+    [InlineData("TestData/004.SamplePipeDat.dat")]
+    [InlineData("TestData/005.SampleTsv.tsv")]
+    [InlineData("TestData/006.SampleSemicolonText.txt")]
     public void GetCsvReader_ShouldReturnCsvReader(string filePath)
     {
         // Arrange

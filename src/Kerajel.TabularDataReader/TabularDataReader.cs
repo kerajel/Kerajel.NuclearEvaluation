@@ -27,6 +27,8 @@ public class TabularDataReader : IDisposable
     static readonly CsvConfiguration _csvConfig = new(CultureInfo.InvariantCulture)
     {
         HasHeaderRecord = true,
+        DetectDelimiter = true,
+        DetectDelimiterValues = [",", "\t", ";", "|"],
     };
 
     static TabularDataReader()

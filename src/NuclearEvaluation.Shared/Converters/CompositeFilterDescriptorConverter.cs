@@ -23,7 +23,7 @@ public class CompositeFilterDescriptorConverter : JsonConverter<CompositeFilterD
                 ? lfo.Deserialize<LogicalFilterOperator>(options)
                 : default,
             Filters = root.TryGetProperty(nameof(CompositeFilterDescriptor.Filters), out JsonElement filters) && filters.ValueKind == JsonValueKind.Array
-                    ? filters.EnumerateArray().Select(f => JsonSerializer.Deserialize<CompositeFilterDescriptor>(f.GetRawText(), options)).ToArray()
+                    ? filters.EnumerateArray().Select(f => JsonSerializer.Deserialize<CompositeFilterDescriptor>(f.GetRawText(), options)!).ToArray()
                     : null
         };
 

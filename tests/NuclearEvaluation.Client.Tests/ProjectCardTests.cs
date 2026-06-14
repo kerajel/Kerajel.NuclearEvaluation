@@ -18,14 +18,18 @@ public class ProjectCardTests : TestBase
             .Returns(DataResult<ProjectView>.Succeeded([project], 1));
     }
 
+    IRenderedComponent<ProjectCard> RenderProjectCard(ProjectView project)
+        => TestContext.Render<ProjectCard>(parameters => parameters
+            .Add(p => p.Id, project.Id)
+            .Add(p => p.TabRenderMode, Radzen.TabRenderMode.Server));
+
     [Fact]
     public void Render_ShouldRenderProjectName()
     {
         ProjectView project = Project(1, "Plutonium assessment test");
         SetupProject(project);
 
-        IRenderedComponent<ProjectCard> component = TestContext
-            .RenderComponent<ProjectCard>(parameters => parameters.Add(p => p.Id, project.Id));
+        IRenderedComponent<ProjectCard> component = RenderProjectCard(project);
 
         component.WaitForState(() => !component.Instance._isLoading, DefaultWaitForStateTimeout);
 
@@ -40,8 +44,7 @@ public class ProjectCardTests : TestBase
         SetupProject(project);
         Api.IsProjectNameAvailable(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(true);
 
-        IRenderedComponent<ProjectCard> component = TestContext
-            .RenderComponent<ProjectCard>(parameters => parameters.Add(p => p.Id, project.Id));
+        IRenderedComponent<ProjectCard> component = RenderProjectCard(project);
 
         component.WaitForState(() => !component.Instance._isLoading, DefaultWaitForStateTimeout);
 
@@ -66,8 +69,7 @@ public class ProjectCardTests : TestBase
         SetupProject(project);
         Api.IsProjectNameAvailable(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(false);
 
-        IRenderedComponent<ProjectCard> component = TestContext
-            .RenderComponent<ProjectCard>(parameters => parameters.Add(p => p.Id, project.Id));
+        IRenderedComponent<ProjectCard> component = RenderProjectCard(project);
 
         component.WaitForState(() => !component.Instance._isLoading, DefaultWaitForStateTimeout);
 
@@ -81,7 +83,7 @@ public class ProjectCardTests : TestBase
             IElement saveButton = component.Find("#saveProjectNameButton");
             saveButton.IsDisabled().ShouldBeTrue();
 
-            IElement validationLabel = component.Find("#validationTooltip");
+            IElement validationLabel = component.Find(".validation-tooltip");
             validationLabel.TextContent.ShouldBe("Name is already in use");
         }, timeout: TimeSpan.FromSeconds(10));
     }

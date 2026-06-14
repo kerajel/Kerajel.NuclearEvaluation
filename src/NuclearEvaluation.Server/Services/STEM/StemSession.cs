@@ -1,4 +1,5 @@
 using LinqToDB;
+using LinqToDB.Async;
 using LinqToDB.Data;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Extensions;
@@ -118,12 +119,16 @@ public sealed class StemSession : IAsyncDisposable
 
             IQueryable<StemPreviewEntryView> filtered = baseQuery.FilterWithFallback(command.Query);
 
-            int total = await filtered.CountAsync(ct);
+            int[] totals = await AsyncExtensions.ToArrayAsync(
+                filtered.GroupBy(_ => 1).Select(g => g.Count()),
+                ct);
+            int total = totals.SingleOrDefault();
 
-            StemPreviewEntryView[] data = await filtered
+            IQueryable<StemPreviewEntryView> dataQuery = filtered
                 .OrderByWithFallback(command.Query, x => x.Id)
-                .PageWithFallback(command.Query)
-                .ToArrayAsync(ct);
+                .PageWithFallback(command.Query);
+
+            StemPreviewEntryView[] data = await AsyncExtensions.ToArrayAsync(dataQuery, ct);
 
             FetchDataResult<StemPreviewEntryView> result = FetchDataResult<StemPreviewEntryView>.Succeeded(data);
             result.TotalCount = total;

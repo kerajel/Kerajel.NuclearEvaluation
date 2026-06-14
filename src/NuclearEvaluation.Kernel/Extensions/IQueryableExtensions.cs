@@ -1,11 +1,14 @@
 using NuclearEvaluation.Shared.Contracts;
-using System.Linq.Dynamic.Core;
+using DynamicQueryableExtensions = System.Linq.Dynamic.Core.DynamicQueryableExtensions;
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 
 namespace NuclearEvaluation.Kernel.Extensions;
 
 public static class IQueryableExtensions
 {
+    static readonly Regex EqualityOperatorRegex = new(@"(?<![!<>=])==(?!=)", RegexOptions.Compiled);
+
     public static IQueryable<T> OrderByWithFallback<T>(
         this IQueryable<T> query,
         DataQuery? dataQuery,
@@ -17,12 +20,16 @@ public static class IQueryableExtensions
         {
             if (isAlreadyOrdered)
             {
-                IOrderedQueryable<T> orderedQueryWithPrimary = ((IOrderedQueryable<T>)query).ThenBy(dataQuery.OrderBy);
+                IOrderedQueryable<T> orderedQueryWithPrimary = DynamicQueryableExtensions.ThenBy(
+                    (IOrderedQueryable<T>)query,
+                    dataQuery.OrderBy);
                 return orderedQueryWithPrimary.ThenBy(defaultOrderBy);
             }
             else
             {
-                IOrderedQueryable<T> orderedQueryWithPrimary = query.OrderBy(dataQuery.OrderBy);
+                IOrderedQueryable<T> orderedQueryWithPrimary = DynamicQueryableExtensions.OrderBy(
+                    query,
+                    dataQuery.OrderBy);
                 return orderedQueryWithPrimary.ThenBy(defaultOrderBy);
             }
         }
@@ -85,8 +92,13 @@ public static class IQueryableExtensions
         }
         else
         {
-            return query.Where(filter);
+            return DynamicQueryableExtensions.Where(query, NormalizeFilter(filter));
         }
+    }
+
+    static string NormalizeFilter(string filter)
+    {
+        return EqualityOperatorRegex.Replace(filter, "=");
     }
 
     public static IQueryable<T> TopLevelFilterExpressionWithFallback<T>(

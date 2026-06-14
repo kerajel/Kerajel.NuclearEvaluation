@@ -94,7 +94,7 @@ public class ViewsController : ControllerBase
     [HttpPost("{entity}/enum-options")]
     public async Task<List<int>> EnumOptions(string entity, [FromBody] EnumFilterRequest request, CancellationToken ct)
     {
-        FetchDataResult<dynamic> result = entity.ToLowerInvariant() switch
+        FetchDataResult<int> result = entity.ToLowerInvariant() switch
         {
             "series" => await _genericDbService.GetFilterOptions(request.Query.ToCommand<SeriesView>(), request.PropertyName),
             "samples" => await _genericDbService.GetFilterOptions(request.Query.ToCommand<SampleView>(), request.PropertyName),
@@ -104,6 +104,6 @@ public class ViewsController : ControllerBase
             _ => throw new ArgumentOutOfRangeException(nameof(entity)),
         };
 
-        return result.Entries.Select(x => (int)Convert.ToInt32(x)).ToList();
+        return [.. result.Entries];
     }
 }

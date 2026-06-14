@@ -1,29 +1,36 @@
-﻿using LinqToDB;
-using Radzen;
-using System.Linq.Dynamic.Core;
+using NuclearEvaluation.Shared.Contracts;
+using DynamicQueryableExtensions = System.Linq.Dynamic.Core.DynamicQueryableExtensions;
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 
 namespace NuclearEvaluation.Kernel.Extensions;
 
 public static class IQueryableExtensions
 {
+    static readonly Regex EqualityOperatorRegex = new(@"(?<![!<>=])==(?!=)", RegexOptions.Compiled);
+    static readonly Regex NullableNullCoalesceRegex = new(@"\((?<expression>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\?\?\s*null\)", RegexOptions.Compiled);
+
     public static IQueryable<T> OrderByWithFallback<T>(
         this IQueryable<T> query,
-        LoadDataArgs? args,
+        DataQuery? dataQuery,
         Expression<Func<T, object>> defaultOrderBy) where T : class
     {
         bool isAlreadyOrdered = IsOrdered(query);
 
-        if (args.HasOrderBy())
+        if (!string.IsNullOrWhiteSpace(dataQuery?.OrderBy))
         {
             if (isAlreadyOrdered)
             {
-                IOrderedQueryable<T> orderedQueryWithPrimary = ((IOrderedQueryable<T>)query).ThenBy(args!.OrderBy);
+                IOrderedQueryable<T> orderedQueryWithPrimary = DynamicQueryableExtensions.ThenBy(
+                    (IOrderedQueryable<T>)query,
+                    dataQuery.OrderBy);
                 return orderedQueryWithPrimary.ThenBy(defaultOrderBy);
             }
             else
             {
-                IOrderedQueryable<T> orderedQueryWithPrimary = query.OrderBy(args!.OrderBy);
+                IOrderedQueryable<T> orderedQueryWithPrimary = DynamicQueryableExtensions.OrderBy(
+                    query,
+                    dataQuery.OrderBy);
                 return orderedQueryWithPrimary.ThenBy(defaultOrderBy);
             }
         }
@@ -31,7 +38,7 @@ public static class IQueryableExtensions
         {
             if (isAlreadyOrdered)
             {
-                return ((IOrderedQueryable<T>)query).ThenOrBy(defaultOrderBy);
+                return ((IOrderedQueryable<T>)query).ThenBy(defaultOrderBy);
             }
             else
             {
@@ -71,13 +78,9 @@ public static class IQueryableExtensions
 
     public static IQueryable<T> FilterWithFallback<T>(
         this IQueryable<T> query,
-        LoadDataArgs? args) where T : class
+        DataQuery? dataQuery) where T : class
     {
-        if (args is null)
-        {
-            return query;
-        }
-        return query.FilterWithFallback(args.Filter);
+        return query.FilterWithFallback(dataQuery?.Filter);
     }
 
     public static IQueryable<T> FilterWithFallback<T>(
@@ -90,8 +93,14 @@ public static class IQueryableExtensions
         }
         else
         {
-            return query.Where(filter);
+            return DynamicQueryableExtensions.Where(query, NormalizeFilter(filter));
         }
+    }
+
+    static string NormalizeFilter(string filter)
+    {
+        string normalized = EqualityOperatorRegex.Replace(filter, "=");
+        return NullableNullCoalesceRegex.Replace(normalized, "${expression}");
     }
 
     public static IQueryable<T> TopLevelFilterExpressionWithFallback<T>(
@@ -127,9 +136,9 @@ public static class IQueryableExtensions
 
     public static IQueryable<T> PageWithFallback<T>(
         this IQueryable<T> query,
-        LoadDataArgs? args,
+        DataQuery? dataQuery,
         int take = 25) where T : class
     {
-        return query.Skip(args?.Skip ?? 0).Take(args?.Top ?? take);
+        return query.Skip(dataQuery?.Skip ?? 0).Take(dataQuery?.Top ?? take);
     }
 }

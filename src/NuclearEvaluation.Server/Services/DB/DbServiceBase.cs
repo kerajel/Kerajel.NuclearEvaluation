@@ -1,10 +1,12 @@
-﻿using Kerajel.Primitives.Enums;
+using Kerajel.Primitives.Enums;
 using LinqToDB.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Data.Queries;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Kernel.Extensions;
-using NuclearEvaluation.Kernel.Models.Filters;
+using NuclearEvaluation.Shared.Enums;
+using NuclearEvaluation.Shared.Extensions;
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
@@ -47,19 +49,19 @@ public class DbServiceBase
         Expression<Func<T, object>> lambdaKeyPropertyAccess = Expression.Lambda<Func<T, object>>(convertedKeyAccess, param);
 
         IQueryable<T> dataQuery = orderedQuery
-            .OrderByWithFallback(cmd.LoadDataArgs, lambdaKeyPropertyAccess)
-            .PageWithFallback(cmd.LoadDataArgs);
+            .OrderByWithFallback(cmd.Query, lambdaKeyPropertyAccess)
+            .PageWithFallback(cmd.Query);
 
-        if (cmd.TableKind == TableKind.Temporary)
+        // Apply includes last: the Z.EntityFramework.Plus IncludeOptimized provider does not
+        // support the dynamic-LINQ string Where/OrderBy used above, so navigations are loaded
+        // only on the final paged query.
+        foreach (dynamic include in cmd.Includes)
         {
-            result.TotalCount = await filteredQuery.CountAsyncLinqToDB(ct);
-            result.Entries = await dataQuery.ToArrayAsyncLinqToDB(ct);
+            dataQuery = QueryIncludeOptimizedExtensions.IncludeOptimized(dataQuery, include);
         }
-        else
-        {
-            result.TotalCount = await filteredQuery.CountAsyncEF(ct);
-            result.Entries = await dataQuery.ToArrayAsyncEF(ct);
-        }
+
+        result.TotalCount = await filteredQuery.CountAsyncEF(ct);
+        result.Entries = await dataQuery.ToArrayAsyncEF(ct);
 
         bool shouldDetach = cmd.AsNoTracking && _dbContext.Model.FindEntityType(typeof(T)) is not null;
 
@@ -79,11 +81,6 @@ public class DbServiceBase
 
     protected IQueryable<T> GetFilteredQuery<T>(IQueryable<T> query, FetchDataCommand<T> command) where T : class
     {
-        foreach (dynamic include in command.Includes)
-        {
-            query = QueryIncludeOptimizedExtensions.IncludeOptimized(query, include);
-        }
-
         IQueryable<T> filteredQuery = query;
 
         PropertyInfo keyProperty = GetKeyProperty<T>();
@@ -107,7 +104,7 @@ public class DbServiceBase
 
         filteredQuery = filteredQuery
             .TopLevelFilterExpressionWithFallback(command.TopLevelFilterExpression)
-            .FilterWithFallback(command.LoadDataArgs);
+            .FilterWithFallback(command.Query);
 
         return filteredQuery;
     }
@@ -116,7 +113,7 @@ public class DbServiceBase
     {
         IQueryable<PresetFilterQueryObject> compositeQuery = GetBasePresetFilterQuery();
 
-        foreach ((PresetFilterEntryType entryType, string? value) in command.PresetFilterBox!.AsEnumerable())
+        foreach ((PresetFilterEntryType entryType, string? value) in command.Query!.PresetFilterBox!.AsEnumerable())
         {
             compositeQuery = compositeQuery.FilterWithFallback(value);
         }

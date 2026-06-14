@@ -1,0 +1,49 @@
+<div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+    <ValidatedTextBox TModel="PresetFilter"
+                      @ref="_validatedTextBoxRef"
+                      Model="@_activeFilter"
+                      PropertyExpression="@(x => x.Name)"
+                      Validator="@PresetFilterValidator"
+                      DebounceTimeout="TimeSpan.FromMilliseconds(500)"
+                      Visible="@(_operationMode == OperationMode.Editing)"
+                      Placeholder="Enter filter name"
+                      AutoCompleteType="AutoCompleteType.Off"
+                      Name="FilterName"
+                      TooltipOffsetX="-200"
+                      OnValidated="@(_ => StateHasChanged())"
+                      Style="min-width: 180px; flex: 1 1 220px;" />
+
+    <RadzenDropDown Data="@_filters"
+                    Visible="@(_operationMode == OperationMode.Browsing)"
+                    TextProperty="@(nameof(PresetFilter.Name))"
+                    ValueProperty="@(nameof(PresetFilter.Id))"
+                    Placeholder="Select saved filter"
+                    Value="@ActiveFilterId"
+                    ValueChanged="@OnDropDownChange"
+                    TValue="int?"
+                    Style="min-width: 180px; flex: 1 1 220px;" />
+
+    <RadzenButton ButtonStyle="ButtonStyle.Light"
+                  Icon="@SubmitIcon"
+                  Text="@SubmitText"
+                  title="@SubmitTitle"
+                  aria-label="@SubmitTitle"
+                  Style="@ToolbarButtonStyle"
+                  Disabled="@(_operationMode == OperationMode.Editing && !CanSubmitFilter())"
+                  Click="@SubmitAction" />
+    <RadzenButton ButtonStyle="ButtonStyle.Light"
+                  Icon="@CancelIcon"
+                  Text="@CancelText"
+                  title="@CancelTitle"
+                  aria-label="@CancelTitle"
+                  Style="@ToolbarButtonStyle"
+                  Click="@CancelAction" />
+    <RadzenButton ButtonStyle="ButtonStyle.Light"
+                  Icon="delete_forever"
+                  Text="Delete"
+                  title="Delete the selected saved filter."
+                  aria-label="Delete the selected saved filter."
+                  Style="@ToolbarButtonStyle"
+                  Click="@ConfirmDelete"
+                  Disabled="@(_activeFilter.Id == 0)" />
+</div>

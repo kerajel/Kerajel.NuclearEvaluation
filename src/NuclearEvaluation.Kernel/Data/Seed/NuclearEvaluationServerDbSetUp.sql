@@ -451,6 +451,27 @@ VALUES
     ('Radioactive Contamination Analysis'), ('Nuclear Data Compilation'), ('Nuclear Reactor Design Optimization'),
     ('Accelerator-Driven System Development'), ('Fusion Energy Research');
 
+-- Clear existing domain and evaluation data so this script is idempotent
+-- and can be re-run by the nightly sandbox reset. FK-safe deletion order.
+-- (STEM preview data lives in throwaway temp tables, not real tables, so it is not touched here.)
+DELETE FROM [DATA].[Apm];
+DELETE FROM [DATA].[Particle];
+DELETE FROM [DATA].[SubSample];
+DELETE FROM [DATA].[Sample];
+DELETE FROM [EVALUATION].[ProjectSeries];
+IF OBJECT_ID('[EVALUATION].[PresetFilterEntry]', 'U') IS NOT NULL DELETE FROM [EVALUATION].[PresetFilterEntry];
+IF OBJECT_ID('[EVALUATION].[PresetFilter]', 'U') IS NOT NULL DELETE FROM [EVALUATION].[PresetFilter];
+DELETE FROM [EVALUATION].[Project];
+DELETE FROM [DATA].[Series];
+
+DBCC CHECKIDENT ('[DATA].[Series]', RESEED, 9999);
+DBCC CHECKIDENT ('[DATA].[Sample]', RESEED, 0);
+DBCC CHECKIDENT ('[DATA].[SubSample]', RESEED, 0);
+DBCC CHECKIDENT ('[DATA].[Particle]', RESEED, 0);
+DBCC CHECKIDENT ('[DATA].[Apm]', RESEED, 0);
+DBCC CHECKIDENT ('[EVALUATION].[Project]', RESEED, 0);
+GO
+
 -- Seed Series
 ;WITH numbers AS (
     SELECT TOP (100000)
@@ -693,26 +714,28 @@ SELECT ProjectId, [SeriesId]
 FROM cte
 GO
 
--- Check and Enable Snapshot Isolation if not already enabled
-IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = DB_NAME() AND snapshot_isolation_state = 1)
-BEGIN
-    ALTER DATABASE CURRENT
-    SET ALLOW_SNAPSHOT_ISOLATION ON;
-END
+-- Best-effort database tuning. These are environment-specific (and may be disallowed on
+-- shared hosting), so they are wrapped so a failure can never abort the rest of the script
+-- (which also defines the temp-table index proc the STEM preview feature depends on).
+BEGIN TRY
+    IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = DB_NAME() AND snapshot_isolation_state = 1)
+        ALTER DATABASE CURRENT SET ALLOW_SNAPSHOT_ISOLATION ON;
+END TRY
+BEGIN CATCH END CATCH;
 GO
 
--- Check and Enable Read Committed Snapshot if not already enabled
-IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = DB_NAME() AND is_read_committed_snapshot_on = 1)
-BEGIN
-    ALTER DATABASE CURRENT
-    SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
-END
+BEGIN TRY
+    IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = DB_NAME() AND is_read_committed_snapshot_on = 1)
+        ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
+END TRY
+BEGIN CATCH END CATCH;
 GO
 
-ALTER DATABASE [NuclearEvaluationServer] SET RECOVERY SIMPLE;
-GO
- 
-DBCC SHRINKFILE (N'NuclearEvaluationServer_log' , 0, TRUNCATEONLY);
+BEGIN TRY
+    DECLARE @recoverySql NVARCHAR(MAX) = N'ALTER DATABASE ' + QUOTENAME(DB_NAME()) + N' SET RECOVERY SIMPLE;';
+    EXEC sp_executesql @recoverySql;
+END TRY
+BEGIN CATCH END CATCH;
 GO
 
 CREATE OR ALTER PROCEDURE [DBO].EnsureIndexOnTempTableField
@@ -766,33 +789,4 @@ BEGIN
     END
 END;
 
-GO
-
-CREATE OR ALTER VIEW [EVALUATION].PmiReportView
-AS
-SELECT    pr.Id
-        , pr.Name AS Name
-        , pr.CreatedDate AS DateUploaded
-        , anu.UserName
-        , pr.Status
-FROM [EVALUATION].[PmiReport] AS pr
-INNER JOIN [ADMIN].[AspNetUsers] anu ON pr.AuthorId = anu.Id;
-GO
-
-CREATE OR ALTER VIEW [EVALUATION].PmiReportDistributionEntryView
-AS
-SELECT    de.Id
-        , de.PmiReportId
-        , de.DistributionChannel
-        , de.DistributionStatus
-FROM [EVALUATION].[PmiReportDistributionEntry] AS de;
-GO
-
-CREATE OR ALTER VIEW [EVALUATION].PmiReportFileMetadataView
-AS
-SELECT    fm.Id
-        , fm.PmiReportId
-        , fm.FileName
-        , fm.Size
-FROM [EVALUATION].[PmiReportFileMetadata] AS fm;
 GO

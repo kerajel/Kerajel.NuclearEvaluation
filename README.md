@@ -1,16 +1,140 @@
 # Nuclear Evaluation
 
-Welcome to the Nuclear Evaluation repository! This project showcases the capabilities of Blazor Server, focusing on dynamic filtering and sorting through the use of data grids and a powerful query builder. These features collectively enhance the interactivity and flexibility of data management within the application. The component library used in this project is Radzen, which provides a rich set of UI components for building Blazor applications.
+A .NET 10 web application for exploring nuclear-material evaluation data: particle samples,
+sub-samples, and APM (Alpha Particle Measurement) records organised into series and projects,
+with uranium-isotope analysis, decay correction, and a query builder. UI built with
+[Radzen](https://blazor.radzen.com/) Blazor components.
 
-The application can be accessed via [https://nuclearevaluation.com/](https://nuclearevaluation.com/).
+Originally a server-side Blazor app, it is now a **Blazor WebAssembly client + ASP.NET Core
+Web API**, deployed as a single site. It runs **anonymously** — no accounts — behind a
+self-hosted proof-of-work captcha, with abuse limits and an ephemeral, self-resetting dataset.
 
-## Features
+## Architecture
 
-- **Dynamic Filtering:** Users can operate on data grids, specifying filtering on multiple columns based on various criteria.
-- **Dynamic Sorting:** Enables users to sort data by any column, enhancing the flexibility and usability of data presentation.
-- **Query Builder:** A query builder that lets users create and modify queries without writing SQL code, simplifying the process of applying complex filters and sorts directly through the user interface.
-- **Rapid Tabular Data Upload & STEM Preview:** Employs a high-performance streaming approach using .NET’s `AnonymousPipeServerStream` for memory-efficient ingestion of tabular data files (XLS, XLSX, etc.), provided by the [Kerajel.TabularDataReader](https://github.com/kerajel/Kerajel.TabularDataReader) and robust result handling from [Kerajel.Primitives](https://github.com/kerajel/Kerajel.Primitives).
-- **Bulk Operations and Temp Table Support:** Employs Linq2Db for efficient management of scenarios requiring temporary tables and bulk operations.
+| Project | Type | Role |
+|---|---|---|
+| `NuclearEvaluation.Client` | Blazor WebAssembly | All UI (pages, Radzen components, grids, charts, query builder) |
+| `NuclearEvaluation.Server` | ASP.NET Core | Web API controllers + hosts the WASM bundle; sandbox/captcha/rate-limiting |
+| `NuclearEvaluation.Shared` | Class library | View models, enums, query-builder filters, and the `INuclearEvaluationApi` contract (referenced by both client and server) |
+| `NuclearEvaluation.Kernel` | Class library | EF Core `DbContext`, domain entities, migrations, query execution, embedded seed script |
+| `Kerajel.Primitives` | Class library | Vendored helper types (`OperationResult`, `Debouncer`, …) |
+| `Kerajel.TabularDataReader` | Class library | Vendored delimited-text/Excel reader used by STEM preview parsing |
+
+The client talks to the server only through the typed `INuclearEvaluationApi` (HTTP + JSON).
+Grids translate Radzen `LoadDataArgs` into a serializable `DataQuery`; the server maps that
+onto EF Core queries.
+
+```
+Browser ──HTTP/JSON──> NuclearEvaluation.Server (API + WASM host) ──EF Core / linq2db──> SQL Server
+   │  (WASM: NuclearEvaluation.Client)                 │
+   └─ proof-of-work captcha gate                       └─ SandboxMaintenanceService (purge + nightly reset)
+```
+
+## Running locally with Docker
+
+The repository ships a `docker-compose.yml` that runs SQL Server 2022 and the app together.
+
+```bash
+docker compose up --build
+```
+
+Then open <http://localhost:8080>. On first run the app applies EF Core migrations and seeds
+the database; the proof-of-work captcha appears once, after which a cookie remembers you.
+
+SQL Server data and uploaded files persist in named Docker volumes (`mssql-data`, `app-storage`).
+
+## Running locally without Docker
+
+Requirements: .NET SDK 10.0 and a reachable SQL Server instance.
+
+1. Put your connection string in `src/NuclearEvaluation.Server/appsettings.Development.json`
+   (git-ignored):
+
+   ```json
+   {
+     "ConnectionStrings": {
+       "NuclearEvaluationServerDbConnection": "Server=localhost;Database=NuclearEvaluation;Trusted_Connection=True;TrustServerCertificate=True;"
+     }
+   }
+   ```
+
+2. Run the host (it migrates and seeds on startup):
+
+   ```bash
+   dotnet run --project src/NuclearEvaluation.Server
+   ```
+
+To manage the schema by hand instead:
+
+```bash
+dotnet ef database update --project src/NuclearEvaluation.Kernel --startup-project src/NuclearEvaluation.Server
+```
+
+The setup/seed SQL lives at `src/NuclearEvaluation.Kernel/Data/Seed/NuclearEvaluationServerDbSetUp.sql`
+and is embedded into the Kernel assembly so the app can run it for both first-time setup and the
+nightly reset.
+
+## Abuse protection & ephemeral data
+
+Because the site is public and anonymous, the `Sandbox` configuration section governs:
+
+- **Rate limiting** — per-IP request window plus a stricter per-IP daily cap on uploads.
+- **Upload caps** — ~64 MB per file (`UploadLimits`) and a global storage ceiling that blocks
+  uploads once exceeded.
+- **Ephemeral data** — a background service purges expired upload folders, evicts idle STEM
+  sessions (dropping their throwaway temp tables), and resets the database to seed once per
+  interval (tracked in `DBO.SandboxState` so it survives app-pool recycling).
+
+The proof-of-work captcha secret and difficulty live under the `Captcha` section. Override
+both `Captcha:Secret` and the connection string in production.
+
+## Tests
+
+```bash
+dotnet test
+```
+
+- `NuclearEvaluation.Client.Tests` — bUnit component tests with a mocked API (no database).
+- `Kerajel.TabularDataReader.Tests` — CSV/Excel reader tests.
+
+
+End-to-end browser regression tests live in `tests/e2e`. Start the app first against a disposable local or staging database, then run:
+
+```bash
+cd tests/e2e
+npm install
+npx playwright install chromium
+npm test
+```
+
+The suite uses `http://localhost:8080` by default. Override it with `E2E_BASE_URL` when testing another disposable target. Use `E2E_WORKERS` to tune browser parallelism, or `npm run test:serial` for one-worker debugging.
+
+Or run the browser suite through Docker Compose, which starts the app dependencies and uses a dedicated Playwright test container:
+
+```bash
+docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e
+```
+
+The Docker e2e profile defaults to 2 Playwright workers, which keeps the local SQL Server
+container steadier while still running tests in parallel. Override with `E2E_WORKERS` for a
+faster stress run, for example:
+
+```powershell
+$env:E2E_WORKERS = "4"
+docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e
+```
+## Production deployment
+
+Production is hosted on **smarterasp.net** (shared Windows hosting) and is published directly —
+Docker is for local development only. Publish the host project, which bundles the WASM client:
+
+```bash
+dotnet publish src/NuclearEvaluation.Server -c Release -o ./publish
+```
+
+Deploy the contents of `./publish` and supply `ConnectionStrings:NuclearEvaluationServerDbConnection`
+and `Captcha:Secret` via the host's configuration.
 
 ## License
+
 MIT Licensed.

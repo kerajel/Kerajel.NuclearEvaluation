@@ -1,0 +1,124 @@
+<CascadingValue Value="GetActivePresetFilter">
+    <RadzenLabel Text="Preset Filters" Style="margin-bottom: 10px; display: block;" />
+
+    <div style="@CheckBoxWithHeadingStyle">
+        <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Series))"
+                        Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Series)"
+                        TValue="bool"
+                        Style="@CheckBoxStyle" />
+        <RadzenHeading Size="@HeadingSize"
+                       Text="Series"
+                       Style="@(GetFilterCheckBoxVisibility(PresetFilterEntryType.Series) ? "" : HiddenStyle)" />
+    </div>
+    <SeriesQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Series)"
+                              @ref="_seriesFilter" />
+
+    <div style="@CheckBoxWithHeadingStyle">
+        <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Sample))"
+                        Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Sample)"
+                        TValue="bool"
+                        Style="@CheckBoxStyle" />
+        <RadzenHeading Size="@HeadingSize"
+                       Text="Sample"
+                       Style="@(GetFilterCheckBoxVisibility(PresetFilterEntryType.Sample) ? "" : HiddenStyle)" />
+    </div>
+    <SampleQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Sample)"
+                              @ref="_sampleFilter" />
+
+    <div style="@CheckBoxWithHeadingStyle">
+        <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.SubSample))"
+                        Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.SubSample)"
+                        TValue="bool"
+                        Style="@CheckBoxStyle" />
+        <RadzenHeading Size="@HeadingSize"
+                       Text="SubSample"
+                       Style="@(GetFilterCheckBoxVisibility(PresetFilterEntryType.SubSample) ? "" : HiddenStyle)" />
+    </div>
+    <SubSampleQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.SubSample)"
+                                 @ref="_subSampleFilter" />
+
+    <div style="@CheckBoxWithHeadingStyle">
+        <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Apm))"
+                        Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Apm)"
+                        TValue="bool"
+                        Style="@CheckBoxStyle" />
+        <RadzenHeading Size="@HeadingSize"
+                       Text="Apm"
+                       Style="@(GetFilterCheckBoxVisibility(PresetFilterEntryType.Apm) ? "" : HiddenStyle)" />
+    </div>
+    <ApmQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Apm)"
+                           @ref="_apmFilter" />
+
+    <div style="@CheckBoxWithHeadingStyle">
+        <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Particle))"
+                        Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Particle)"
+                        TValue="bool"
+                        Style="@CheckBoxStyle" />
+        <RadzenHeading Size="@HeadingSize"
+                       Text="Particle"
+                       Style="@(GetFilterCheckBoxVisibility(PresetFilterEntryType.Particle) ? "" : HiddenStyle)" />
+    </div>
+    <ParticleQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Particle)"
+                                @ref="_particleFilter" />
+
+    <RadzenRow Style="margin: 12px 0;">
+        <RadzenColumn Size="12">
+            <div style="@ToolbarStyle">
+                <div style="@ToolbarGroupStyle">
+                    <RadzenLabel Text="Results"
+                                 Style="@ToolbarLabelStyle" />
+                    <RadzenDropDown Data="@_dataGrids"
+                                    TextProperty="@nameof(IDataGridComponent.EntityDisplayName)"
+                                    Value="@_activeGrid"
+                                    ValueChanged="OnDataGridSelected"
+                                    TValue="IDataGridComponent"
+                                    Style="width: 220px;" />
+                </div>
+
+                <div style="@PresetToolbarGroupStyle">
+                    <RadzenLabel Text="Saved filter"
+                                 Style="@ToolbarLabelStyle" />
+                    <PresetFilterDropDown OnPresetFilterSelected="OnPresetFilterSelected" />
+                </div>
+
+                <RadzenButton Text="Apply query"
+                              Icon="search"
+                              Click="ApplyPresetFilter"
+                              title="Refresh results using the current query builder filters."
+                              Style="white-space: nowrap;" />
+            </div>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <SeriesGrid @ref="_seriesGrid"
+                ComponentId="query-builder-series"
+                Visible="GetDataGridVisibility(_seriesGrid)"
+                GetPresetFilterBox="GetPresetFilterBox"
+                Caption="Series returned by the current query."
+                AllowEdit="false" />
+
+    <SampleGrid @ref="_sampleGrid"
+                ComponentId="query-builder-samples"
+                Visible="GetDataGridVisibility(_sampleGrid)"
+                Caption="Samples returned by the current query."
+                GetPresetFilterBox="GetPresetFilterBox" />
+
+    <SubSampleGrid @ref="_subSampleGrid"
+                   ComponentId="query-builder-subsamples"
+                   Visible="GetDataGridVisibility(_subSampleGrid)"
+                   Caption="Subsamples returned by the current query."
+                   GetPresetFilterBox="GetPresetFilterBox" />
+
+    <ApmGrid @ref="_apmGrid"
+             ComponentId="query-builder-apm"
+             Visible="GetDataGridVisibility(_apmGrid)"
+             Caption="APM measurements returned by the current query."
+             GetPresetFilterBox="GetPresetFilterBox" />
+
+    <ParticleGrid @ref="_particleGrid"
+                  ComponentId="query-builder-particles"
+                  Visible="GetDataGridVisibility(_particleGrid)"
+                  Caption="Particle measurements returned by the current query."
+                  GetPresetFilterBox="GetPresetFilterBox" />
+
+</CascadingValue>

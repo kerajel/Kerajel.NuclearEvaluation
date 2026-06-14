@@ -1,9 +1,12 @@
-﻿using LinqToDB;
+using LinqToDB;
 using LinqToDB.Mapping;
 
 namespace NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
-
+/// <summary>
+/// A staged STEM preview row. These live only in per-session global temporary tables
+/// (throwaway, never in the real schema) and are dropped when the session is evicted.
+/// </summary>
 public class StemPreviewEntry
 {
     [Column(DataType = DataType.Decimal, Precision = 10, Scale = 2)]

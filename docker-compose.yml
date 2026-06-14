@@ -1,0 +1,61 @@
+# Local development stack: SQL Server + the app (which hosts the WASM client and API).
+# Production is published directly to smarterasp.net and does NOT use this compose file.
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Local_Dev_Pass_123"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__NuclearEvaluationServerDbConnection: "Server=db;Database=NuclearEvaluation;User Id=sa;Password=Local_Dev_Pass_123;TrustServerCertificate=True;Encrypt=False"
+      Sandbox__ResetIntervalHours: "24"
+      Sandbox__SweepIntervalMinutes: "30"
+    ports:
+      - "8080:8080"
+    networks:
+      default:
+        aliases:
+          - nuclear-evaluation.test
+    volumes:
+      - app-storage:/NuclearEvaluationStorage
+
+
+  e2e:
+    profiles: ["e2e"]
+    build:
+      context: .
+      dockerfile: tests/e2e/Dockerfile
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      E2E_BASE_URL: "http://nuclear-evaluation.test:8080"
+      E2E_WORKERS: "${E2E_WORKERS:-2}"
+      CI: "1"
+    volumes:
+      - ./tests/e2e/test-results:/e2e/test-results
+      - ./tests/e2e/playwright-report:/e2e/playwright-report
+volumes:
+  mssql-data:
+  app-storage:

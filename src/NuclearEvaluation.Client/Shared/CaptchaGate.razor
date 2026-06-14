@@ -1,0 +1,46 @@
+@if (_verified)
+{
+    @ChildContent
+}
+else if (_checking)
+{
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;">
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+}
+else
+{
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;padding:1rem;">
+        <RadzenCard Style="max-width:420px;width:100%;text-align:center;">
+            <RadzenImage Path="images/nuclear-logo.png" Style="width:96px;height:96px;margin-bottom:1rem;" AlternateText="Logo" />
+            <RadzenText TextStyle="TextStyle.H5">Quick human check</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body1" class="rz-my-3">
+                This site is open to everyone. To keep automated abuse out, your browser will
+                solve a small proof-of-work puzzle. No personal data is collected.
+            </RadzenText>
+
+            <div style="display:flex;align-items:flex-start;gap:0.5rem;text-align:left;margin-bottom:1rem;">
+                <RadzenCheckBox @bind-Value="_cookiesAccepted" Name="cookieConsent" TValue="bool" Change="@(_ => _error = null)" />
+                <RadzenLabel Component="cookieConsent" Style="cursor:pointer;">
+                    Use an essential cookie to remember this human check for 30 days.
+                    The only enrichment is a signed expiry with a tidy little half-life. No tracking,
+                    no personal data, and the uranium stays in the tables.
+                    I accept.
+                </RadzenLabel>
+            </div>
+
+            @if (_error is not null)
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Warning" ShowIcon="false" Variant="Variant.Flat" Shade="Shade.Lighter">
+                    @_error
+                </RadzenAlert>
+            }
+
+            <RadzenButton Text="@(_solving ? "Verifying..." : "Accept & verify I'm human")"
+                          Icon="verified_user"
+                          Disabled="@(_solving || !_cookiesAccepted)"
+                          Click="@Solve"
+                          Style="width:100%;" />
+        </RadzenCard>
+    </div>
+}

@@ -1,6 +1,6 @@
 ﻿using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Models.Domain;
-using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Shared.Models.Domain;
+using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Server.Interfaces.Data
 {

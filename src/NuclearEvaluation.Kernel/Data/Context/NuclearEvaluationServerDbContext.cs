@@ -1,18 +1,14 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using NuclearEvaluation.Kernel.Models.DataManagement.PMI;
-using NuclearEvaluation.Kernel.Models.Domain;
-using NuclearEvaluation.Kernel.Models.Filters;
-using NuclearEvaluation.Kernel.Models.Identity;
-using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Kernel.Models.Sandbox;
+using NuclearEvaluation.Shared.Models.Domain;
+using NuclearEvaluation.Shared.Models.Filters;
+using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Kernel.Data.Context;
 
-public partial class NuclearEvaluationServerDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
+public partial class NuclearEvaluationServerDbContext : DbContext
 {
-    private const string AdminSchema = "ADMIN";
     private const string DboSchema = "DBO";
     private const string DataSchema = "DATA";
     private const string EvaluationSchema = "EVALUATION";
@@ -40,12 +36,8 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
     public DbSet<ProjectViewSeriesView> ProjectViewSeriesView { get; set; }
     public DbSet<ProjectDecayCorrectedParticleView> ProjectDecayCorrectedParticleView { get; set; }
     public DbSet<ProjectDecayCorrectedApmView> ProjectDecayCorrectedApmView { get; set; }
-    public DbSet<PmiReport> PmiReport { get; set; }
-    public DbSet<PmiReportDistributionEntry> PmiReportDistributionEntry { get; set; }
 
-    public DbSet<PmiReportView> PmiReportView { get; set; }
-    public DbSet<PmiReportDistributionEntryView> PmiReportDistributionEntryView { get; set; }
-    public DbSet<PmiReportFileMetadataView> PmiReportFileMetadataView { get; set; }
+    public DbSet<SandboxState> SandboxState { get; set; }
 
     partial void OnModelBuilding(ModelBuilder builder);
 
@@ -61,7 +53,6 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        ConfigureAdminSchema(modelBuilder);
         OnModelBuilding(modelBuilder);
         ConfigureDboSchema(modelBuilder);
         ConfigureDataSchema(modelBuilder);
@@ -72,51 +63,14 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
         ConfigureCascadeOnDeleteBehavior(modelBuilder);
     }
 
-    static void ConfigureAdminSchema(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<ApplicationUser>(entity =>
-        {
-            entity.ToTable("AspNetUsers", AdminSchema);
-        });
-
-        modelBuilder.Entity<ApplicationRole>(entity =>
-        {
-            entity.ToTable("AspNetRoles", AdminSchema);
-        });
-
-        modelBuilder.Entity<IdentityUserRole<string>>(entity =>
-        {
-            entity.ToTable("AspNetUserRoles", AdminSchema);
-        });
-
-        modelBuilder.Entity<IdentityUserClaim<string>>(entity =>
-        {
-            entity.ToTable("AspNetUserClaims", AdminSchema);
-        });
-
-        modelBuilder.Entity<IdentityUserLogin<string>>(entity =>
-        {
-            entity.ToTable("AspNetUserLogins", AdminSchema);
-        });
-
-        modelBuilder.Entity<IdentityRoleClaim<string>>(entity =>
-        {
-            entity.ToTable("AspNetRoleClaims", AdminSchema);
-        });
-
-        modelBuilder.Entity<IdentityUserToken<string>>(entity =>
-        {
-            entity.ToTable("AspNetUserTokens", AdminSchema);
-        });
-
-        modelBuilder.Entity<ApplicationUser>()
-            .HasMany(u => u.Roles)
-            .WithMany(r => r.Users)
-            .UsingEntity<IdentityUserRole<string>>();
-    }
-
     static void ConfigureDboSchema(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<SandboxState>(entity =>
+        {
+            entity.ToTable("SandboxState", DboSchema);
+            entity.HasKey(x => x.Id);
+        });
+
         modelBuilder.Entity<PresetFilter>(entity =>
         {
             entity.ToTable("PresetFilter", EvaluationSchema);
@@ -145,7 +99,7 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
             entity.ToTable("Sample", DataSchema);
             entity.Property(x => x.SampleType)
                   .HasColumnType("tinyint")
-                  .HasComputedColumnSql(Models.Domain.Sample.GetSampleTypeSqlExpression());
+                  .HasComputedColumnSql(Shared.Models.Domain.Sample.GetSampleTypeSqlExpression());
         });
 
         modelBuilder.Entity<SubSample>(entity =>
@@ -183,36 +137,6 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
                   .HasForeignKey(ps => ps.SeriesId);
         });
 
-        modelBuilder.Entity<PmiReport>(entity =>
-        {
-            entity.ToTable("PmiReport", EvaluationSchema);
-            entity.HasKey(pr => pr.Id);
-            entity.HasMany(pr => pr.PmiReportDistributionEntries)
-                  .WithOne(de => de.PmiReport)
-                  .HasForeignKey(de => de.PmiReportId);
-            entity.HasOne(pr => pr.Author)
-                  .WithMany()
-                  .HasForeignKey(pr => pr.AuthorId)
-                  .IsRequired();
-            entity.HasOne(pr => pr.PmiReportFileMetadata)
-                  .WithOne(fm => fm.PmiReport)
-                  .HasForeignKey<PmiReportFileMetadata>(fm => fm.PmiReportId);
-        });
-
-        modelBuilder.Entity<PmiReportDistributionEntry>(entity =>
-        {
-            entity.ToTable("PmiReportDistributionEntry", EvaluationSchema);
-            entity.HasKey(de => de.Id);
-            entity.HasOne(de => de.PmiReport)
-                  .WithMany(pr => pr.PmiReportDistributionEntries)
-                  .HasForeignKey(de => de.PmiReportId);
-        });
-
-        modelBuilder.Entity<PmiReportFileMetadata>(entity =>
-        {
-            entity.ToTable("PmiReportFileMetadata", EvaluationSchema);
-            entity.HasKey(fm => fm.Id);
-        });
     }
 
     static void ConfigureDataSchemaViews(ModelBuilder modelBuilder)
@@ -292,23 +216,6 @@ public partial class NuclearEvaluationServerDbContext : IdentityDbContext<Applic
             entity.HasBaseType(null as Type);
         });
 
-        modelBuilder.Entity<PmiReportView>(entity =>
-        {
-            entity.HasAlternateKey(x => x.Id);
-            entity.ToView("PmiReportView", EvaluationSchema);
-        });
-
-        modelBuilder.Entity<PmiReportDistributionEntryView>(entity =>
-        {
-            entity.HasAlternateKey(x => x.Id);
-            entity.ToView("PmiReportDistributionEntryView", EvaluationSchema);
-        });
-
-        modelBuilder.Entity<PmiReportFileMetadataView>(entity =>
-        {
-            entity.HasAlternateKey(x => x.Id);
-            entity.ToView("PmiReportFileMetadataView", EvaluationSchema);
-        });
     }
 
     static void ConfigureDefaultOnDeleteBehavior(ModelBuilder modelBuilder)

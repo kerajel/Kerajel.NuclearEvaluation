@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Models.Domain;
-using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Shared.Models.Domain;
+using NuclearEvaluation.Shared.Models.Views;
 using Z.EntityFramework.Plus;
 
 namespace NuclearEvaluation.Server.Services.Data;
@@ -23,11 +23,16 @@ public class SeriesService : DbServiceBase, ISeriesService
         try
         {
             IQueryable<SeriesView> baseQuery = _dbContext.SeriesView;
+            int? projectId = command.Query?.ProjectId;
+            if (projectId.HasValue)
+            {
+                baseQuery = baseQuery.Where(x => x.ProjectSeries.Any(s => s.ProjectId == projectId.Value));
+            }
             return await ExecuteQuery(baseQuery, command);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occured while fetchind series views");
+            _logger.LogError(ex, "Error occured while fetching series views");
             return FetchDataResult<SeriesView>.Faulted(ex);
         }
     }
@@ -73,6 +78,7 @@ public class SeriesService : DbServiceBase, ISeriesService
         Series series = new()
         {
             SeriesType = seriesView.SeriesType,
+            SgasComment = seriesView.SgasComment,
             WorkingPaperLink = seriesView.WorkingPaperLink,
             IsDu = seriesView.IsDu,
             IsNu = seriesView.IsNu,
@@ -91,6 +97,7 @@ public class SeriesService : DbServiceBase, ISeriesService
             .UpdateFromQueryAsync(x => new Series
             {
                 SeriesType = seriesView.SeriesType,
+                SgasComment = seriesView.SgasComment,
                 WorkingPaperLink = seriesView.WorkingPaperLink,
                 IsDu = seriesView.IsDu,
                 IsNu = seriesView.IsNu,

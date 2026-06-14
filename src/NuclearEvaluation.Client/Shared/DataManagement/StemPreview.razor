@@ -1,0 +1,48 @@
+﻿@using Microsoft.AspNetCore.Components.Routing
+
+<NavigationLock OnBeforeInternalNavigation="@HandleBeforeInternalNavigation" />
+
+<h3>Upload your STEM-compatible analysis files for preview</h3>
+<h3>This preview tool is highly capable and can handle files with hundreds of thousands of rows</h3>
+
+<p>You can download a populated sample file (1,048,567 rows) <a href="files/stem-preview/populated-stem-preview-file-1048567-rows.xlsx" download>here</a></p>
+<p>Or a smaller one here (350,000 rows) <a href="files/stem-preview/populated-stem-preview-file-350000-rows.xlsx" download>here</a></p>
+<p>Or a blank sample file <a href="files/stem-preview/blank-stem-preview-template.xlsx" download>here</a></p>
+
+<RadzenCard Variant="Variant.Outlined" style="padding: 1rem;">
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Multiple Files Upload</RadzenText>
+
+    <div class="stem-dropzone">
+        <InputFile @ref="fileInput"
+                   OnChange="OnInputFileChange"
+                   multiple="multiple"
+                   accept=".csv,.tsv,.txt,.dat,.psv,.xls,.xlsx,.xlsb"
+                   class="stem-dropzone-input"
+                   title="Drag and drop files here, or click to browse" />
+        <div class="stem-dropzone-content">
+            <RadzenIcon Icon="cloud_upload" />
+            <RadzenText TextStyle="TextStyle.Body1" class="rz-mb-0">Drag &amp; drop one or more STEM files here, or click to browse</RadzenText>
+        </div>
+    </div>
+
+    @if (files.Any())
+    {
+        <div class="ne-compact-grid">
+            <FileUploadGrid Data="@files"
+                            OnRemoveFile="@RemoveFile" />
+        </div>
+    }
+
+    @if (files.Any(f => f.Status == FileStatus.Pending))
+    {
+        <RadzenButton Text="Upload Files"
+                      Click="ProcessUpload"
+                      Style="margin-top: 10px;" />
+    }
+
+    <StemPreviewEntryGrid @ref="stemPreviewEntryGrid"
+                          StemSessionId="@sessionId"
+                          Caption="Preview rows parsed from uploaded STEM files in this session."
+                          Visible="@ShowStemPreviewEntryGrid()" />
+
+</RadzenCard>

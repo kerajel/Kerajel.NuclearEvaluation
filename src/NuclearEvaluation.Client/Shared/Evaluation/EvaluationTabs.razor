@@ -1,0 +1,13 @@
+﻿@using NuclearEvaluation.Client.Shared.Evaluation.QueryBuilder
+
+<RadzenTabs @bind-SelectedIndex="tabManager.SelectedTabIndex" Change="OnTabChanged" Style="min-height: 600px;" RenderMode="TabRenderMode.Client">
+    <Tabs>
+        <RadzenTabsItem Text="Projects">
+            <ProjectGrid ComponentId="evaluation-projects"
+                         Caption="Projects available for evaluation; open a project to inspect its scoped series, samples, APM, and particle data." />
+        </RadzenTabsItem>
+        <RadzenTabsItem Text="Query Builder">
+            <QueryBuilderCard />
+        </RadzenTabsItem>
+    </Tabs>
+</RadzenTabs>

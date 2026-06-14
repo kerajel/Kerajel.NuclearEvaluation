@@ -1,9 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Kernel.Models.Plotting;
-using NuclearEvaluation.Kernel.Models.Views;
+using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Server.Interfaces.Evaluation;
 using NuclearEvaluation.Server.Services.DB;
+using NuclearEvaluation.Shared.Contracts;
+using NuclearEvaluation.Shared.Models.Plotting;
+using NuclearEvaluation.Shared.Models.Views;
 using System.Linq.Expressions;
 
 namespace NuclearEvaluation.Server.Services.Evaluation;
@@ -16,12 +19,34 @@ public class ChartService : DbServiceBase, IChartService
 
     public async Task<ILookup<string, BinCount>> GetProjectParticleUraniumBinCounts(int projectId)
     {
-        bool useDecayCorrection = await _dbContext.Project
-            .AnyAsync(x => x.Id == projectId && x.DecayCorrectionDate.HasValue);
+        return await GetProjectParticleUraniumBinCounts(new FetchDataCommand<ParticleView>
+        {
+            Query = await CreateProjectChartQuery(projectId),
+        });
+    }
 
-        IQueryable<ParticleView> baseQuery = useDecayCorrection
+    public async Task<ILookup<string, BinCount>> GetProjectApmUraniumBinCounts(int projectId)
+    {
+        return await GetProjectApmUraniumBinCounts(new FetchDataCommand<ApmView>
+        {
+            Query = await CreateProjectChartQuery(projectId),
+        });
+    }
+
+    public async Task<ILookup<string, BinCount>> GetProjectParticleUraniumBinCounts(FetchDataCommand<ParticleView> command)
+    {
+        int? projectId = command.Query?.ProjectId;
+
+        IQueryable<ParticleView> baseQuery = command.QueryKind == QueryKind.DecayCorrected
             ? _dbContext.ProjectDecayCorrectedParticleView.Where(x => x.ProjectId == projectId)
-            : _dbContext.ParticleView.Where(pv => pv.SubSample.Sample.Series.ProjectSeries.Any(y => y.ProjectId == projectId));
+            : _dbContext.ParticleView;
+
+        if (command.QueryKind != QueryKind.DecayCorrected && projectId.HasValue)
+        {
+            baseQuery = baseQuery.Where(pv => pv.SubSample.Sample.Series.ProjectSeries.Any(y => y.ProjectId == projectId));
+        }
+
+        IQueryable<ParticleView> filteredQuery = GetFilteredQuery(baseQuery, command);
 
         (string Isotope, Expression<Func<ParticleView, decimal?>>)[] isotopeSelectors =
         [
@@ -29,17 +54,23 @@ public class ChartService : DbServiceBase, IChartService
             (nameof(ParticleBase.U235), pv => pv.U235),
         ];
 
-        return await GetUraniumBinCounts(baseQuery, isotopeSelectors);
+        return await GetUraniumBinCounts(filteredQuery, isotopeSelectors);
     }
 
-    public async Task<ILookup<string, BinCount>> GetProjectApmUraniumBinCounts(int projectId)
+    public async Task<ILookup<string, BinCount>> GetProjectApmUraniumBinCounts(FetchDataCommand<ApmView> command)
     {
-        bool useDecayCorrection = await _dbContext.Project
-            .AnyAsync(x => x.Id == projectId && x.DecayCorrectionDate.HasValue);
+        int? projectId = command.Query?.ProjectId;
 
-        IQueryable<ApmView> baseQuery = useDecayCorrection
+        IQueryable<ApmView> baseQuery = command.QueryKind == QueryKind.DecayCorrected
             ? _dbContext.ProjectDecayCorrectedApmView.Where(x => x.ProjectId == projectId)
-            : _dbContext.ApmView.Where(pv => pv.SubSample.Sample.Series.ProjectSeries.Any(y => y.ProjectId == projectId));
+            : _dbContext.ApmView;
+
+        if (command.QueryKind != QueryKind.DecayCorrected && projectId.HasValue)
+        {
+            baseQuery = baseQuery.Where(pv => pv.SubSample.Sample.Series.ProjectSeries.Any(y => y.ProjectId == projectId));
+        }
+
+        IQueryable<ApmView> filteredQuery = GetFilteredQuery(baseQuery, command);
 
         (string Isotope, Expression<Func<ApmView, decimal?>>)[] isotopeSelectors =
         [
@@ -49,12 +80,13 @@ public class ChartService : DbServiceBase, IChartService
             (nameof(ApmBase.U238), pv => pv.U238),
         ];
 
-        return await GetUraniumBinCounts(baseQuery, isotopeSelectors);
+        return await GetUraniumBinCounts(filteredQuery, isotopeSelectors);
     }
 
     private static async Task<ILookup<string, BinCount>> GetUraniumBinCounts<T>(
         IQueryable<T> baseQuery,
         IEnumerable<(string Isotope, Expression<Func<T, decimal?>> ValueSelector)> isotopeSelectors)
+        where T : class
     {
         var combinedQuery = isotopeSelectors
             .Select(selector => baseQuery.Select(selector.ValueSelector).Select(value => new { selector.Isotope, Value = value }))
@@ -99,5 +131,17 @@ public class ChartService : DbServiceBase, IChartService
             );
 
         return groupedResults;
+    }
+
+    async Task<DataQuery> CreateProjectChartQuery(int projectId)
+    {
+        bool useDecayCorrection = await _dbContext.Project
+            .AnyAsync(x => x.Id == projectId && x.DecayCorrectionDate.HasValue);
+
+        return new DataQuery
+        {
+            ProjectId = projectId,
+            DecayCorrected = useDecayCorrection,
+        };
     }
 }

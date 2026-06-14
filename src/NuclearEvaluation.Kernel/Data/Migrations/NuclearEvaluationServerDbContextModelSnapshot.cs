@@ -22,7 +22,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Sandbox.SandboxState", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,180 +30,15 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ClaimType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ClaimValue")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RoleId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<DateTime>("LastResetUtc")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetRoleClaims", "ADMIN");
+                    b.ToTable("SandboxState", "DBO");
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ClaimType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ClaimValue")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("AspNetUserClaims", "ADMIN");
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
-                {
-                    b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ProviderKey")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ProviderDisplayName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("LoginProvider", "ProviderKey");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("AspNetUserLogins", "ADMIN");
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("RoleId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("UserId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetUserRoles", "ADMIN");
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("UserId", "LoginProvider", "Name");
-
-                    b.ToTable("AspNetUserTokens", "ADMIN");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AuthorId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateOnly>("CreatedDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuthorId");
-
-                    b.ToTable("PmiReport", "EVALUATION");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReportDistributionEntry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DistributionChannel")
-                        .HasColumnType("int");
-
-                    b.Property<int>("DistributionStatus")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("PmiReportId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PmiReportId");
-
-                    b.ToTable("PmiReportDistributionEntry", "EVALUATION");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReportFileMetadata", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("PmiReportId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<long>("Size")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PmiReportId")
-                        .IsUnique();
-
-                    b.ToTable("PmiReportFileMetadata", "EVALUATION");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Apm", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Apm", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -258,7 +93,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToTable("Apm", "DATA");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Particle", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Particle", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -312,7 +147,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToTable("Particle", "DATA");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Project", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Project", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -350,7 +185,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToTable("Project", "EVALUATION");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.ProjectSeries", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.ProjectSeries", b =>
                 {
                     b.Property<int>("ProjectId")
                         .HasColumnType("int")
@@ -366,7 +201,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToTable("ProjectSeries", "EVALUATION");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Sample", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Sample", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -409,7 +244,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToTable("Sample", "DATA");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Series", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Series", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -447,7 +282,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToTable("Series", "DATA");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.SubSample", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.SubSample", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -489,7 +324,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToTable("SubSample", "DATA");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Filters.PresetFilter", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Filters.PresetFilter", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -507,7 +342,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToTable("PresetFilter", "EVALUATION");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Filters.PresetFilterEntry", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Filters.PresetFilterEntry", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -538,100 +373,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToTable("PresetFilterEntry", "EVALUATION");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Identity.ApplicationRole", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("NormalizedName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex")
-                        .HasFilter("[NormalizedName] IS NOT NULL");
-
-                    b.ToTable("AspNetRoles", "ADMIN");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Identity.ApplicationUser", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("AccessFailedCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("NormalizedEmail")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("NormalizedUserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("SecurityStamp")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("UserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedEmail")
-                        .HasDatabaseName("EmailIndex");
-
-                    b.HasIndex("NormalizedUserName")
-                        .IsUnique()
-                        .HasDatabaseName("UserNameIndex")
-                        .HasFilter("[NormalizedUserName] IS NOT NULL");
-
-                    b.ToTable("AspNetUsers", "ADMIN");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ApmView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ApmView", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int");
@@ -685,7 +427,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToView("ApmView", "DATA");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ParticleView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ParticleView", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int");
@@ -738,7 +480,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToView("ParticleView", "DATA");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ProjectDecayCorrectedApmView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ProjectDecayCorrectedApmView", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int");
@@ -795,7 +537,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToView("ProjectDecayCorrectedApmView", "EVALUATION");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ProjectDecayCorrectedParticleView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ProjectDecayCorrectedParticleView", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int");
@@ -851,7 +593,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToView("ProjectDecayCorrectedParticleView", "EVALUATION");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ProjectView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ProjectView", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int");
@@ -891,7 +633,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToView("ProjectView", "EVALUATION");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ProjectViewSeriesView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ProjectViewSeriesView", b =>
                 {
                     b.Property<int>("ProjectId")
                         .HasColumnType("int")
@@ -910,7 +652,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToView("ProjectViewSeriesView", "EVALUATION");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.SampleView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.SampleView", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int");
@@ -956,7 +698,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToView("SampleView", "DATA");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.SeriesView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.SeriesView", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int");
@@ -1000,7 +742,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToView("SeriesView", "DATA");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.SubSampleView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.SubSampleView", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int");
@@ -1044,93 +786,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.ToView("SubSampleView", "DATA");
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Apm", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Identity.ApplicationRole", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
-                {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
-                {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
-                {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Identity.ApplicationRole", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
-                {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport", b =>
-                {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Identity.ApplicationUser", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Author");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReportDistributionEntry", b =>
-                {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport", "PmiReport")
-                        .WithMany("PmiReportDistributionEntries")
-                        .HasForeignKey("PmiReportId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("PmiReport");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReportFileMetadata", b =>
-                {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport", "PmiReport")
-                        .WithOne("PmiReportFileMetadata")
-                        .HasForeignKey("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReportFileMetadata", "PmiReportId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("PmiReport");
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Apm", b =>
-                {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Domain.SubSample", "SubSample")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Domain.SubSample", "SubSample")
                         .WithMany("Apms")
                         .HasForeignKey("SubSampleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1139,9 +797,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("SubSample");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Particle", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Particle", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Domain.SubSample", "SubSample")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Domain.SubSample", "SubSample")
                         .WithMany("Particles")
                         .HasForeignKey("SubSampleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1150,15 +808,15 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("SubSample");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.ProjectSeries", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.ProjectSeries", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Domain.Project", "Project")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Domain.Project", "Project")
                         .WithMany("ProjectSeries")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Domain.Series", "Series")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Domain.Series", "Series")
                         .WithMany("ProjectSeries")
                         .HasForeignKey("SeriesId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1169,9 +827,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("Series");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Sample", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Sample", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Domain.Series", "Series")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Domain.Series", "Series")
                         .WithMany("Samples")
                         .HasForeignKey("SeriesId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1180,9 +838,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("Series");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.SubSample", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.SubSample", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Domain.Sample", "Sample")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Domain.Sample", "Sample")
                         .WithMany("SubSamples")
                         .HasForeignKey("SampleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1191,9 +849,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("Sample");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Filters.PresetFilterEntry", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Filters.PresetFilterEntry", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Filters.PresetFilter", "PresetFilter")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Filters.PresetFilter", "PresetFilter")
                         .WithMany("Entries")
                         .HasForeignKey("PresetFilterId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1202,9 +860,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("PresetFilter");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ApmView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ApmView", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Views.SubSampleView", "SubSample")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Views.SubSampleView", "SubSample")
                         .WithMany("Apms")
                         .HasForeignKey("SubSampleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1213,9 +871,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("SubSample");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ParticleView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ParticleView", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Views.SubSampleView", "SubSample")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Views.SubSampleView", "SubSample")
                         .WithMany("Particles")
                         .HasForeignKey("SubSampleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1224,9 +882,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("SubSample");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ProjectDecayCorrectedApmView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ProjectDecayCorrectedApmView", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Views.SubSampleView", "SubSample")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Views.SubSampleView", "SubSample")
                         .WithMany()
                         .HasForeignKey("SubSampleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1235,9 +893,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("SubSample");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ProjectDecayCorrectedParticleView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ProjectDecayCorrectedParticleView", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Views.SubSampleView", "SubSample")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Views.SubSampleView", "SubSample")
                         .WithMany()
                         .HasForeignKey("SubSampleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1246,15 +904,15 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("SubSample");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ProjectViewSeriesView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ProjectViewSeriesView", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Views.ProjectView", "Project")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Views.ProjectView", "Project")
                         .WithMany("ProjectSeries")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Views.SeriesView", "Series")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Views.SeriesView", "Series")
                         .WithMany("ProjectSeries")
                         .HasForeignKey("SeriesId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1265,9 +923,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("Series");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.SampleView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.SampleView", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Views.SeriesView", "Series")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Views.SeriesView", "Series")
                         .WithMany("Samples")
                         .HasForeignKey("SeriesId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1276,9 +934,9 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("Series");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.SubSampleView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.SubSampleView", b =>
                 {
-                    b.HasOne("NuclearEvaluation.Kernel.Models.Views.SampleView", "Sample")
+                    b.HasOne("NuclearEvaluation.Shared.Models.Views.SampleView", "Sample")
                         .WithMany("SubSamples")
                         .HasForeignKey("SampleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1287,61 +945,53 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Navigation("Sample");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.DataManagement.PMI.PmiReport", b =>
-                {
-                    b.Navigation("PmiReportDistributionEntries");
-
-                    b.Navigation("PmiReportFileMetadata")
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Project", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Project", b =>
                 {
                     b.Navigation("ProjectSeries");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Sample", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Sample", b =>
                 {
                     b.Navigation("SubSamples");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.Series", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.Series", b =>
                 {
                     b.Navigation("ProjectSeries");
 
                     b.Navigation("Samples");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Domain.SubSample", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Domain.SubSample", b =>
                 {
                     b.Navigation("Apms");
 
                     b.Navigation("Particles");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Filters.PresetFilter", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Filters.PresetFilter", b =>
                 {
                     b.Navigation("Entries");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.ProjectView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.ProjectView", b =>
                 {
                     b.Navigation("ProjectSeries");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.SampleView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.SampleView", b =>
                 {
                     b.Navigation("SubSamples");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.SeriesView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.SeriesView", b =>
                 {
                     b.Navigation("ProjectSeries");
 
                     b.Navigation("Samples");
                 });
 
-            modelBuilder.Entity("NuclearEvaluation.Kernel.Models.Views.SubSampleView", b =>
+            modelBuilder.Entity("NuclearEvaluation.Shared.Models.Views.SubSampleView", b =>
                 {
                     b.Navigation("Apms");
 

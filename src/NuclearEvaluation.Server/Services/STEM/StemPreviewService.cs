@@ -1,6 +1,9 @@
-﻿using Kerajel.Primitives.Enums;
+using Kerajel.Primitives.Enums;
 using Kerajel.Primitives.Models;
+using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using NuclearEvaluation.Kernel.Models.Files;
+using NuclearEvaluation.Server.Interfaces.EFS;
+using NuclearEvaluation.Server.Interfaces.STEM;
 using Polly;
 using Polly.Bulkhead;
 using System.Runtime.CompilerServices;
@@ -37,15 +40,12 @@ public class StemPreviewService(
             ? CancellationTokenSource.CreateLinkedTokenSource(internalCts.Token, externalCt.Value)
             : internalCts;
 
-        OperationResult result = new(OperationStatus.Succeeded);
+        OperationResult result;
 
         try
         {
             result = await bulkheadPolicy.ExecuteAsync(
-                async (ct) =>
-                {
-                    return await Execute();
-                },
+                async (ct) => await Execute(),
                 linkedCts.Token);
         }
         catch (BulkheadRejectedException ex)
@@ -98,20 +98,6 @@ public class StemPreviewService(
         }
     }
 
-    public async Task<OperationResult> RefreshIndexes(Guid stemSessionId)
-    {
-        try
-        {
-            await stemPreviewEntryService.RefreshIndexes(stemSessionId);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError("Failed to refresh indexes");
-            return new OperationResult(OperationStatus.Error, ex);
-        }
-        return new OperationResult(OperationStatus.Succeeded);
-    }
-
     public async Task<OperationResult> DeleteFileData(Guid stemSessionId, Guid fileId)
     {
         try
@@ -120,7 +106,7 @@ public class StemPreviewService(
         }
         catch (Exception ex)
         {
-            logger.LogError("Failed to delete file data");
+            logger.LogError(ex, "Failed to delete file data");
             return new OperationResult(OperationStatus.Error, ex);
         }
         return new OperationResult(OperationStatus.Succeeded);
@@ -136,14 +122,5 @@ public class StemPreviewService(
             entry.FileId = fileId;
             yield return entry;
         }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (stemPreviewEntryService != null)
-        {
-            await stemPreviewEntryService.DisposeAsync();
-        }
-        GC.SuppressFinalize(this);
     }
 }

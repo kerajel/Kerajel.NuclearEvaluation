@@ -1,6 +1,6 @@
 # Nuclear Evaluation
 
-A .NET 9 web application for exploring nuclear-material evaluation data: particle samples,
+A .NET 10 web application for exploring nuclear-material evaluation data: particle samples,
 sub-samples, and APM (Alpha Particle Measurement) records organised into series and projects,
 with uranium-isotope analysis, decay correction, and a query builder. UI built with
 [Radzen](https://blazor.radzen.com/) Blazor components.
@@ -45,7 +45,7 @@ SQL Server data and uploaded files persist in named Docker volumes (`mssql-data`
 
 ## Running locally without Docker
 
-Requirements: .NET SDK 9.0 and a reachable SQL Server instance.
+Requirements: .NET SDK 10.0 and a reachable SQL Server instance.
 
 1. Put your connection string in `src/NuclearEvaluation.Server/appsettings.Development.json`
    (git-ignored):
@@ -107,11 +107,18 @@ npx playwright install chromium
 npm test
 ```
 
-The suite uses `http://localhost:8080` by default. Override it with `E2E_BASE_URL` when testing another disposable target. One known product bug is encoded as an expected-fail test: `ADD-20` documents that Series create/update currently does not persist `SgasComment`.
+The suite uses `http://localhost:8080` by default. Override it with `E2E_BASE_URL` when testing another disposable target. Use `E2E_WORKERS` to tune browser parallelism, or `npm run test:serial` for one-worker debugging.
 
 Or run the browser suite through Docker Compose, which starts the app dependencies and uses a dedicated Playwright test container:
 
 ```bash
+docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e
+```
+
+The Docker e2e profile defaults to 4 Playwright workers. Override with `E2E_WORKERS`, for example:
+
+```powershell
+$env:E2E_WORKERS = "2"
 docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e
 ```
 ## Production deployment

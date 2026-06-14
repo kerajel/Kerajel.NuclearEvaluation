@@ -2,12 +2,18 @@ import { defineConfig, devices } from 'playwright/test';
 import { storageStatePath } from './support/app';
 
 const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:8080';
+const configuredWorkers = Number.parseInt(process.env.E2E_WORKERS ?? '', 10);
+const workers = Number.isFinite(configuredWorkers) && configuredWorkers > 0
+  ? configuredWorkers
+  : process.env.CI
+    ? 4
+    : undefined;
 
 export default defineConfig({
   testDir: './specs',
   globalSetup: './global-setup',
-  fullyParallel: false,
-  workers: 1,
+  fullyParallel: true,
+  workers,
   timeout: 120_000,
   expect: { timeout: 15_000 },
   retries: process.env.CI ? 1 : 0,

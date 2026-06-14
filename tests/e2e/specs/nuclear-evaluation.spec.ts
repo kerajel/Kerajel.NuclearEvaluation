@@ -364,19 +364,50 @@ test('UI-04 preset-filter save button enables only after valid name and creates 
 
 test('UI-08 remove File during large upload cancels immediately', async ({ page }, testInfo) => {
   const slowFile = testInfo.outputPath('stem-slow-cancel.csv');
-  writeLargeStemCsv(slowFile, 8 * 1024 * 1024);
+  writeLargeStemCsv(slowFile, 256 * 1024);
+  let markUploadStarted = () => { };
+  const uploadStarted = new Promise<void>(resolve => {
+    markUploadStarted = resolve;
+  });
+  let releaseUpload = () => { };
+  const uploadRelease = new Promise<void>(resolve => {
+    releaseUpload = resolve;
+  });
+  let uploadRouteDone = Promise.resolve();
+
+  await page.route('**/api/stem/*/files', async route => {
+    if (route.request().method() !== 'POST') {
+      await route.continue();
+      return;
+    }
+
+    uploadRouteDone = (async () => {
+      markUploadStarted();
+      await uploadRelease;
+      await route.abort('aborted').catch(() => undefined);
+    })();
+    await uploadRouteDone;
+  });
 
   await openStemPreview(page);
   await page.locator('input[type="file"]').setInputFiles(slowFile);
   await page.waitForFunction(() => document.body.innerText.includes('stem-slow-cancel.csv') && document.body.innerText.includes('Upload Files'));
   await page.locator('button:has-text("Upload Files")').last().click();
-  await page.locator('.ne-compact-grid button:has-text("delete")').first().click();
-  await confirmDialogYes(page);
-  await page.waitForTimeout(3_500);
-  const text = await bodyText(page);
+  await uploadStarted;
 
-  expect(text).not.toContain('stem-slow-cancel.csv');
-  expect(text).not.toContain('LAB-SLOW');
+  try {
+    await page.locator('.ne-compact-grid button:has-text("delete")').first().click();
+    await confirmDialogYes(page);
+    await expect(page.getByText('stem-slow-cancel.csv')).toHaveCount(0);
+
+    const text = await bodyText(page);
+    expect(text).not.toContain('stem-slow-cancel.csv');
+    expect(text).not.toContain('LAB-SLOW');
+  } finally {
+    releaseUpload();
+    await uploadRouteDone;
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  }
 });
 
 test('ADD-01 removed /api/pmi route does not return SPA shell', async ({ page }) => {
@@ -860,6 +891,17 @@ test('ADD-40 Project detail fits a mobile viewport', async ({ page }) => {
 
   expect(state.scrollWidth).toBeLessThanOrEqual(state.clientWidth + 8);
   await expectNoVisibleAppError(page);
+});
+
+test('ADD-41 query-aware chart APIs respect grid filters', async ({ page }) => {
+  const query = { projectId: 1, filter: 'Id == -2147483648', top: 5, skip: 0 };
+  const apm = await apiPost<ChartBinCounts[]>(page, '/api/charts/apm-bin-counts', query);
+  const particle = await apiPost<ChartBinCounts[]>(page, '/api/charts/particle-bin-counts', query);
+
+  expect(apm.ok).toBe(true);
+  expect(apm.json).toEqual([]);
+  expect(particle.ok).toBe(true);
+  expect(particle.json).toEqual([]);
 });
 async function themeState(page: Page) {
   return page.evaluate(() => ({

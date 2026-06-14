@@ -109,8 +109,11 @@ export async function apiDelete<T = unknown>(page: Page, url: string, body?: unk
 
 export async function openStemPreview(page: Page) {
   await gotoApp(page, '/data-management');
-  await page.getByText('STEM Preview', { exact: true }).click();
-  await page.locator('input[type="file"]').waitFor({ state: 'attached' });
+  const tab = page.getByRole('tab', { name: 'STEM Preview' });
+  await tab.click();
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+  await page.locator('.stem-dropzone').waitFor({ state: 'visible' });
+  await page.locator('input[type="file"].stem-dropzone-input').waitFor({ state: 'attached' });
 }
 
 export async function openQueryBuilder(page: Page) {

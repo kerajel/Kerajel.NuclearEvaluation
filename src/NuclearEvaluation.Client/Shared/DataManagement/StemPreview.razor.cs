@@ -186,11 +186,16 @@ public partial class StemPreview
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
 
+        _ = CleanupRemovedFileAsync(file);
+    }
+
+    async Task CleanupRemovedFileAsync(UploadedFile file)
+    {
         // Best-effort server-side cleanup of any rows already staged for this file.
         try
         {
             await Api.DeleteStemPreviewFile(sessionId, file.Id);
-            await stemPreviewEntryGrid.Refresh();
+            await InvokeAsync(stemPreviewEntryGrid.Refresh);
         }
         catch (Exception ex)
         {

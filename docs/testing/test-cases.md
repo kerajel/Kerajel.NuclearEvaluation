@@ -14,13 +14,14 @@ Last reviewed: 2026-06-14
 
 - Runner: `tests/e2e/specs/nuclear-evaluation.spec.ts`
 - Docker entrypoint: `docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e`
+- Parallelism: Docker defaults to 4 Playwright workers; override with `E2E_WORKERS`, or use `npm run test:serial` for one-worker debugging.
 - All executable cases are intended to pass; regressions should fail the Docker suite.
 
 ## Summary
 
-- Captured cases: 60
-- Executed cases: 60
-- Passed: 60
+- Captured cases: 61
+- Executed cases: 61
+- Passed: 61
 - Failed: 0
 - Superseded runner assertion: 1 old combined PMI/API check was replaced by explicit API and client-route checks.
 
@@ -120,6 +121,7 @@ The previously failing rebuild checks now pass:
 | ADD-38 | STEM API | STEM entries endpoint with an unknown session returns empty result | POST stem-entries with random `stemSessionId` | Endpoint succeeds with zero rows. | PASS | Returned totalCount 0 and empty entries. |
 | ADD-39 | Backend/API | Chart APIs return empty arrays for missing project ids | GET APM and particle chart APIs for a missing project id | Endpoints return HTTP 200 with empty arrays. | PASS | Both chart APIs returned empty arrays. |
 | ADD-40 | UI/Layout | Project detail fits a mobile viewport | Open `/projects/1` at 390px width; measure document width | Project detail renders without horizontal overflow or app error UI. | PASS | Mobile project detail stayed within viewport. |
+| ADD-41 | Backend/API | Query-aware chart APIs respect grid filters | POST APM and particle chart APIs with an impossible grid filter | Endpoints return HTTP 200 with empty arrays. | PASS | Both query-aware chart APIs returned empty arrays for an impossible `Id` filter. |
 
 ## Superseded Checks
 

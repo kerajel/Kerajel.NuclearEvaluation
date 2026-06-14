@@ -29,14 +29,32 @@ services:
       ASPNETCORE_ENVIRONMENT: "Development"
       ASPNETCORE_HTTP_PORTS: "8080"
       ConnectionStrings__NuclearEvaluationServerDbConnection: "Server=db;Database=NuclearEvaluation;User Id=sa;Password=Local_Dev_Pass_123;TrustServerCertificate=True;Encrypt=False"
-      # Faster sandbox cadence for local poking; override as you like.
       Sandbox__ResetIntervalHours: "24"
       Sandbox__SweepIntervalMinutes: "30"
     ports:
       - "8080:8080"
+    networks:
+      default:
+        aliases:
+          - nuclear-evaluation.test
     volumes:
       - app-storage:/NuclearEvaluationStorage
 
+
+  e2e:
+    profiles: ["e2e"]
+    build:
+      context: .
+      dockerfile: tests/e2e/Dockerfile
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      E2E_BASE_URL: "http://nuclear-evaluation.test:8080"
+      CI: "1"
+    volumes:
+      - ./tests/e2e/test-results:/e2e/test-results
+      - ./tests/e2e/playwright-report:/e2e/playwright-report
 volumes:
   mssql-data:
   app-storage:

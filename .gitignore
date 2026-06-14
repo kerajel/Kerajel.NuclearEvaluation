@@ -372,3 +372,9 @@ FodyWeavers.xsd
 
 # Logs
 logs/
+
+# Playwright e2e outputs
+/tests/e2e/.auth/
+/tests/e2e/test-results/
+/tests/e2e/playwright-report/
+/tests/e2e/blob-report/

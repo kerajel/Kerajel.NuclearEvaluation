@@ -97,6 +97,23 @@ dotnet test
 - `NuclearEvaluation.Client.Tests` — bUnit component tests with a mocked API (no database).
 - `Kerajel.TabularDataReader.Tests` — CSV/Excel reader tests.
 
+
+End-to-end browser regression tests live in `tests/e2e`. Start the app first against a disposable local or staging database, then run:
+
+```bash
+cd tests/e2e
+npm install
+npx playwright install chromium
+npm test
+```
+
+The suite uses `http://localhost:8080` by default. Override it with `E2E_BASE_URL` when testing another disposable target. One known product bug is encoded as an expected-fail test: `ADD-20` documents that Series create/update currently does not persist `SgasComment`.
+
+Or run the browser suite through Docker Compose, which starts the app dependencies and uses a dedicated Playwright test container:
+
+```bash
+docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e
+```
 ## Production deployment
 
 Production is hosted on **smarterasp.net** (shared Windows hosting) and is published directly —

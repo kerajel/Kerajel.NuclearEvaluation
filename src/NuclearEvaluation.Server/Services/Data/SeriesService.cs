@@ -78,6 +78,7 @@ public class SeriesService : DbServiceBase, ISeriesService
         Series series = new()
         {
             SeriesType = seriesView.SeriesType,
+            SgasComment = seriesView.SgasComment,
             WorkingPaperLink = seriesView.WorkingPaperLink,
             IsDu = seriesView.IsDu,
             IsNu = seriesView.IsNu,
@@ -96,6 +97,7 @@ public class SeriesService : DbServiceBase, ISeriesService
             .UpdateFromQueryAsync(x => new Series
             {
                 SeriesType = seriesView.SeriesType,
+                SgasComment = seriesView.SgasComment,
                 WorkingPaperLink = seriesView.WorkingPaperLink,
                 IsDu = seriesView.IsDu,
                 IsNu = seriesView.IsNu,

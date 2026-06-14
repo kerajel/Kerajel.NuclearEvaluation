@@ -2,10 +2,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Restore against the full solution so project references resolve.
+# Restore the host project and its project references.
 COPY Kerajel.NuclearEvaluation.sln ./
 COPY src/ ./src/
-COPY tests/ ./tests/
 
 RUN dotnet restore src/NuclearEvaluation.Server/NuclearEvaluation.Server.csproj
 RUN dotnet publish src/NuclearEvaluation.Server/NuclearEvaluation.Server.csproj \

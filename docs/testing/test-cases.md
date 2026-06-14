@@ -7,76 +7,128 @@ Last reviewed: 2026-06-14
 - Purpose: durable manual/regression QA checklist for Nuclear Evaluation.
 - Execute against a disposable local or staging environment with seeded data.
 - Use a fresh browser session when checking captcha, cookie, and theme behavior.
-- For STEM upload checks, use small valid STEM CSV files and one larger valid CSV for cancellation behavior.
+- For STEM upload checks, use small valid STEM CSV files, malformed CSV files, and a file larger than the configured STEM preview limit.
+- Do not run destructive CRUD or upload-delete cases against production data.
 
+## Executable Suite
+
+- Runner: `tests/e2e/specs/nuclear-evaluation.spec.ts`
+- Docker entrypoint: `docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e`
+- All executable cases are intended to pass; regressions should fail the Docker suite.
 
 ## Summary
 
-- Executed cases: 21
-- Passed: 19
-- Failed: 2
-- Main failures: UI-04 preset-filter save/check button state; API-01 unknown /api/pmi route returning SPA shell.
+- Captured cases: 60
+- Executed cases: 60
+- Passed: 60
+- Failed: 0
+- Superseded runner assertion: 1 old combined PMI/API check was replaced by explicit API and client-route checks.
+
+The previously failing rebuild checks now pass:
+
+- Preset-filter save/check state: PASS. The check button is disabled before a valid name and enables after a valid unique name.
+- Removed PMI API behavior: PASS. `/api/pmi` returns a real API 404 instead of the SPA shell, and `/pmi` client navigation lands on the app not-found page.
 
 ## Findings
 
-| Priority | Finding                                                                | Detail                                                                                                                                                                                                                                                    |
-| -------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1       | Preset-filter save/check button is enabled before valid input          | After clicking the preset save icon in Evaluation > Query Builder, the check button is immediately enabled while FilterName is blank. Expected disabled until the validator has a valid 5-25 character unique name. This is the UI-4 class of regression. |
-| P2       | API-looking removed PMI route returns app shell with HTTP 200          | GET /api/pmi returns index.html with HTTP 200 because the SPA fallback catches the path after MapControllers. If /api/* is part of the server contract, unknown API routes should return 404/405 or JSON error, not the client shell.                     |
-| P3       | README still mentions PMI                                              | README.md still says the product has PMI report uploads and PMI retention cleanup, while current UI/controllers/entities appear to have removed PMI. This is stale documentation.                                                                         |
-| P3       | STEM delete emitted one requestfailed event despite correct UI cleanup | During STEM-02, Chrome reported net::ERR_ABORTED for DELETE /api/stem/{session}/files/{fileId}, but the UI and preview grid still reflected correct cleanup. Retest around network handling if this becomes flaky.                                        |
-| P3       | Sample ExternalCode filter is hard to visually verify                  | SampleQueryBuilderFilter exposes Sample.ExternalCode, but SampleGrid does not display ExternalCode, so the UI can show count changes but not the matching value in the active Sample grid.                                                                |
+| Priority | Finding | Detail |
+|---|---|---|
+| P3 | STEM delete/cancel requests emit aborted network events while UI cleanup succeeds | STEM delete and in-flight cancel flows passed visually and by data cleanup, but browser network events included `net::ERR_ABORTED` for some `/api/stem/{session}/files/{fileId}` requests. Treat as a watch item if the flow becomes flaky. |
+| P3 | Seeded project dates include suspicious future/out-of-order values | The Evaluation project grid showed synthetic rows with dates beyond the review date and at least one row where `CreatedAt` appeared later than `UpdatedAt`. Not counted as a failure because the seed appears synthetic, but it is worth validating if date ordering matters. |
 
 ## Historical Regression Checklist
 
 | ID | Regression | Result | Evidence |
 |---|---|---|---|
-| BE-1 | Filtering Projects by id | PASS | BE-01 returned one project for Id == 1 and included ProjectSeries. |
-| BE-2 | Opening /projects/1 | PASS | BE-02 rendered project detail instead of not-found. |
-| BE-3 | Upload 2 STEM files, delete 1 | PASS | STEM-02 removed only stem-a.csv rows and kept stem-b.csv rows. |
-| BE-4 | PMI dashboard removed | MIXED | Visible UI has no PMI affordance. Suspicious: /api/pmi returns the SPA shell with HTTP 200, and README still mentions PMI. |
-| UI-1 | Dark/light toggle | PASS | UI-01 swapped Radzen stylesheet and colors. |
-| UI-2 | Series delete tooltip overflow | PASS | DM-04 uses native title and no horizontal overflow. |
-| UI-3 | Sample External Code filter | PASS | BE-03 verified direct and query-builder-compatible Sample.ExternalCode filtering. |
-| UI-4 | Preset-filter Save button disabled logic | FAIL | UI-04 found the check button enabled before a valid name is entered. |
-| UI-5 | Grid empty flash/teary resize | PASS | DM-03 verified cached results and reserved grid height. |
-| UI-6 | STEM drag/drop target | PASS | STEM-01 verified file input overlay and non-interactive visible dropzone content. |
-| UI-7 | Multi-file upload | PASS | STEM-01/STEM-02 selected and uploaded two files at once. |
-| UI-8 | Remove File during upload | PASS | UI-08 removed a larger in-flight upload immediately. |
-| UI-9 | Child sample grid teary expand | PASS | UI-09 showed nested grid min-height 128px and no overflow. |
-| UI-10 | Uploaded-files list empty gap | PASS | STEM-02 compact upload grid min-height was 0px. |
-| UI-11 | Series totals cached | PASS | DM-03 found ne-grid-cache:series-counts in localStorage. |
+| BE-1 | Filtering Projects by id | PASS | Project filter `Id == 1` returned one project with populated `ProjectSeries`. |
+| BE-2 | Opening `/projects/1` | PASS | Project detail rendered instead of routing to not-found. |
+| BE-3 | Upload 2 STEM files, delete 1 | PASS | Deleting the first uploaded file removed only that file's preview rows and left the second file visible. |
+| BE-4 | PMI dashboard/API removed | PASS | No PMI UI affordance remains; `/api/pmi` returns 404; `/pmi` renders the client not-found page. |
+| UI-1 | Dark/light toggle | PASS | Radzen stylesheet and visual theme changed after the appearance toggle. |
+| UI-2 | Series delete tooltip overflow | PASS | Native title exists and no horizontal overflow was introduced. |
+| UI-3 | Sample External Code filter | PASS | Direct sample filtering and query-builder-compatible `Sample.ExternalCode` filtering returned matching rows. |
+| UI-4 | Preset-filter Save button disabled logic | PASS | Save/check stayed disabled for blank input and enabled for a valid unique name. |
+| UI-5 | Grid empty flash/teary resize | PASS | Cached results and reserved grid heights were present. |
+| UI-6 | STEM drag/drop target | PASS | The actual file input accepts drops and visible dropzone content does not intercept pointer events. |
+| UI-7 | Multi-file upload | PASS | Two STEM files were selected and uploaded together. |
+| UI-8 | Remove File during upload | PASS | In-flight upload was cancelled/removed immediately. |
+| UI-9 | Child sample grid teary expand | PASS | Expanded child sample grid reserved height and did not overflow the page. |
+| UI-10 | Uploaded-files list empty gap | PASS | Compact upload grid opted out of the large min-height. |
+| UI-11 | Series totals cached | PASS | Series totals cache entry exists alongside grid-result cache entries. |
 
 ## Executed Test Cases
 
 | ID | Area | Scenario | Steps | Expected | Result | Evidence |
 |---|---|---|---|---|---|---|
-| CAP-01 | Gate | Captcha status remains verified in a fresh browser session | Open a verified application session<br>Read /api/captcha/status from the page context | The API reports verified=true and the gate is not visible. | PASS | Captcha status API returned verified=true; gate was not visible. |
-| NAV-01 | Navigation | Home page and sidebar navigation render | Navigate to /<br>Check home copy and sidebar menu labels | Home page renders, sidebar includes Home, Data Management, and Evaluation. | PASS | Home page and sidebar rendered expected copy and links. |
-| NAV-02 | Navigation | Unknown route shows friendly not-found page | Navigate to /definitely-not-a-real-route | The route displays Page not found rather than crashing. | PASS | Unknown route rendered friendly Page not found without Blazor error UI. |
-| UI-01 | Theme | Dark/light appearance toggle changes the active theme | Navigate to /data-management<br>Capture theme state<br>Click the Radzen appearance toggle<br>Capture theme state again | The theme state changes visibly or through the persisted theme cookie. | PASS | Theme stylesheet changed from software-dark-base.css to software-base.css; body background changed. |
-| DM-01 | Data Management | Series tab loads totals and first page without fetch errors | Navigate to /data-management<br>Wait for series totals and grid rows | Series totals are numeric, first page displays 10 rows, and no fetch/blazor error is visible. | PASS | Seed totals visible: 100,000 series, 299,868 samples, 599,495 subsamples, 1,799,316 APM, 1,198,679 particles; first series page rendered. |
-| DM-02 | Data Management | No PMI upload/dashboard affordances remain in the app shell | Inspect Data Management and Evaluation visible text | The removed PMI feature is not exposed through visible tabs, nav, dashboard, upload, or grid copy. | PASS | No visible PMI text/links/tabs on Data Management or Evaluation. |
-| DM-03 | Data Management | Grid result cache and reserved grid height are active | Load Data Management series tab<br>Inspect localStorage cache keys and computed grid heights | Series and series-count results are cached, main grids reserve vertical space, compact upload grid opt-out remains possible. | PASS | localStorage contains SeriesGrid and series-counts cache entries; main grid min-height 384px; compact grid min-height 0px. |
-| DM-04 | Data Management | Disabled delete tooltip is native title and does not create horizontal overflow | Load Series grid<br>Find a row with samples<br>Hover disabled delete wrapper<br>Measure page scroll width | A native title exists for Series contains samples, no Radzen popup appears, and document width does not overflow. | PASS | span[title="Series contains samples"] exists; no Radzen popup text; page scrollWidth stayed 1440px. |
-| BE-01 | Backend/Data | Project view filtering by id succeeds with includes applied last | POST /api/views/projects with filter Id == 1 | The API returns success, one project, and populated project-series navigation data; no IncludeOptimized/dynamic-LINQ fault. | PASS | POST /api/views/projects with Id == 1 returned one project and ProjectSeries entries. |
-| BE-02 | Backend/Data | Opening /projects/1 loads project detail instead of not-found | Navigate to /projects/1<br>Inspect tabs and project fields | Project detail renders Overview, Series, Samples, SubSamples, Apm, and Particles tabs with no 404. | PASS | /projects/1 rendered project detail tabs and did not route to not-found. |
-| BE-03 | Backend/Data | Sample External Code filtering works through data/query-builder-compatible API | Fetch a sample row<br>Filter samples by its ExternalCode<br>Filter query-builder composite by Sample.ExternalCode | Direct sample filtering succeeds, and preset-filter-box query-builder mode accepts Sample.ExternalCode without error. | PASS | ExternalCode 2F5 direct sample filter and Sample.ExternalCode query-builder preset filter both returned totalCount 72. |
-| BE-04 | Backend/Data | Project-scoped grids and charts return data for project 1 | Call series/sample/subsample/apm/particle project-scoped grids<br>Call APM and particle bin chart APIs | All scoped endpoints succeed, and chart APIs return arrays rather than errors. | PASS | Project 1 scoped totals: series 4, samples 13, subsamples 26, apm 79, particles 45; chart APIs returned arrays. |
-| UI-02 | Evaluation | Evaluation page query-builder shell renders expected controls | Navigate to /evaluation<br>Open Query Builder tab<br>Inspect filter sections and controls | Query Builder contains filter sections for Series, Sample, SubSample, Apm, Particle, Apply, grid selector, and preset filter controls. | PASS | Query Builder showed Series, Sample, SubSample, Apm, Particle, Apply, grid selector, and preset controls. |
-| STEM-01 | STEM Upload | STEM tab exposes sample downloads and multi-file drop target | Navigate to Data Management<br>Open STEM Preview tab<br>Inspect download links and file input attributes | Three sample download links exist, file input has multiple enabled, dropzone content does not intercept pointer events. | PASS | Three sample download links present; input[type=file] has multiple; .stem-dropzone-content pointer-events is none. |
-| STEM-02 | STEM Upload | Uploading two STEM CSV files previews both, deleting one removes only its rows | Open STEM Preview tab<br>Select two valid CSV files at once<br>Upload files<br>Delete the first uploaded file<br>Check preview grid by file name | Both files upload, preview rows show both filenames, deleting one removes only that file rows while keeping the other. | PASS | Two CSVs uploaded; deleting stem-a.csv removed LAB-A rows and left LAB-B/stem-b.csv rows; compact upload grid min-height 0px. |
-| STEM-03 | STEM Upload | Invalid STEM file reports upload error without breaking the page | Select malformed CSV<br>Upload file<br>Inspect status | The file row reaches UploadError/error text and the app stays usable. | PASS | Malformed CSV showed Error processing the file and no Blazor error UI. |
-| CRUD-01 | Backend/Data | Series create/delete API round trip keeps seeded grid usable | Create a temporary no-sample series through the app API<br>Verify it can be fetched<br>Delete it<br>Verify it is gone | Series CRUD endpoints work for a no-sample row and cleanup succeeds. | PASS | Temporary no-sample series was created, fetched by id, deleted, and no longer fetchable. |
-| API-01 | Backend/Data | Enum filter options and removed PMI routes behave predictably | Call series enum options endpoint<br>Probe known removed PMI paths | Enum options endpoint returns numeric values; PMI routes are absent/not found rather than half-working. | FAIL | /api/views/series/enum-options passed, but /api/pmi returned HTTP 200 with index.html shell instead of 404/405. |
-| UI-09 | Data Management | Series row expansion loads child sample grid without layout tear | Navigate to Data Management<br>Expand the first series row<br>Inspect nested sample grid and layout width | Child sample grid shows rows, reserves nested height, and no horizontal page overflow is introduced. | PASS | Expanding first series row showed nested sample grid with min-height 128px and no horizontal overflow. |
-| UI-04 | Evaluation | Preset-filter save button enables only after valid name and creates filter | Open Evaluation > Query Builder<br>Click preset save<br>Observe disabled check button<br>Enter valid unique name<br>Save<br>Verify and cleanup via API | The save/check button is disabled for invalid input, enables for a valid name, and the filter can be created and deleted. | FAIL | After clicking preset save, the check button was enabled before a valid FilterName was entered. |
-| UI-08 | STEM Upload | Remove File during large upload cancels immediately | Open STEM Preview<br>Select a large valid CSV<br>Start upload<br>Click remove while status is uploading<br>Confirm delete<br>Observe immediate removal/no preview rows | The in-flight upload is cancelled/removed from the list without waiting for completion, and no slow-file rows remain visible. | PASS | larger STEM upload was removed while in progress; file disappeared immediately and no LAB-SLOW rows appeared. |
+| CAP-01 | Gate | Captcha status remains verified in a fresh browser session | Open a verified application session; read `/api/captcha/status` from page context | The API reports `verified=true` and the gate is not visible. | PASS | Captcha status API returned verified=true; gate was not visible. |
+| NAV-01 | Navigation | Home page and sidebar navigation render | Navigate to Home; check home copy and sidebar menu labels | Home renders and sidebar includes Home, Data Management, and Evaluation. | PASS | Home page and sidebar rendered expected copy and links. |
+| NAV-02 | Navigation | Unknown route shows friendly not-found page | Navigate to an unknown client route | The route displays Page not found rather than crashing. | PASS | Unknown route rendered friendly Page not found without Blazor error UI. |
+| UI-01 | Theme | Dark/light appearance toggle changes the active theme | Open Data Management; capture theme state; click appearance toggle; capture theme state again | The theme state changes visibly or through the active stylesheet. | PASS | Theme stylesheet changed and body background changed. |
+| DM-01 | Data Management | Series tab loads totals and first page without fetch errors | Open Data Management; wait for series totals and grid rows | Series totals are numeric, first page displays rows, and no fetch/blazor error is visible. | PASS | Seed totals visible: 100,000 series, 299,868 samples, 599,495 subsamples, 1,799,316 APM, 1,198,679 particles. |
+| DM-02 | Data Management | No PMI upload/dashboard affordances remain in the app shell | Inspect Data Management and Evaluation visible text | Removed PMI feature is not exposed through visible tabs, nav, dashboard, upload, or grid copy. | PASS | No visible PMI text, links, or tabs on Data Management or Evaluation. |
+| DM-03 | Data Management | Grid result cache and reserved grid height are active | Load Data Management series tab; inspect cache keys and grid heights | Series and series-count results are cached; main grids reserve vertical space; compact upload grid can opt out. | PASS | Series grid and series-counts cache entries exist; main grid min-height was reserved; compact grid min-height was zero. |
+| DM-04 | Data Management | Disabled delete tooltip is native title and does not create horizontal overflow | Load Series grid; find a row with samples; hover disabled delete wrapper; measure page width | Native title exists, no Radzen popup appears, and document width does not overflow. | PASS | `title="Series contains samples"` exists; no popup text; page width stayed within viewport. |
+| BE-01 | Backend/Data | Project view filtering by id succeeds with includes applied last | POST `/api/views/projects` with filter `Id == 1` | API returns success, one project, and populated project-series navigation data. | PASS | One project returned with `ProjectSeries` entries. |
+| BE-02 | Backend/Data | Opening `/projects/1` loads project detail instead of not-found | Navigate to `/projects/1`; inspect tabs and project fields | Project detail renders Overview, Series, Samples, SubSamples, Apm, and Particles tabs with no 404. | PASS | Project detail tabs rendered. |
+| BE-03 | Backend/Data | Sample External Code filtering works through data/query-builder-compatible API | Fetch a sample row; filter samples by its `ExternalCode`; filter query-builder composite by `Sample.ExternalCode` | Direct sample filtering succeeds, and query-builder mode accepts `Sample.ExternalCode` without error. | PASS | Direct and query-builder-compatible filters returned matching rows. |
+| BE-04 | Backend/Data | Project-scoped grids and charts return data for project 1 | Call series/sample/subsample/apm/particle scoped grids; call APM and particle chart APIs | All scoped endpoints succeed and chart APIs return arrays. | PASS | Project 1 returned nonzero scoped totals; chart APIs returned arrays. |
+| UI-02 | Evaluation | Evaluation page query-builder shell renders expected controls | Open Evaluation; open Query Builder tab; inspect filter sections and controls | Query Builder contains filter sections, Apply, grid selector, and preset controls. | PASS | Series, Sample, SubSample, Apm, Particle, Apply, grid selector, and preset controls rendered. |
+| STEM-01 | STEM Upload | STEM tab exposes sample downloads and multi-file drop target | Open STEM Preview tab; inspect download links and file input attributes | Sample downloads exist, file input has multiple enabled, and visible dropzone content does not intercept pointer events. | PASS | Three sample download links present; file input has `multiple`; dropzone content pointer-events is none. |
+| STEM-02 | STEM Upload | Uploading two STEM CSV files previews both, deleting one removes only its rows | Select two valid CSV files; upload; delete first uploaded file; check preview grid | Both files upload; deleting one removes only that file rows while keeping the other. | PASS | Deleting the first file removed its rows and left the second file rows visible. |
+| STEM-03 | STEM Upload | Invalid STEM file reports upload error without breaking the page | Select malformed CSV; upload; inspect status | File row reaches error status and app stays usable. | PASS | Malformed CSV showed processing error and no Blazor error UI. |
+| CRUD-01 | Backend/Data | Series create/delete API round trip keeps seeded grid usable | Create a temporary no-sample series through app API; fetch it; delete it; verify it is gone | Series CRUD endpoints work for a no-sample row and cleanup succeeds. | PASS | Temporary series was created, fetched, deleted, and no longer fetchable. |
+| UI-09 | Data Management | Series row expansion loads child sample grid without layout tear | Expand the first series row; inspect nested sample grid and layout width | Child sample grid shows rows, reserves nested height, and no page overflow is introduced. | PASS | Nested sample grid showed rows with reserved height and no horizontal overflow. |
+| UI-04 | Evaluation | Preset-filter save button enables only after valid name and creates filter | Open Query Builder; click preset save; observe disabled check button; enter valid unique name; save; cleanup via API | Check button is disabled for invalid input, enables for valid unique name, and created filter can be deleted. | PASS | Disabled before input, enabled after valid name; temporary preset was created and deleted. |
+| UI-08 | STEM Upload | Remove File during large upload cancels immediately | Select a larger valid CSV; start upload; remove while uploading; confirm delete | In-flight upload is cancelled/removed without waiting for completion and no rows remain visible. | PASS | Upload row disappeared immediately and no rows from the cancelled file appeared. |
+| ADD-01 | Backend/API | Removed `/api/pmi` route does not return SPA shell | GET `/api/pmi` | Returns API miss, not index.html HTTP 200. | PASS | Returned HTTP 404 with empty body, not the app shell. |
+| ADD-02 | Backend/API | Unknown `/api` route does not return SPA shell | GET `/api/not-a-real-endpoint` | Returns API miss, not index.html HTTP 200. | PASS | Returned HTTP 404 with empty body. |
+| ADD-03 | Navigation | Removed `/pmi` client route lands on app not-found | Navigate to `/pmi` | Client route shows Page not found. | PASS | Page not found text rendered. |
+| ADD-04 | Navigation | Data Management reload is stable | Open Data Management and reload | Tabs, totals, and grid rows still render after reload. | PASS | Series and STEM Preview tabs rendered after reload; no visible errors. |
+| ADD-05 | Navigation | Evaluation reload is stable | Open Evaluation and reload | Projects and Query Builder tabs still render after reload. | PASS | Projects and Query Builder tabs rendered after reload; no visible errors. |
+| ADD-06 | Layout | Sidebar toggle changes width and restores | Click sidebar toggle; wait for collapse; click again; wait for restore | Sidebar collapses and expands. | PASS | Width changed from 250px to near 0px, then restored to 250px. |
+| ADD-07 | Responsive | Home fits mobile viewport | Set mobile viewport and open Home | No page-level horizontal overflow. | PASS | Document scroll width matched client width. |
+| ADD-08 | Project Detail | Missing project id routes to not-found | Open `/projects/999999999`; wait for app route transition | Page not found is shown. | PASS | URL became `/not-found` and Page not found rendered. |
+| ADD-09 | Project Detail | Project tabs load without visible errors | Open project 1; click Series, Samples, SubSamples, Apm, Particles | Each tab remains usable and no visible app error appears. | PASS | All five project tabs rendered. |
+| ADD-10 | Project Detail | Back to Projects returns to Evaluation | Open project 1; click Back to Projects | URL returns to Evaluation. | PASS | Navigation returned to Evaluation. |
+| ADD-11 | Project Detail | Blank project name disables save | Edit project name; clear input | Save button is disabled. | PASS | Save button disabled for blank project name. |
+| ADD-12 | Backend/Data | Project scoped endpoints return nonzero totals | Call scoped grid endpoints for project 1 | All scoped endpoints succeed with nonzero totals. | PASS | Series 4, samples 13, subsamples 26, APM 79, particles 45. |
+| ADD-13 | Backend/Data | Project chart APIs return arrays | Call APM and particle chart endpoints for project 1 | Both endpoints return arrays. | PASS | APM chart returned 4 entries; particle chart returned 2 entries. |
+| ADD-14 | Backend/Data | Series sort by id descending works | Request series ordered by `Id desc` | Returned IDs are descending. | PASS | IDs began 109999, 109998, 109997, 109996, 109995. |
+| ADD-15 | Backend/Data | Project filter and order combination succeeds | Filter projects by `SampleCount > 0`; order by `Id desc` | Request succeeds with populated `ProjectSeries`. | PASS | Returned total 31,665 and included `ProjectSeries`. |
+| ADD-16 | Backend/API | Preset name availability detects duplicates | Create preset via API; check name availability; cleanup | Existing name returns `available=false`; cleanup succeeds. | PASS | Duplicate name availability returned false; temporary preset deleted. |
+| ADD-17 | Backend/API | STEM upload endpoint rejects missing file | POST STEM upload form without a file | Request is rejected without server crash. | PASS | Returned HTTP 400 validation response for missing `file`. |
+| ADD-18 | Evaluation | Query Builder switches to Sample grid | Open Query Builder and select Sample grid | Sample grid columns render. | PASS | Sample grid showed External Code, Sample Type, Sampling Date, and SubSample Count columns. |
+| ADD-19 | Evaluation | Query Builder Apply with empty filters keeps grid usable | Open Query Builder; click Apply without filters | Grid remains visible and no fetch error appears. | PASS | Grid stayed populated after Apply. |
+| ADD-20 | CRUD | Series update API persists SGAS comment | Create temp series with SGAS comment; update comment; fetch by id; delete temp row | Updated SGAS comment is returned by the view endpoint. | PASS | Fetch after update returned the changed SGAS comment and cleanup succeeded. |
+| ADD-21 | STEM Upload | Pending STEM file can be removed before upload | Select valid file; remove before upload | File disappears and no preview rows appear. | PASS | Pending file row disappeared; preview rows did not appear. |
+| ADD-22 | STEM Upload | Oversized STEM file is rejected client-side | Select a file larger than the STEM preview limit | Size error appears and upload button is unavailable. | PASS | File row showed `Size exceeds 64 MB`; Upload Files button was not shown. |
+| ADD-23 | STEM Upload | Preview grid stays hidden before upload | Select valid file but do not upload | No preview rows are shown. | PASS | Pending file appeared, but preview row content was absent. |
+| ADD-24 | STEM Upload | Deleting last uploaded STEM file hides preview rows | Upload one valid file; delete it; confirm | Uploaded rows disappear after delete. | PASS | Uploaded file row and preview rows disappeared. |
+| ADD-25 | CRUD | Series create API persists SGAS comment on insert | Create temp series with SGAS comment; fetch by id; delete temp row | Created SGAS comment is returned by the view endpoint. | PASS | Created row returned the inserted SGAS comment and cleanup succeeded. |
+| ADD-26 | CRUD | Series update API persists working paper link and DU/NU flags | Create temp series; update working paper link and DU/NU flags; fetch by id; delete temp row | Updated scalar fields are returned by the view endpoint. | PASS | Updated link, DU flag, NU flag, and comment were persisted. |
+| ADD-27 | CRUD | Series update API can clear nullable analysis date | Create temp series with analysis date; update it to null; fetch by id; delete temp row | Nullable analysis date can be cleared. | PASS | Fetch after update returned `analysisCompleteDate=null`. |
+| ADD-28 | Backend/API | Series delete endpoint is idempotent for missing ids | DELETE a non-existent series id | Endpoint succeeds without affecting existing rows. | PASS | Missing-id delete returned success. |
+| ADD-29 | Backend/API | Project name availability respects existing rows and exclude id | Fetch project 1 name; check name availability with and without its id excluded | Existing name is unavailable globally and available when excluding the same project id. | PASS | Duplicate check returned false; self-excluded check returned true. |
+| ADD-30 | Backend/API | Preset name availability respects exclude id | Create temp preset; check name availability with and without its id excluded; cleanup | Existing preset name is unavailable globally and available when excluding itself. | PASS | Duplicate check returned false; self-excluded check returned true. |
+| ADD-31 | Backend/API | Preset update renames an empty preset | Create temp preset; update its name; fetch; cleanup | Updated preset payload has the new name and remains entry-free. | PASS | Fetch returned the updated name with no entries. |
+| ADD-32 | Backend/API | Preset delete removes row from dropdown payload | Create temp preset; delete it; fetch all presets | Deleted preset is absent from the list payload. | PASS | Deleted id was no longer returned. |
+| ADD-33 | Backend/Data | Series priority ids are ordered before normal sort | Fetch lowest and highest existing series ids; request descending series with the low id prioritized | Priority id appears first even when normal sort would put another id first. | PASS | Prioritized response returned the discovered low series id first. |
+| ADD-34 | Backend/Data | Series counts respect impossible filters | POST series-counts with impossible id filter | All aggregate counts are zero. | PASS | Series, sample, subsample, APM, and particle counts returned zero. |
+| ADD-35 | Backend/API | Series enum option endpoint returns series type values | POST enum-options for SeriesType | Endpoint returns integer enum values. | PASS | SeriesType options returned one or more integer values. |
+| ADD-36 | Backend/API | Sample enum option endpoint returns sample type values | POST enum-options for SampleType | Endpoint returns integer enum values. | PASS | SampleType options returned one or more integer values. |
+| ADD-37 | STEM API | STEM entries endpoint without a session returns empty result | POST stem-entries without `stemSessionId` | Endpoint succeeds with zero rows. | PASS | Returned totalCount 0 and empty entries. |
+| ADD-38 | STEM API | STEM entries endpoint with an unknown session returns empty result | POST stem-entries with random `stemSessionId` | Endpoint succeeds with zero rows. | PASS | Returned totalCount 0 and empty entries. |
+| ADD-39 | Backend/API | Chart APIs return empty arrays for missing project ids | GET APM and particle chart APIs for a missing project id | Endpoints return HTTP 200 with empty arrays. | PASS | Both chart APIs returned empty arrays. |
+| ADD-40 | UI/Layout | Project detail fits a mobile viewport | Open `/projects/1` at 390px width; measure document width | Project detail renders without horizontal overflow or app error UI. | PASS | Mobile project detail stayed within viewport. |
 
-## Notes
+## Superseded Checks
 
-- No browser console errors or page errors were captured in the final main run.
-- CRUD-01 created and deleted temporary series ids 110002 in the final run; cleanup succeeded. Earlier dry runs also cleaned up their temporary ids.
-- Backend/data assertions should use the same authenticated browser/session context as the real client when practical.
+| ID | Status | Reason |
+|---|---|---|
+| API-01 | Superseded | The earlier runner mixed enum-option validation with removed PMI route behavior and treated raw `/pmi` route fetching as an API failure. The rebuilt behavior is now covered by `ADD-01`, `ADD-02`, and `ADD-03`. |
 
+## Retest Notes
 
+- Temporary presets and temporary series rows created by the tests were cleaned up.
+- The oversized STEM test used a synthetic browser-side file because debug-controlled browsers may refuse transferring files larger than 50 MB from the automation host. The app still received a normal file-selection event and reported the configured 64 MB limit.
+- Backend/data assertions should use the same verified browser/session context as the real client when practical.

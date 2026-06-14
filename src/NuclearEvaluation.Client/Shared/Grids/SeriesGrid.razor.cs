@@ -44,6 +44,7 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
     readonly List<SeriesView> _seriesToInsert = [];
     readonly List<SeriesView> _seriesToUpdate = [];
     readonly HashSet<int> _expandingSeries = [];
+    string? _rowEditError;
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
@@ -92,6 +93,8 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
 
     protected async Task InsertRow()
     {
+        _rowEditError = null;
+
         if (_editMode == DataGridEditMode.Single)
         {
             ResetPendingSeries();
@@ -109,16 +112,34 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
 
     protected async Task OnCreateRow(SeriesView seriesView)
     {
-        int id = await Api.CreateSeries(seriesView);
-        seriesView.Id = id;
-        _seriesToInsert.Remove(seriesView);
-        entries.Add(seriesView);
+        try
+        {
+            int id = await Api.CreateSeries(seriesView);
+            seriesView.Id = id;
+            _seriesToInsert.Remove(seriesView);
+            entries.Add(seriesView);
+            _rowEditError = null;
+        }
+        catch (Exception ex)
+        {
+            _rowEditError = $"Could not create series: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     protected async Task OnUpdateRow(SeriesView seriesView)
     {
-        ResetPendingSeries(seriesView);
-        await Api.UpdateSeries(seriesView);
+        try
+        {
+            await Api.UpdateSeries(seriesView);
+            ResetPendingSeries(seriesView);
+            _rowEditError = null;
+        }
+        catch (Exception ex)
+        {
+            _rowEditError = $"Could not save series: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     protected async Task OnExpandRow(SeriesView seriesView)
@@ -156,6 +177,8 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
 
     protected async Task DeleteRow(SeriesView seriesView)
     {
+        _rowEditError = null;
+
         if (!CanDeleteSeries(seriesView))
         {
             return;
@@ -176,7 +199,16 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
 
         if (entries.Contains(seriesView))
         {
-            await Api.DeleteSeries([seriesView.Id]);
+            try
+            {
+                await Api.DeleteSeries([seriesView.Id]);
+            }
+            catch (Exception ex)
+            {
+                _rowEditError = $"Could not delete series: {ex.Message}";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
         }
         else
         {
@@ -192,10 +224,20 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
 
     protected async Task SaveRow(SeriesView seriesView)
     {
-        await grid.UpdateRow(seriesView);
-        if (currentQuery is not null)
+        _rowEditError = null;
+
+        try
         {
-            _ = OnSeriesSetChanged.InvokeAsync(currentQuery);
+            await grid.UpdateRow(seriesView);
+            if (currentQuery is not null && string.IsNullOrWhiteSpace(_rowEditError))
+            {
+                await OnSeriesSetChanged.InvokeAsync(currentQuery);
+            }
+        }
+        catch (Exception ex)
+        {
+            _rowEditError = $"Could not save series: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -204,5 +246,17 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
         ResetPendingSeries(seriesView);
         grid.CancelEditRow(seriesView);
         await grid.Reload();
+    }
+
+    async Task NotifySelectionChanged(bool selected)
+    {
+        if (selected)
+        {
+            await OnEntriesSelected.InvokeAsync();
+        }
+        else
+        {
+            await OnEntriesDeselected.InvokeAsync();
+        }
     }
 }

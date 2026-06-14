@@ -20,7 +20,7 @@ public partial class ProjectCard : ComponentBase
     public int Id { get; set; }
 
     [Parameter]
-    public TabRenderMode TabRenderMode { get; set; } = TabRenderMode.Client;
+    public TabRenderMode TabRenderMode { get; set; } = TabRenderMode.Server;
 
     [Inject]
     ProjectViewValidator ProjectViewValidator { get; set; } = null!;
@@ -43,12 +43,16 @@ public partial class ProjectCard : ComponentBase
 
     internal bool _isEditingProjectName = false;
     internal bool _isEditingSeries = false;
+    string? _seriesUpdateError;
 
     HashSet<int> _selectedSeriesIds = [];
     HashSet<int> _projectSeriesIds = [];
 
     DateTime? _decayCorrectionDateInput;
 
+    SeriesGrid? projectSeriesGrid;
+    SampleGrid? sampleGrid;
+    SubSampleGrid? subSampleGrid;
     ApmGrid? apmGrid;
     ParticleGrid? particleGrid;
 
@@ -66,17 +70,6 @@ public partial class ProjectCard : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
-        DataQuery query = new() { Filter = $"Id == {Id}" };
-
-        DataResult<ProjectView> result = await Api.GetProjectViews(query);
-        ProjectView? projectView = result.Entries.SingleOrDefault();
-
-        if (projectView == null)
-        {
-            NavigationManager.NavigateTo("/not-found", forceLoad: true);
-            return;
-        }
-
         tabManager = new TabManager(NavigationManager, JSRuntime, "overview")
                   .AddTab("overview", 0)
                   .AddTab("series", 1)
@@ -86,11 +79,30 @@ public partial class ProjectCard : ComponentBase
                   .AddTab("particles", ParticleTabIndex)
                   .Initialize();
 
-        _projectView = projectView;
-
-        _decayCorrectionDateInput = _projectView.DecayCorrectionDate;
+        if (!await LoadProjectView())
+        {
+            NavigationManager.NavigateTo("/not-found", forceLoad: true);
+            return;
+        }
 
         _isLoading = false;
+    }
+
+    async Task<bool> LoadProjectView()
+    {
+        DataQuery query = new() { Filter = $"Id == {Id}" };
+
+        DataResult<ProjectView> result = await Api.GetProjectViews(query);
+        ProjectView? projectView = result.Entries.SingleOrDefault();
+
+        if (projectView == null)
+        {
+            return false;
+        }
+
+        _projectView = projectView;
+        _decayCorrectionDateInput = _projectView.DecayCorrectionDate;
+        return true;
     }
 
     #region EditProjectName
@@ -151,6 +163,7 @@ public partial class ProjectCard : ComponentBase
         _projectSeriesIds = new HashSet<int>(currentSeriesIds);
 
         _isEditingSeries = true;
+        _seriesUpdateError = null;
 
         await InvokeAsync(StateHasChanged);
     }
@@ -162,18 +175,37 @@ public partial class ProjectCard : ComponentBase
             return;
         }
 
-        await Api.UpdateProjectSeries(new ProjectSeriesUpdate
-        {
-            ProjectId = _projectView.Id,
-            SeriesIds = [.. _seriesGridRef.SelectedEntryIds],
-        });
+        int[] selectedSeriesIds = [.. _seriesGridRef.SelectedEntryIds];
 
-        NavigationManager.NavigateTo(tabManager.Uri.AbsoluteUri, forceLoad: true);
+        try
+        {
+            await Api.UpdateProjectSeries(new ProjectSeriesUpdate
+            {
+                ProjectId = _projectView.Id,
+                SeriesIds = [.. selectedSeriesIds],
+            });
+
+            await LoadProjectView();
+
+            _selectedSeriesIds = [.. selectedSeriesIds];
+            _projectSeriesIds = [.. selectedSeriesIds];
+            _seriesUpdateError = null;
+            _isEditingSeries = false;
+
+            await RefreshProjectDataViews();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            _seriesUpdateError = $"Could not save project series: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     void CancelEditSeries()
     {
         _isEditingSeries = false;
+        _seriesUpdateError = null;
         StateHasChanged();
     }
 
@@ -272,6 +304,39 @@ public partial class ProjectCard : ComponentBase
             StemSessionId = query.StemSessionId,
             PriorityIds = query.PriorityIds is null ? null : [.. query.PriorityIds],
         };
+    }
+
+    async Task RefreshProjectDataViews()
+    {
+        if (projectSeriesGrid != null)
+        {
+            await projectSeriesGrid.Refresh();
+        }
+        if (sampleGrid != null)
+        {
+            await sampleGrid.Refresh();
+        }
+        if (subSampleGrid != null)
+        {
+            await subSampleGrid.Refresh();
+        }
+        if (apmGrid != null)
+        {
+            await apmGrid.Refresh();
+        }
+        if (particleGrid != null)
+        {
+            await particleGrid.Refresh();
+        }
+
+        if (apmBinChart != null)
+        {
+            await apmBinChart.Refresh();
+        }
+        if (particleBinChart != null)
+        {
+            await particleBinChart.Refresh();
+        }
     }
 
     async Task OnTabChanged(int index)

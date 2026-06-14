@@ -37,6 +37,9 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
     public string? Caption { get; set; }
 
     [Parameter]
+    public bool ReserveHeight { get; set; } = true;
+
+    [Parameter]
     public Func<PresetFilterBox>? GetPresetFilterBox { get; set; }
 
     protected int totalCount = 0;
@@ -52,7 +55,9 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
 
     protected string GridSettingsKey => $"{ComponentId}_{nameof(DataGridSettings)}";
 
-    protected string GridMinHeightStyle => $"--ne-grid-min-height: {GetGridMinHeightRem()}rem;";
+    protected string GridMinHeightStyle => ReserveHeight
+        ? $"--ne-grid-min-height: {GetGridMinHeightRem()}rem;"
+        : "--ne-grid-min-height: 0;";
 
     protected bool HasCaption => !string.IsNullOrWhiteSpace(Caption);
 

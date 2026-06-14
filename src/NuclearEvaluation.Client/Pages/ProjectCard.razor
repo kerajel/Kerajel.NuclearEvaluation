@@ -69,6 +69,13 @@ else
 
         @if (_isEditingSeries)
         {
+            @if (!string.IsNullOrWhiteSpace(_seriesUpdateError))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Warning" ShowIcon="false" Variant="Variant.Flat" Shade="Shade.Lighter">
+                    @_seriesUpdateError
+                </RadzenAlert>
+            }
+
             <SeriesGrid @ref="_seriesGridRef"
                         Visible="_isEditingSeries"
                         ComponentId="fb7e7455-b562-4852-892c-2b8e51197fa6"
@@ -95,29 +102,35 @@ else
             </RadzenColumn>
         </RadzenRow>
 
-        <RadzenTabs RenderMode="@TabRenderMode.Client" @bind-SelectedIndex="tabManager.SelectedTabIndex" Change="OnTabChanged">
+        <RadzenTabs RenderMode="@TabRenderMode" @bind-SelectedIndex="tabManager.SelectedTabIndex" Change="OnTabChanged">
             <Tabs>
                 <RadzenTabsItem Text="Overview" Style="margin-right: 5px;">
                     <ProjectOverview ProjectView="@_projectView" />
                 </RadzenTabsItem>
 
                 <RadzenTabsItem Text="Series" Style="margin-right: 5px;">
-                    <SeriesGrid ComponentId="bea40ae9-0cce-41c1-bdeb-71451d85451c"
+                    <SeriesGrid @ref="projectSeriesGrid"
+                                ComponentId="bea40ae9-0cce-41c1-bdeb-71451d85451c"
                                 Caption="Series assigned to this project."
                                 AllowEdit="false"
+                                ReserveHeight="false"
                                 ProjectId="@_projectView.Id" />
                 </RadzenTabsItem>
 
                 <RadzenTabsItem Text="Samples" Style="margin-right: 5px;">
-                    <SampleGrid ComponentId="bea40ae9-0cce-41c1-bdeb-71451d85451c"
+                    <SampleGrid @ref="sampleGrid"
+                                ComponentId="e6c4e44f-3994-489d-a890-f7b4f46b4fc1"
                                 Caption="Samples linked through this project's assigned series."
+                                ReserveHeight="false"
                                 ProjectId="@_projectView.Id" />
                 </RadzenTabsItem>
 
 
                 <RadzenTabsItem Text="SubSamples" Style="margin-right: 5px;">
-                    <SubSampleGrid ComponentId="3d8e07c1-6f46-4a6e-818c-9ef3be34090a"
+                    <SubSampleGrid @ref="subSampleGrid"
+                                   ComponentId="3d8e07c1-6f46-4a6e-818c-9ef3be34090a"
                                    Caption="Subsamples linked through this project's samples."
+                                   ReserveHeight="false"
                                    ProjectId="@_projectView.Id" />
                 </RadzenTabsItem>
 
@@ -127,6 +140,7 @@ else
                              Caption="APM measurements for this project. Grid filters define the result set used by the chart below."
                              EnableDecayCorrection="@( _projectView.DecayCorrectionDate.HasValue)"
                              ProjectId="@_projectView.Id"
+                             ReserveHeight="false"
                              OnQueryChanged="OnApmQueryChanged" />
 
                     @if (tabManager.SelectedTabIndex == ApmTabIndex)
@@ -144,6 +158,7 @@ else
                                   Caption="Particle measurements for this project. Grid filters define the result set used by the chart below."
                                   EnableDecayCorrection="@( _projectView.DecayCorrectionDate.HasValue)"
                                   ProjectId="@_projectView.Id"
+                                  ReserveHeight="false"
                                   OnQueryChanged="OnParticleQueryChanged" />
 
                     @if (tabManager.SelectedTabIndex == ParticleTabIndex)

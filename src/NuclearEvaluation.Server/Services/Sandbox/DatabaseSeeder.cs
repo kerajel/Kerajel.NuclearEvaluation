@@ -14,6 +14,9 @@ public interface IDatabaseSeeder
 
     /// <summary>Re-runs the idempotent seed script, restoring the sandbox to its baseline.</summary>
     Task ResetToSeedAsync(CancellationToken ct = default);
+
+    /// <summary>Re-runs the seed script when the tracked sandbox reset time is overdue.</summary>
+    Task<bool> ResetToSeedIfDueAsync(TimeSpan resetInterval, CancellationToken ct = default);
 }
 
 public class DatabaseSeeder : IDatabaseSeeder
@@ -52,6 +55,34 @@ public class DatabaseSeeder : IDatabaseSeeder
     {
         _logger.LogInformation("Resetting sandbox database to seed.");
         await RunSeedBatchesAsync(ct);
+    }
+
+    public async Task<bool> ResetToSeedIfDueAsync(TimeSpan resetInterval, CancellationToken ct = default)
+    {
+        SandboxState? state = await _dbContext.SandboxState.OrderBy(x => x.Id).FirstOrDefaultAsync(ct);
+        DateTime now = DateTime.UtcNow;
+
+        if (state is not null && now - state.LastResetUtc < resetInterval)
+        {
+            return false;
+        }
+
+        await ResetToSeedAsync(ct);
+
+        DateTime completedAt = DateTime.UtcNow;
+        if (state is null)
+        {
+            _dbContext.SandboxState.Add(new SandboxState { LastResetUtc = completedAt });
+        }
+        else
+        {
+            state.LastResetUtc = completedAt;
+        }
+
+        await _dbContext.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Sandbox reset to seed completed at {CompletedAt:u}.", completedAt);
+        return true;
     }
 
     async Task RunSeedBatchesAsync(CancellationToken ct)

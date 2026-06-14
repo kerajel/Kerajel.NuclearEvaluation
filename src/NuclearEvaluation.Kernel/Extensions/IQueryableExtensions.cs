@@ -8,6 +8,7 @@ namespace NuclearEvaluation.Kernel.Extensions;
 public static class IQueryableExtensions
 {
     static readonly Regex EqualityOperatorRegex = new(@"(?<![!<>=])==(?!=)", RegexOptions.Compiled);
+    static readonly Regex NullableNullCoalesceRegex = new(@"\((?<expression>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\?\?\s*null\)", RegexOptions.Compiled);
 
     public static IQueryable<T> OrderByWithFallback<T>(
         this IQueryable<T> query,
@@ -98,7 +99,8 @@ public static class IQueryableExtensions
 
     static string NormalizeFilter(string filter)
     {
-        return EqualityOperatorRegex.Replace(filter, "=");
+        string normalized = EqualityOperatorRegex.Replace(filter, "=");
+        return NullableNullCoalesceRegex.Replace(normalized, "${expression}");
     }
 
     public static IQueryable<T> TopLevelFilterExpressionWithFallback<T>(

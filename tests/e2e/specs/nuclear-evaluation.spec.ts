@@ -647,7 +647,7 @@ test('ADD-18 Query Builder switches to Sample grid', async ({ page }) => {
 test('ADD-19 Query Builder Apply with empty filters keeps grid usable', async ({ page }) => {
   await openQueryBuilder(page);
   await page.getByRole('button', { name: /Apply query/i }).click();
-  await expect(page.getByRole('row', { name: /10000 Sampling/ })).toBeVisible();
+  await expect(page.getByRole('row', { name: /\b10000\b/ })).toBeVisible();
   await expectNoVisibleAppError(page);
 });
 

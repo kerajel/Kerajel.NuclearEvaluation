@@ -2,6 +2,7 @@
 using Kerajel.Primitives.Models;
 using NuclearEvaluation.Kernel.Models.Files;
 using NuclearEvaluation.Server.Interfaces.EFS;
+using NuclearEvaluation.Server.Services.Files;
 
 namespace NuclearEvaluation.Server.Services.EFS;
 
@@ -25,7 +26,8 @@ public class EfsFileService : IEfsFileService
                 fileDirectory.Create();
             }
 
-            FileInfo fileInfo = new(Path.Combine(fileDirectory.FullName, command.FileName));
+            string safeFileName = SafeFileName.FromClientFileName(command.FileName, command.FileId);
+            FileInfo fileInfo = new(Path.Combine(fileDirectory.FullName, safeFileName));
 
             await WriteToFile(fileInfo, command.FileContent, ct);
 

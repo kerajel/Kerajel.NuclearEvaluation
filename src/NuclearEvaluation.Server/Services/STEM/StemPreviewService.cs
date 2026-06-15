@@ -4,6 +4,7 @@ using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using NuclearEvaluation.Kernel.Models.Files;
 using NuclearEvaluation.Server.Interfaces.EFS;
 using NuclearEvaluation.Server.Interfaces.STEM;
+using NuclearEvaluation.Server.Services.Files;
 using Polly;
 using Polly.Bulkhead;
 using System.Runtime.CompilerServices;
@@ -66,7 +67,8 @@ public class StemPreviewService(
 
         async Task<OperationResult> Execute()
         {
-            WriteFileCommand writeFileCommand = new(fileId, fileName, stream, true);
+            string safeFileName = SafeFileName.FromClientFileName(fileName, fileId);
+            WriteFileCommand writeFileCommand = new(fileId, safeFileName, stream, true);
 
             OperationResult<FileInfo> writeFileResult = await efsFileService.Write(writeFileCommand, linkedCts.Token);
 
@@ -75,13 +77,13 @@ public class StemPreviewService(
                 return OperationResult.Faulted(writeFileResult);
             }
 
-            StemPreviewFileMetadata fileMetadata = new(fileId, fileName);
+            StemPreviewFileMetadata fileMetadata = new(fileId, safeFileName);
 
             await stemPreviewEntryService.InsertStemPreviewFileMetadata(sessionId, fileMetadata, linkedCts.Token);
 
             using FileStream fs = writeFileResult.Content!.OpenRead();
 
-            IAsyncEnumerable<StemPreviewEntry> asyncEnumerable = stemPreviewParser.Parse(fs, fileName, linkedCts.Token);
+            IAsyncEnumerable<StemPreviewEntry> asyncEnumerable = stemPreviewParser.Parse(fs, safeFileName, linkedCts.Token);
             asyncEnumerable = AssignFileId(asyncEnumerable, fileId, linkedCts.Token);
 
             await stemPreviewEntryService.InsertStemPreviewEntries(sessionId, asyncEnumerable, linkedCts.Token);

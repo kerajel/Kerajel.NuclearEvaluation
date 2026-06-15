@@ -36,9 +36,6 @@ public class SandboxMaintenanceService : BackgroundService
         TimeSpan interval = TimeSpan.FromMinutes(Math.Max(1, _settings.SweepIntervalMinutes));
         using PeriodicTimer timer = new(interval);
 
-        // Run once shortly after startup, then on the timer.
-        await RunSweepSafelyAsync(stoppingToken);
-
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             await RunSweepSafelyAsync(stoppingToken);

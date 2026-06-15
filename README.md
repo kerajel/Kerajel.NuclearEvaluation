@@ -125,7 +125,10 @@ docker compose --profile e2e up --build --abort-on-container-exit --exit-code-fr
 ## Production deployment
 
 Production is hosted on **smarterasp.net** (shared Windows hosting) and is published directly —
-Docker is for local development only. Publish the host project, which bundles the WASM client:
+Docker is for local development only. Do not deploy the repository root as a Docker build unless
+the hosting account is explicitly configured for containers.
+
+For a direct .NET publish, publish the host project, which bundles the WASM client:
 
 ```bash
 dotnet publish src/NuclearEvaluation.Server -c Release -o ./publish
@@ -133,6 +136,23 @@ dotnet publish src/NuclearEvaluation.Server -c Release -o ./publish
 
 Deploy the contents of `./publish` and supply `ConnectionStrings:NuclearEvaluationServerDbConnection`
 and `Captcha:Secret` via the host's configuration.
+
+For SmarterASP.NET Auto Build, use a source archive shaped as a single ASP.NET Core project at
+the archive root. The root must contain the `.csproj` that SmarterASP.NET should detect and build;
+avoid placing a `Dockerfile` at that archive root. The archive should include the server source,
+the referenced library source folders, the prebuilt client `wwwroot`, `appsettings.json`, and a
+`web.config` for ASP.NET Core Module hosting.
+
+Recommended SmarterASP.NET publish settings for the Auto Build project:
+
+- `RuntimeIdentifier=win-x86`
+- `SelfContained=true`
+- `ServerGarbageCollection=false`
+- `IsTransformWebConfigDisabled=true` when supplying a custom `web.config`
+- `StaticWebAssetsEnabled=false` when the client `wwwroot` is already included in the archive
+
+On startup the app applies EF Core migrations before accepting traffic. The full sandbox seed and
+reset work runs in the background so shared-hosting startup timeouts do not block the site launch.
 
 ## License
 

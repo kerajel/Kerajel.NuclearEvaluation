@@ -6,6 +6,9 @@ namespace NuclearEvaluation.Server.Services.Sandbox;
 /// </summary>
 public class SandboxSettings
 {
+    /// <summary>When true, migrations run during startup and seed data is queued in the background.</summary>
+    public bool SeedOnStartup { get; set; } = true;
+
     /// <summary>When true, the database is periodically reset to seed data.</summary>
     public bool ResetEnabled { get; set; } = true;
 

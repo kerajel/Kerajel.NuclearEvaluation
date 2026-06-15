@@ -5,6 +5,8 @@ DROP TABLE IF EXISTS #trackingNumbers;
 DROP TABLE IF EXISTS #followUpActionsRecommended;
 DROP TABLE IF EXISTS #conclusions;
 DROP TABLE IF EXISTS #projectNames;
+DROP TABLE IF EXISTS #seedNumbers1000;
+DROP TABLE IF EXISTS #projectIds;
 
 GO
 
@@ -322,6 +324,21 @@ CREATE TABLE #projectNames
     ProjectName NVARCHAR(200)
 );
 
+CREATE TABLE #seedNumbers1000
+(
+    n INT NOT NULL PRIMARY KEY
+);
+
+;WITH digits AS (
+    SELECT v
+    FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) AS d(v)
+)
+INSERT INTO #seedNumbers1000 (n)
+SELECT ROW_NUMBER() OVER (ORDER BY hundreds.v, tens.v, ones.v)
+FROM digits AS hundreds
+CROSS JOIN digits AS tens
+CROSS JOIN digits AS ones;
+
 INSERT INTO #tempComments (Comment)
 VALUES 
     ('Corrective action needed'), ('Sample approved'), ('Recheck results'),
@@ -454,264 +471,431 @@ VALUES
 -- Clear existing domain and evaluation data so this script is idempotent
 -- and can be re-run by the nightly sandbox reset. FK-safe deletion order.
 -- (STEM preview data lives in throwaway temp tables, not real tables, so it is not touched here.)
-DELETE FROM [DATA].[Apm];
-DELETE FROM [DATA].[Particle];
-DELETE FROM [DATA].[SubSample];
-DELETE FROM [DATA].[Sample];
-DELETE FROM [EVALUATION].[ProjectSeries];
-IF OBJECT_ID('[EVALUATION].[PresetFilterEntry]', 'U') IS NOT NULL DELETE FROM [EVALUATION].[PresetFilterEntry];
-IF OBJECT_ID('[EVALUATION].[PresetFilter]', 'U') IS NOT NULL DELETE FROM [EVALUATION].[PresetFilter];
-DELETE FROM [EVALUATION].[Project];
-DELETE FROM [DATA].[Series];
+DECLARE @DeleteBatchSize INT = 1000;
+
+WHILE 1 = 1
+BEGIN
+    DELETE TOP (@DeleteBatchSize) FROM [DATA].[Apm];
+    IF @@ROWCOUNT = 0 BREAK;
+END;
+
+WHILE 1 = 1
+BEGIN
+    DELETE TOP (@DeleteBatchSize) FROM [DATA].[Particle];
+    IF @@ROWCOUNT = 0 BREAK;
+END;
+
+WHILE 1 = 1
+BEGIN
+    DELETE TOP (@DeleteBatchSize) FROM [DATA].[SubSample];
+    IF @@ROWCOUNT = 0 BREAK;
+END;
+
+WHILE 1 = 1
+BEGIN
+    DELETE TOP (@DeleteBatchSize) FROM [DATA].[Sample];
+    IF @@ROWCOUNT = 0 BREAK;
+END;
+
+WHILE 1 = 1
+BEGIN
+    DELETE TOP (@DeleteBatchSize) FROM [EVALUATION].[ProjectSeries];
+    IF @@ROWCOUNT = 0 BREAK;
+END;
+
+IF OBJECT_ID('[EVALUATION].[PresetFilterEntry]', 'U') IS NOT NULL
+BEGIN
+    WHILE 1 = 1
+    BEGIN
+        DELETE TOP (@DeleteBatchSize) FROM [EVALUATION].[PresetFilterEntry];
+        IF @@ROWCOUNT = 0 BREAK;
+    END;
+END;
+
+IF OBJECT_ID('[EVALUATION].[PresetFilter]', 'U') IS NOT NULL
+BEGIN
+    WHILE 1 = 1
+    BEGIN
+        DELETE TOP (@DeleteBatchSize) FROM [EVALUATION].[PresetFilter];
+        IF @@ROWCOUNT = 0 BREAK;
+    END;
+END;
+
+WHILE 1 = 1
+BEGIN
+    DELETE TOP (@DeleteBatchSize) FROM [EVALUATION].[Project];
+    IF @@ROWCOUNT = 0 BREAK;
+END;
+
+WHILE 1 = 1
+BEGIN
+    DELETE TOP (@DeleteBatchSize) FROM [DATA].[Series];
+    IF @@ROWCOUNT = 0 BREAK;
+END;
 
 DBCC CHECKIDENT ('[DATA].[Series]', RESEED, 9999);
 DBCC CHECKIDENT ('[DATA].[Sample]', RESEED, 0);
 DBCC CHECKIDENT ('[DATA].[SubSample]', RESEED, 0);
 DBCC CHECKIDENT ('[DATA].[Particle]', RESEED, 0);
 DBCC CHECKIDENT ('[DATA].[Apm]', RESEED, 0);
-DBCC CHECKIDENT ('[EVALUATION].[Project]', RESEED, 0);
 GO
 
 -- Seed Series
-;WITH numbers AS (
-    SELECT TOP (100000)
-        ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
-    FROM
-        sys.columns a
-		CROSS JOIN sys.columns b
-)
-INSERT INTO [DATA].[Series] (
-     [SeriesType]
-    ,[CreatedAt]
-    ,[SgasComment]
-    ,[IsDu]
-    ,[WorkingPaperLink]
-    ,[IsNu]
-    ,[AnalysisCompleteDate])
-SELECT
-     CAST(ABS(CHECKSUM(NEWID())) % 4 + 1 AS TINYINT)
-    ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE())
-    ,(SELECT Comment FROM #tempComments WHERE ID = (n % (SELECT MAX(ID) FROM #tempComments)) + 1)
-    ,CAST(n % 2 AS BIT)
-    ,(SELECT URL FROM #tempURLs WHERE ID = (n % (SELECT MAX(ID) FROM #tempURLs)) + 1)
-    ,CAST((n + 1) % 2 AS BIT)
-    ,CASE WHEN n % 3 = 0 THEN DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 365 - 182 AS INT), GETDATE()) ELSE NULL END
-FROM
-    numbers;
+DECLARE @SeriesTarget INT = 100000;
+DECLARE @SeedBatchSize INT = 1000;
+DECLARE @SeriesOffset INT = 0;
+
+WHILE @SeriesOffset < @SeriesTarget
+BEGIN
+    INSERT INTO [DATA].[Series] (
+         [SeriesType]
+        ,[CreatedAt]
+        ,[SgasComment]
+        ,[IsDu]
+        ,[WorkingPaperLink]
+        ,[IsNu]
+        ,[AnalysisCompleteDate])
+    SELECT
+         CAST(ABS(CHECKSUM(NEWID())) % 4 + 1 AS TINYINT)
+        ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE())
+        ,(SELECT Comment FROM #tempComments WHERE ID = (numbers.n % (SELECT MAX(ID) FROM #tempComments)) + 1)
+        ,CAST(numbers.n % 2 AS BIT)
+        ,(SELECT URL FROM #tempURLs WHERE ID = (numbers.n % (SELECT MAX(ID) FROM #tempURLs)) + 1)
+        ,CAST((numbers.n + 1) % 2 AS BIT)
+        ,CASE WHEN numbers.n % 3 = 0 THEN DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 365 - 182 AS INT), GETDATE()) ELSE NULL END
+    FROM (
+        SELECT @SeriesOffset + n AS n
+        FROM #seedNumbers1000
+        WHERE n <= CASE
+            WHEN @SeriesTarget - @SeriesOffset < @SeedBatchSize THEN @SeriesTarget - @SeriesOffset
+            ELSE @SeedBatchSize
+        END
+    ) AS numbers;
+
+    SET @SeriesOffset += @SeedBatchSize;
+END;
 GO
 
 -- Seed Samples
-;WITH numbers AS (
-    SELECT TOP (5)
-        ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
-    FROM
-        sys.columns a
-),
-seriesSamples AS (
-    SELECT 
-         [s].[Id] AS SeriesId
-        ,CAST(ABS(CHECKSUM(NEWID())) % 5 + 1 AS INT) AS SampleCount
-    FROM [DATA].[Series] s
-),
-expandedSeriesSamples AS (
-    SELECT 
-         [ss].SeriesId
-        ,n.n AS SampleIndex
-    FROM seriesSamples ss
-    JOIN numbers n ON n.n <= ss.SampleCount
-)
-INSERT INTO [DATA].[Sample] (
-    [SeriesId],
-    [ExternalCode],
-    [SamplingDate],
-    [SampleClass],
-    [Latitude],
-    [Longitude]
-)
+DECLARE @ParentBatchSize INT = 1000;
+DECLARE @SeriesStartId INT;
+DECLARE @SeriesMaxId INT;
+
 SELECT
-     [ess].SeriesId
-    ,RIGHT('EX' + CAST(NEWID() AS NVARCHAR(MAX)), 3)
-    ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE())
-    ,CASE 
-        WHEN ABS(CHECKSUM(NEWID())) % 100 < 30 THEN 'pic' + LEFT(CONVERT(VARCHAR(36), NEWID()), 2)
-        WHEN ABS(CHECKSUM(NEWID())) % 100 < 70 THEN LEFT(CONVERT(VARCHAR(36), NEWID()), 3) + 'qc'
-        ELSE LEFT(CONVERT(VARCHAR(36), NEWID()), 5)
-     END
-    ,CASE WHEN ABS(CHECKSUM(NEWID())) % 10 = 0 THEN NULL ELSE CAST(-90 + (180 * RAND(CHECKSUM(NEWID()))) AS DECIMAL(11,8)) END
-    ,CASE WHEN ABS(CHECKSUM(NEWID())) % 10 = 0 THEN NULL ELSE CAST(-180 + (360 * RAND(CHECKSUM(NEWID()))) AS DECIMAL(11,8)) END
-FROM
-    expandedSeriesSamples ess;
+    @SeriesStartId = MIN([Id]),
+    @SeriesMaxId = MAX([Id])
+FROM [DATA].[Series];
+
+WHILE @SeriesStartId IS NOT NULL AND @SeriesStartId <= @SeriesMaxId
+BEGIN
+    ;WITH numbers AS (
+        SELECT n
+        FROM #seedNumbers1000
+        WHERE n <= 5
+    ),
+    seriesSamples AS (
+        SELECT
+             [s].[Id] AS SeriesId
+            ,CAST(ABS(CHECKSUM(NEWID())) % 5 + 1 AS INT) AS SampleCount
+        FROM [DATA].[Series] s
+        WHERE [s].[Id] >= @SeriesStartId
+          AND [s].[Id] < @SeriesStartId + @ParentBatchSize
+    ),
+    expandedSeriesSamples AS (
+        SELECT
+             [ss].SeriesId
+            ,n.n AS SampleIndex
+        FROM seriesSamples ss
+        JOIN numbers n ON n.n <= ss.SampleCount
+    )
+    INSERT INTO [DATA].[Sample] (
+        [SeriesId],
+        [ExternalCode],
+        [SamplingDate],
+        [SampleClass],
+        [Latitude],
+        [Longitude]
+    )
+    SELECT
+         [ess].SeriesId
+        ,RIGHT('EX' + CAST(NEWID() AS NVARCHAR(MAX)), 3)
+        ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE())
+        ,CASE
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 30 THEN 'pic' + LEFT(CONVERT(VARCHAR(36), NEWID()), 2)
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 70 THEN LEFT(CONVERT(VARCHAR(36), NEWID()), 3) + 'qc'
+            ELSE LEFT(CONVERT(VARCHAR(36), NEWID()), 5)
+         END
+        ,CASE WHEN ABS(CHECKSUM(NEWID())) % 10 = 0 THEN NULL ELSE CAST(-90 + (180 * RAND(CHECKSUM(NEWID()))) AS DECIMAL(11,8)) END
+        ,CASE WHEN ABS(CHECKSUM(NEWID())) % 10 = 0 THEN NULL ELSE CAST(-180 + (360 * RAND(CHECKSUM(NEWID()))) AS DECIMAL(11,8)) END
+    FROM
+        expandedSeriesSamples ess;
+
+    SET @SeriesStartId += @ParentBatchSize;
+END;
 GO
 
 -- Seed SubSamples
-;WITH numbers AS (
-    SELECT TOP (5)
-        ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
-    FROM
-        sys.columns a
-),
-sampleSubSamples AS (
-    SELECT 
-         [s].[Id] AS SampleId
-        ,CAST(ABS(CHECKSUM(NEWID())) % 3 + 1 AS INT) AS SubSampleCount
-    FROM [DATA].[Sample] s
-),
-expandedSubSamples AS (
-    SELECT 
-         [ss].SampleId
-        ,n.n AS SubSampleIndex
-    FROM sampleSubSamples ss
-    JOIN numbers n ON n.n <= ss.SubSampleCount
-)
-INSERT INTO [DATA].[SubSample] (
-     [SampleId]
-    ,[ExternalCode]
-    ,[ScreeningDate]
-    ,[IsFromLegacySystem]
-    ,[UploadResultDate]
-    ,[ActivityNotes]
-    ,[TrackingNumber])
+DECLARE @ParentBatchSize INT = 1000;
+DECLARE @SampleStartId INT;
+DECLARE @SampleMaxId INT;
+
 SELECT
-     [ess].SampleId
-    ,RIGHT('SX' + CAST(NEWID() AS NVARCHAR(MAX)), 3)
-    ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE())
-    ,CAST(CAST(ABS(CHECKSUM(NEWID())) % 2 AS INT) AS BIT)
-    ,CASE WHEN CAST(ABS(CHECKSUM(NEWID())) % 10 AS INT) > 1 THEN DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 30 - 15 AS INT), GETDATE()) ELSE NULL END
-    ,(SELECT Note FROM #activityNotes WHERE ID = (CAST(ess.SampleId AS INT) % (SELECT COUNT(*) FROM #activityNotes)) + 1)
-    ,(SELECT TrackingNumber FROM #trackingNumbers WHERE ID = (CAST(ess.SampleId AS INT) % (SELECT COUNT(*) FROM #trackingNumbers)) + 1)
-FROM
-    expandedSubSamples ess;
+    @SampleStartId = MIN([Id]),
+    @SampleMaxId = MAX([Id])
+FROM [DATA].[Sample];
+
+WHILE @SampleStartId IS NOT NULL AND @SampleStartId <= @SampleMaxId
+BEGIN
+    ;WITH numbers AS (
+        SELECT n
+        FROM #seedNumbers1000
+        WHERE n <= 5
+    ),
+    sampleSubSamples AS (
+        SELECT
+             [s].[Id] AS SampleId
+            ,CAST(ABS(CHECKSUM(NEWID())) % 3 + 1 AS INT) AS SubSampleCount
+        FROM [DATA].[Sample] s
+        WHERE [s].[Id] >= @SampleStartId
+          AND [s].[Id] < @SampleStartId + @ParentBatchSize
+    ),
+    expandedSubSamples AS (
+        SELECT
+             [ss].SampleId
+            ,n.n AS SubSampleIndex
+        FROM sampleSubSamples ss
+        JOIN numbers n ON n.n <= ss.SubSampleCount
+    )
+    INSERT INTO [DATA].[SubSample] (
+         [SampleId]
+        ,[ExternalCode]
+        ,[ScreeningDate]
+        ,[IsFromLegacySystem]
+        ,[UploadResultDate]
+        ,[ActivityNotes]
+        ,[TrackingNumber])
+    SELECT
+         [ess].SampleId
+        ,RIGHT('SX' + CAST(NEWID() AS NVARCHAR(MAX)), 3)
+        ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE())
+        ,CAST(CAST(ABS(CHECKSUM(NEWID())) % 2 AS INT) AS BIT)
+        ,CASE WHEN CAST(ABS(CHECKSUM(NEWID())) % 10 AS INT) > 1 THEN DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 30 - 15 AS INT), GETDATE()) ELSE NULL END
+        ,(SELECT Note FROM #activityNotes WHERE ID = (CAST(ess.SampleId AS INT) % (SELECT COUNT(*) FROM #activityNotes)) + 1)
+        ,(SELECT TrackingNumber FROM #trackingNumbers WHERE ID = (CAST(ess.SampleId AS INT) % (SELECT COUNT(*) FROM #trackingNumbers)) + 1)
+    FROM
+        expandedSubSamples ess;
+
+    SET @SampleStartId += @ParentBatchSize;
+END;
 GO
 
 -- Seed Particle
-;WITH numbers AS (
-    SELECT TOP (5)
-        ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
-    FROM
-        sys.columns a
-),
-sampleSubSamples AS (
-    SELECT 
-         [s].[Id] AS SubSampleId
-        ,CAST(ABS(CHECKSUM(NEWID())) % 3 + 1 AS INT) AS ParticleCount
-    FROM [DATA].[SubSample] s
-),
-expandedParticles AS (
-    SELECT 
-         [ss].SubSampleId
-        ,n.n AS ParticleIndex
-    FROM sampleSubSamples ss
-    JOIN numbers n ON n.n <= ss.ParticleCount
-)
-INSERT INTO [DATA].[Particle] (
-     [SubSampleId],
-     [ParticleExternalId],
-     [AnalysisDate],
-     [IsNu],
-     [LaboratoryCode],
-     [U234],
-     [ErU234],
-     [U235],
-     [ErU235],
-     [Comment]
-)
+DECLARE @ParentBatchSize INT = 1000;
+DECLARE @SubSampleStartId INT;
+DECLARE @SubSampleMaxId INT;
+
 SELECT
-     essp.SubSampleId,
-     CAST((RAND(CHECKSUM(NEWID())) * 3200.23) AS DECIMAL(10,2)),
-     DATEADD(day, CAST(RAND(CHECKSUM(NEWID())) * 30 - 15 AS INT), GETDATE()),
-	 CAST((essp.SubSampleId + 1) % 2 AS BIT),
-     LEFT(NEWID(), 10),
-     CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
-     CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
-     CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
-     CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
-     (SELECT Comment FROM #tempComments WHERE ID = (essp.SubSampleId % (SELECT MAX(ID) FROM #tempComments)) + 1)
-FROM
-    expandedParticles essp;
+    @SubSampleStartId = MIN([Id]),
+    @SubSampleMaxId = MAX([Id])
+FROM [DATA].[SubSample];
+
+WHILE @SubSampleStartId IS NOT NULL AND @SubSampleStartId <= @SubSampleMaxId
+BEGIN
+    ;WITH numbers AS (
+        SELECT n
+        FROM #seedNumbers1000
+        WHERE n <= 5
+    ),
+    sampleSubSamples AS (
+        SELECT
+             [s].[Id] AS SubSampleId
+            ,CAST(ABS(CHECKSUM(NEWID())) % 3 + 1 AS INT) AS ParticleCount
+        FROM [DATA].[SubSample] s
+        WHERE [s].[Id] >= @SubSampleStartId
+          AND [s].[Id] < @SubSampleStartId + @ParentBatchSize
+    ),
+    expandedParticles AS (
+        SELECT
+             [ss].SubSampleId
+            ,n.n AS ParticleIndex
+        FROM sampleSubSamples ss
+        JOIN numbers n ON n.n <= ss.ParticleCount
+    )
+    INSERT INTO [DATA].[Particle] (
+         [SubSampleId],
+         [ParticleExternalId],
+         [AnalysisDate],
+         [IsNu],
+         [LaboratoryCode],
+         [U234],
+         [ErU234],
+         [U235],
+         [ErU235],
+         [Comment]
+    )
+    SELECT
+         essp.SubSampleId,
+         CAST((RAND(CHECKSUM(NEWID())) * 3200.23) AS DECIMAL(10,2)),
+         DATEADD(day, CAST(RAND(CHECKSUM(NEWID())) * 30 - 15 AS INT), GETDATE()),
+	     CAST((essp.SubSampleId + 1) % 2 AS BIT),
+         LEFT(NEWID(), 10),
+         CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
+         CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
+         CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
+         CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
+         (SELECT Comment FROM #tempComments WHERE ID = (essp.SubSampleId % (SELECT MAX(ID) FROM #tempComments)) + 1)
+    FROM
+        expandedParticles essp;
+
+    SET @SubSampleStartId += @ParentBatchSize;
+END;
 GO
 
 -- Seed APM
-;WITH numbers AS (
-    SELECT TOP (5)
-        ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
-    FROM
-        sys.columns a
-),
-sampleSubSamples AS (
-    SELECT 
-         [s].[Id] AS SubSampleId
-        ,CAST(ABS(CHECKSUM(NEWID())) % 5 + 1 AS INT) AS ParticleCount
-    FROM [DATA].[SubSample] s
-),
-expandedParticles AS (
-    SELECT 
-         [ss].SubSampleId
-        ,n.n AS ParticleIndex
-    FROM sampleSubSamples ss
-    JOIN numbers n ON n.n <= ss.ParticleCount
-)
-INSERT INTO [DATA].[Apm] (
-    [SubSampleId],
-    [U234],
-    [ErU234],
-    [U235],
-    [ErU235],
-    [U236],
-    [ErU236],
-    [U238],
-    [ErU238],
-    [Comment]
-)
+DECLARE @ParentBatchSize INT = 1000;
+DECLARE @SubSampleStartId INT;
+DECLARE @SubSampleMaxId INT;
+
 SELECT
-    essapm.SubSampleId,
-    CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
-    CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
-    CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
-    CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
-    CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
-    CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
-    CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
-    CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
-    (SELECT Comment FROM #tempComments WHERE ID = (essapm.SubSampleId % (SELECT MAX(ID) FROM #tempComments)) + 1)
-FROM
-    expandedParticles essapm;
+    @SubSampleStartId = MIN([Id]),
+    @SubSampleMaxId = MAX([Id])
+FROM [DATA].[SubSample];
+
+WHILE @SubSampleStartId IS NOT NULL AND @SubSampleStartId <= @SubSampleMaxId
+BEGIN
+    ;WITH numbers AS (
+        SELECT n
+        FROM #seedNumbers1000
+        WHERE n <= 5
+    ),
+    sampleSubSamples AS (
+        SELECT
+             [s].[Id] AS SubSampleId
+            ,CAST(ABS(CHECKSUM(NEWID())) % 5 + 1 AS INT) AS ParticleCount
+        FROM [DATA].[SubSample] s
+        WHERE [s].[Id] >= @SubSampleStartId
+          AND [s].[Id] < @SubSampleStartId + @ParentBatchSize
+    ),
+    expandedParticles AS (
+        SELECT
+             [ss].SubSampleId
+            ,n.n AS ParticleIndex
+        FROM sampleSubSamples ss
+        JOIN numbers n ON n.n <= ss.ParticleCount
+    )
+    INSERT INTO [DATA].[Apm] (
+        [SubSampleId],
+        [U234],
+        [ErU234],
+        [U235],
+        [ErU235],
+        [U236],
+        [ErU236],
+        [U238],
+        [ErU238],
+        [Comment]
+    )
+    SELECT
+        essapm.SubSampleId,
+        CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
+        CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
+        CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
+        CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
+        CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
+        CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
+        CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
+        CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 1 AS DECIMAL(38,15)) ELSE NULL END,
+        (SELECT Comment FROM #tempComments WHERE ID = (essapm.SubSampleId % (SELECT MAX(ID) FROM #tempComments)) + 1)
+    FROM
+        expandedParticles essapm;
+
+    SET @SubSampleStartId += @ParentBatchSize;
+END;
 GO
 
 -- Seed Project
-;WITH numbers AS (
-    SELECT TOP (33333)
-        ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
-    FROM
-        sys.columns a
-        CROSS JOIN sys.columns b
-)
-INSERT INTO [EVALUATION].[Project] (
-     [Name]
-    ,[Conclusions]
-    ,[FollowUpActionsRecommended]
-    ,[CreatedAt]
-    ,[UpdatedAt]
-)
-SELECT
-     ((SELECT ProjectName FROM #projectNames WHERE ID = (n % (SELECT MAX(ID) FROM #projectNames)) + 1) + ' ' + LEFT(CONVERT(NVARCHAR(36), NEWID()), 7))
-    ,(SELECT Conclusion FROM #conclusions WHERE ID = (n % (SELECT MAX(ID) FROM #conclusions)) + 1)
-    ,(SELECT [Action] FROM #followUpActionsRecommended WHERE ID = (n % (SELECT MAX(ID) FROM #followUpActionsRecommended)) + 1)
-    ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE()) AS [CreatedAt]
-    ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE()) AS [UpdatedAt]
-FROM
-    numbers;
+DECLARE @ProjectTarget INT = 33333;
+DECLARE @SeedBatchSize INT = 1000;
+DECLARE @ProjectOffset INT = 0;
+
+SET IDENTITY_INSERT [EVALUATION].[Project] ON;
+
+WHILE @ProjectOffset < @ProjectTarget
+BEGIN
+    INSERT INTO [EVALUATION].[Project] (
+         [Id]
+        ,[Name]
+        ,[Conclusions]
+        ,[FollowUpActionsRecommended]
+        ,[CreatedAt]
+        ,[UpdatedAt]
+    )
+    SELECT
+         numbers.n
+        ,((SELECT ProjectName FROM #projectNames WHERE ID = (numbers.n % (SELECT MAX(ID) FROM #projectNames)) + 1) + ' ' + LEFT(CONVERT(NVARCHAR(36), NEWID()), 7))
+        ,(SELECT Conclusion FROM #conclusions WHERE ID = (numbers.n % (SELECT MAX(ID) FROM #conclusions)) + 1)
+        ,(SELECT [Action] FROM #followUpActionsRecommended WHERE ID = (numbers.n % (SELECT MAX(ID) FROM #followUpActionsRecommended)) + 1)
+        ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE()) AS [CreatedAt]
+        ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE()) AS [UpdatedAt]
+    FROM (
+        SELECT @ProjectOffset + n AS n
+        FROM #seedNumbers1000
+        WHERE n <= CASE
+            WHEN @ProjectTarget - @ProjectOffset < @SeedBatchSize THEN @ProjectTarget - @ProjectOffset
+            ELSE @SeedBatchSize
+        END
+    ) AS numbers;
+
+    SET @ProjectOffset += @SeedBatchSize;
+END;
+
+SET IDENTITY_INSERT [EVALUATION].[Project] OFF;
+
+DBCC CHECKIDENT ('[EVALUATION].[Project]', RESEED, 33333);
 GO
 
 -- Seed ProjectSeries
-;WITH cte AS (
-    SELECT
-        [Id] AS [SeriesId],
-        ABS(CHECKSUM(NEWID()) % (SELECT COUNT(*) FROM [EVALUATION].Project)) + 1 AS ProjectId
-    FROM [DATA].[Series]
-)
-INSERT INTO [EVALUATION].ProjectSeries (ProjectId, SeriesId) 
-SELECT ProjectId, [SeriesId]
-FROM cte
+CREATE TABLE #projectIds
+(
+    ProjectNumber INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    ProjectId INT NOT NULL
+);
+
+INSERT INTO #projectIds (ProjectId)
+SELECT [Id]
+FROM [EVALUATION].[Project]
+ORDER BY [Id];
+
+DECLARE @ProjectCount INT = (SELECT COUNT(*) FROM #projectIds);
+DECLARE @ParentBatchSize INT = 1000;
+DECLARE @SeriesStartId INT;
+DECLARE @SeriesMinId INT;
+DECLARE @SeriesMaxId INT;
+
+SELECT
+    @SeriesStartId = MIN([Id]),
+    @SeriesMinId = MIN([Id]),
+    @SeriesMaxId = MAX([Id])
+FROM [DATA].[Series];
+
+WHILE @ProjectCount > 0 AND @SeriesStartId IS NOT NULL AND @SeriesStartId <= @SeriesMaxId
+BEGIN
+    ;WITH cte AS (
+        SELECT
+            [s].[Id] AS [SeriesId],
+            (([s].[Id] - @SeriesMinId) % @ProjectCount) + 1 AS ProjectNumber
+        FROM [DATA].[Series] AS [s]
+        WHERE [s].[Id] >= @SeriesStartId
+          AND [s].[Id] < @SeriesStartId + @ParentBatchSize
+    )
+    INSERT INTO [EVALUATION].ProjectSeries (ProjectId, SeriesId)
+    SELECT [p].[ProjectId], [c].[SeriesId]
+    FROM cte AS [c]
+    INNER JOIN #projectIds AS [p]
+        ON [p].[ProjectNumber] = [c].[ProjectNumber];
+
+    SET @SeriesStartId += @ParentBatchSize;
+END;
 GO
 
 -- Best-effort database tuning. These are environment-specific (and may be disallowed on

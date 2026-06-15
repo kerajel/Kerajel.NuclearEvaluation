@@ -12,6 +12,12 @@ public interface IDatabaseSeeder
     /// <summary>Applies migrations and seeds the database if it has no domain data yet.</summary>
     Task EnsureCreatedAndSeededAsync(CancellationToken ct = default);
 
+    /// <summary>Applies pending database migrations without running the seed script.</summary>
+    Task ApplyMigrationsAsync(CancellationToken ct = default);
+
+    /// <summary>Seeds the database if it has no domain data yet.</summary>
+    Task EnsureSeededAsync(CancellationToken ct = default);
+
     /// <summary>Re-runs the idempotent seed script, restoring the sandbox to its baseline.</summary>
     Task ResetToSeedAsync(CancellationToken ct = default);
 
@@ -32,8 +38,17 @@ public class DatabaseSeeder : IDatabaseSeeder
 
     public async Task EnsureCreatedAndSeededAsync(CancellationToken ct = default)
     {
-        await _dbContext.Database.MigrateAsync(ct);
+        await ApplyMigrationsAsync(ct);
+        await EnsureSeededAsync(ct);
+    }
 
+    public async Task ApplyMigrationsAsync(CancellationToken ct = default)
+    {
+        await _dbContext.Database.MigrateAsync(ct);
+    }
+
+    public async Task EnsureSeededAsync(CancellationToken ct = default)
+    {
         bool alreadySeeded = await _dbContext.Series.AnyAsync(ct);
         if (alreadySeeded)
         {

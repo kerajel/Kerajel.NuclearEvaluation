@@ -139,11 +139,23 @@ dotnet publish src/NuclearEvaluation.Server -c Release -o ./publish
 Deploy the contents of `./publish` and supply `ConnectionStrings:NuclearEvaluationServerDbConnection`
 and `Captcha:Secret` via the host's configuration.
 
-For SmarterASP.NET Auto Build, use a source archive shaped as a single ASP.NET Core project at
-the archive root. The root must contain the `.csproj` that SmarterASP.NET should detect and build;
-avoid placing a `Dockerfile` at that archive root. The archive should include the server source,
-the referenced library source folders, the prebuilt client `wwwroot`, `appsettings.json`, and a
-`web.config` for ASP.NET Core Module hosting.
+For SmarterASP.NET Auto Build, do not upload a normal repository zip and do not point Auto Build at
+the repository root. SmarterASP.NET's Railpack flow restores before nested project folders are
+copied into the build context, so ordinary `ProjectReference` dependencies fail later at
+`dotnet publish --no-restore`.
+
+Create the upload archive with the repository script instead:
+
+```powershell
+.\scripts\package-smarterasp-autobuild.ps1
+```
+
+The script creates an ignored `artifacts/smarterasp/*.zip` source archive shaped specifically for
+SmarterASP.NET Auto Build. The archive root contains exactly one detected ASP.NET Core project,
+no root `Dockerfile`, the server source, flattened library source folders without their `.csproj`
+files, a prebuilt client `wwwroot`, `appsettings.json`, and a custom `web.config` for ASP.NET Core
+Module hosting. It also validates the package with `dotnet restore` followed by
+`dotnet publish --no-restore`, matching the provider's build order.
 
 Recommended SmarterASP.NET publish settings for the Auto Build project:
 
@@ -152,6 +164,9 @@ Recommended SmarterASP.NET publish settings for the Auto Build project:
 - `ServerGarbageCollection=false`
 - `IsTransformWebConfigDisabled=true` when supplying a custom `web.config`
 - `StaticWebAssetsEnabled=false` when the client `wwwroot` is already included in the archive
+
+These properties are injected into the generated upload package by
+`scripts/package-smarterasp-autobuild.ps1`; keep the repository itself Docker-first.
 
 On startup the app applies EF Core migrations before accepting traffic. The full sandbox seed and
 reset work runs in the background so shared-hosting startup timeouts do not block the site launch.

@@ -124,6 +124,8 @@ docker compose --profile e2e up --build --abort-on-container-exit --exit-code-fr
 ```
 ## Production deployment
 
+Production site: <https://nuclearevaluation.com/>.
+
 Production is hosted on **smarterasp.net** (shared Windows hosting) and is published directly —
 Docker is for local development only. Do not deploy the repository root as a Docker build unless
 the hosting account is explicitly configured for containers.

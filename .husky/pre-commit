@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+export husky_skip_init=1
+bash -lc 'dotnet husky run --group pre-commit'

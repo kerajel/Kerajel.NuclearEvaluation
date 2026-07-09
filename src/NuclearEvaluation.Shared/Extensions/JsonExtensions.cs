@@ -4,12 +4,18 @@ namespace NuclearEvaluation.Shared.Extensions;
 
 public static class JsonExtensions
 {
-    public static bool TryDeserialize<T>(string json, out T? result, JsonSerializerOptions? options = null)
+    public static bool TryDeserialize<T>(
+        string json,
+        out T? result,
+        JsonSerializerOptions? options = null
+    )
     {
         result = default;
 
         if (string.IsNullOrWhiteSpace(json))
+        {
             return false;
+        }
 
         try
         {

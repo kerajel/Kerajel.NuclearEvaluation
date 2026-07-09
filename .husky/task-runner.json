@@ -1,0 +1,40 @@
+{
+  "$schema": "https://alirezanet.github.io/Husky.Net/schema.json",
+  "tasks": [
+    {
+      "name": "csharpier",
+      "group": "pre-commit",
+      "command": "dotnet",
+      "args": [
+        "csharpier",
+        "format",
+        "--no-cache",
+        "--no-msbuild-check",
+        "${staged}"
+      ],
+      "include": [
+        "**/*.cs",
+        "**/*.razor"
+      ]
+    },
+    {
+      "name": "dotnet-format-style",
+      "group": "pre-commit",
+      "command": "dotnet",
+      "args": [
+        "format",
+        "style",
+        "Kerajel.NuclearEvaluation.sln",
+        "--no-restore",
+        "--verify-no-changes",
+        "--severity",
+        "error",
+        "--include",
+        "${staged}"
+      ],
+      "include": [
+        "**/*.cs"
+      ]
+    }
+  ]
+}

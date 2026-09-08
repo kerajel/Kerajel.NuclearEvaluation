@@ -3,7 +3,6 @@ using LinqToDB.Async;
 using LinqToDB.Data;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Extensions;
-using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Server.Services.STEM;
@@ -38,113 +37,166 @@ public sealed class StemSession : IAsyncDisposable
         _fileTable = $"##stem_files_{sessionId:N}";
     }
 
-    public async Task InsertFileMetadataAsync(StemPreviewFileMetadata fileMetadata, CancellationToken ct = default)
+    public async Task InsertFileMetadataAsync(
+        StemPreviewFileMetadata fileMetadata,
+        CancellationToken ct = default
+    )
     {
-        await RunExclusive(async () =>
-        {
-            await EnsureTablesAsync(ct);
-            await _db.InsertAsync(fileMetadata, tableName: _fileTable, tableOptions: TempTableOptions, token: ct);
-        });
+        await RunExclusive(
+            async () =>
+            {
+                await EnsureTablesAsync(ct);
+                await _db.InsertAsync(
+                    fileMetadata,
+                    tableName: _fileTable,
+                    tableOptions: TempTableOptions,
+                    token: ct
+                );
+            },
+            ct
+        );
     }
 
-    public async Task BulkCopyEntriesAsync(IAsyncEnumerable<StemPreviewEntry> entries, CancellationToken ct = default)
+    public async Task BulkCopyEntriesAsync(
+        IAsyncEnumerable<StemPreviewEntry> entries,
+        CancellationToken ct = default
+    )
     {
-        await RunExclusive(async () =>
-        {
-            await EnsureTablesAsync(ct);
-
-            BulkCopyOptions options = new()
+        await RunExclusive(
+            async () =>
             {
-                TableName = _entryTable,
-                TableOptions = TempTableOptions,
-                BulkCopyTimeout = bulkCopyTimeout,
-                MaxBatchSize = maxBatchSize,
-            };
+                await EnsureTablesAsync(ct);
 
-            await _db.BulkCopyAsync(options, entries, cancellationToken: ct);
-        });
+                BulkCopyOptions options = new()
+                {
+                    TableName = _entryTable,
+                    TableOptions = TempTableOptions,
+                    BulkCopyTimeout = bulkCopyTimeout,
+                    MaxBatchSize = maxBatchSize,
+                };
+
+                await _db.BulkCopyAsync(options, entries, cancellationToken: ct);
+            },
+            ct
+        );
     }
 
     public async Task EnsureIndexAsync(CancellationToken ct = default)
     {
-        await RunExclusive(async () =>
-        {
-            await EnsureTablesAsync(ct);
-            await _db.ExecuteProcAsync("[DBO].EnsureIndexOnTempTableField",
-                new { tableName = _entryTable, fieldName = nameof(StemPreviewEntry.Id) });
-        });
+        await RunExclusive(
+            async () =>
+            {
+                await EnsureTablesAsync(ct);
+                await _db.ExecuteProcAsync(
+                    "[DBO].EnsureIndexOnTempTableField",
+                    new { tableName = _entryTable, fieldName = nameof(StemPreviewEntry.Id) }
+                );
+            },
+            ct
+        );
     }
 
     public async Task SetFileFullyUploadedAsync(Guid fileId, CancellationToken ct = default)
     {
-        await RunExclusive(async () =>
-        {
-            await EnsureTablesAsync(ct);
-            await _files!.Where(x => x.Id == fileId).Set(x => x.IsFullyUploaded, true).UpdateAsync(ct);
-        });
+        await RunExclusive(
+            async () =>
+            {
+                await EnsureTablesAsync(ct);
+                await _files!
+                    .Where(x => x.Id == fileId)
+                    .Set(x => x.IsFullyUploaded, true)
+                    .UpdateAsync(ct);
+            },
+            ct
+        );
     }
 
     public async Task MarkFileDeletedAsync(Guid fileId, CancellationToken ct = default)
     {
-        await RunExclusive(async () =>
-        {
-            await EnsureTablesAsync(ct);
-            await _files!.Where(x => x.Id == fileId).Set(x => x.IsDeleted, true).UpdateAsync(ct);
-        });
+        await RunExclusive(
+            async () =>
+            {
+                await EnsureTablesAsync(ct);
+                await _files!
+                    .Where(x => x.Id == fileId)
+                    .Set(x => x.IsDeleted, true)
+                    .UpdateAsync(ct);
+                await _entries!.Where(x => x.FileId == fileId).DeleteAsync(ct);
+            },
+            ct
+        );
     }
 
-    public async Task<FetchDataResult<StemPreviewEntryView>> QueryViewsAsync(FetchDataCommand<StemPreviewEntryView> command, CancellationToken ct = default)
+    public async Task<FetchDataResult<StemPreviewEntryView>> QueryViewsAsync(
+        FetchDataCommand<StemPreviewEntryView> command,
+        CancellationToken ct = default
+    )
     {
-        return await RunExclusive(async () =>
-        {
-            await EnsureTablesAsync(ct);
+        return await RunExclusive(
+            async () =>
+            {
+                await EnsureTablesAsync(ct);
 
-            IQueryable<StemPreviewEntryView> baseQuery =
-                from entry in _entries!
-                join file in _files! on entry.FileId equals file.Id
-                where file.IsFullyUploaded && !file.IsDeleted
-                select new StemPreviewEntryView
-                {
-                    Id = entry.Id,
-                    LabCode = entry.LabCode,
-                    AnalysisDate = entry.AnalysisDate,
-                    IsNu = entry.IsNu,
-                    U234 = entry.U234,
-                    ErU234 = entry.ErU234,
-                    U235 = entry.U235,
-                    ErU235 = entry.ErU235,
-                    FileId = file.Id,
-                    FileName = file.Name,
-                };
+                IQueryable<StemPreviewEntryView> baseQuery =
+                    from entry in _entries!
+                    join file in _files! on entry.FileId equals file.Id
+                    where file.IsFullyUploaded && !file.IsDeleted
+                    select new StemPreviewEntryView
+                    {
+                        Id = entry.Id,
+                        LabCode = entry.LabCode,
+                        AnalysisDate = entry.AnalysisDate,
+                        IsNu = entry.IsNu,
+                        U234 = entry.U234,
+                        ErU234 = entry.ErU234,
+                        U235 = entry.U235,
+                        ErU235 = entry.ErU235,
+                        FileId = file.Id,
+                        FileName = file.Name,
+                    };
 
-            IQueryable<StemPreviewEntryView> filtered = baseQuery.FilterWithFallback(command.Query);
+                IQueryable<StemPreviewEntryView> filtered = baseQuery.FilterWithFallback(
+                    command.Query
+                );
 
-            int[] totals = await AsyncExtensions.ToArrayAsync(
-                filtered.GroupBy(_ => 1).Select(g => g.Count()),
-                ct);
-            int total = totals.SingleOrDefault();
+                int[] totals = await AsyncExtensions.ToArrayAsync(
+                    filtered.GroupBy(_ => 1).Select(g => g.Count()),
+                    ct
+                );
+                int total = totals.SingleOrDefault();
 
-            IQueryable<StemPreviewEntryView> dataQuery = filtered
-                .OrderByWithFallback(command.Query, x => x.Id)
-                .PageWithFallback(command.Query);
+                IQueryable<StemPreviewEntryView> dataQuery = filtered
+                    .OrderByWithFallback(command.Query, x => x.Id)
+                    .PageWithFallback(command.Query);
 
-            StemPreviewEntryView[] data = await AsyncExtensions.ToArrayAsync(dataQuery, ct);
+                StemPreviewEntryView[] data = await AsyncExtensions.ToArrayAsync(dataQuery, ct);
 
-            FetchDataResult<StemPreviewEntryView> result = FetchDataResult<StemPreviewEntryView>.Succeeded(data);
-            result.TotalCount = total;
-            return result;
-        });
+                FetchDataResult<StemPreviewEntryView> result =
+                    FetchDataResult<StemPreviewEntryView>.Succeeded(data);
+                result.TotalCount = total;
+                return result;
+            },
+            ct
+        );
     }
 
     async Task EnsureTablesAsync(CancellationToken ct)
     {
-        _entries ??= await _db.CreateTableAsync<StemPreviewEntry>(tableName: _entryTable, tableOptions: TempTableOptions, token: ct);
-        _files ??= await _db.CreateTableAsync<StemPreviewFileMetadata>(tableName: _fileTable, tableOptions: TempTableOptions, token: ct);
+        _entries ??= await _db.CreateTableAsync<StemPreviewEntry>(
+            tableName: _entryTable,
+            tableOptions: TempTableOptions,
+            token: ct
+        );
+        _files ??= await _db.CreateTableAsync<StemPreviewFileMetadata>(
+            tableName: _fileTable,
+            tableOptions: TempTableOptions,
+            token: ct
+        );
     }
 
-    async Task RunExclusive(Func<Task> action)
+    async Task RunExclusive(Func<Task> action, CancellationToken ct)
     {
-        await _gate.WaitAsync();
+        await _gate.WaitAsync(ct);
         try
         {
             LastAccessUtc = DateTime.UtcNow;
@@ -156,9 +208,9 @@ public sealed class StemSession : IAsyncDisposable
         }
     }
 
-    async Task<T> RunExclusive<T>(Func<Task<T>> action)
+    async Task<T> RunExclusive<T>(Func<Task<T>> action, CancellationToken ct)
     {
-        await _gate.WaitAsync();
+        await _gate.WaitAsync(ct);
         try
         {
             LastAccessUtc = DateTime.UtcNow;
@@ -177,11 +229,19 @@ public sealed class StemSession : IAsyncDisposable
         {
             if (_entries is not null)
             {
-                await _db.DropTableAsync<StemPreviewEntry>(tableName: _entryTable, tableOptions: TempTableOptions, throwExceptionIfNotExists: false);
+                await _db.DropTableAsync<StemPreviewEntry>(
+                    tableName: _entryTable,
+                    tableOptions: TempTableOptions,
+                    throwExceptionIfNotExists: false
+                );
             }
             if (_files is not null)
             {
-                await _db.DropTableAsync<StemPreviewFileMetadata>(tableName: _fileTable, tableOptions: TempTableOptions, throwExceptionIfNotExists: false);
+                await _db.DropTableAsync<StemPreviewFileMetadata>(
+                    tableName: _fileTable,
+                    tableOptions: TempTableOptions,
+                    throwExceptionIfNotExists: false
+                );
             }
         }
         catch

@@ -229,7 +229,7 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                     b.Property<byte>("SampleType")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tinyint")
-                        .HasComputedColumnSql("CASE WHEN SampleClass LIKE 'PIC%' THEN 3 WHEN SampleClass LIKE '%QC%' THEN 4 ELSE 2 END");
+                        .HasComputedColumnSql("CAST(CASE WHEN SampleClass LIKE 'PIC%' THEN 3 WHEN SampleClass LIKE '%QC%' THEN 4 ELSE 2 END AS tinyint)");
 
                     b.Property<DateTime>("SamplingDate")
                         .HasColumnType("datetime2");
@@ -673,8 +673,8 @@ namespace NuclearEvaluation.Kernel.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("SampleType")
-                        .HasColumnType("int");
+                    b.Property<byte>("SampleType")
+                        .HasColumnType("tinyint");
 
                     b.Property<DateTime>("SamplingDate")
                         .HasColumnType("datetime2");

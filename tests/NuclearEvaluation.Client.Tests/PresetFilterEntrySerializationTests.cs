@@ -17,11 +17,7 @@ public class PresetFilterEntrySerializationTests
     [Fact]
     public void Serialize_ShouldNotExposePresetFilterNavigation()
     {
-        PresetFilter filter = new()
-        {
-            Id = 12,
-            Name = "saved filter",
-        };
+        PresetFilter filter = new() { Id = 12, Name = "saved filter" };
         PresetFilterEntry entry = new()
         {
             Id = 34,
@@ -73,10 +69,34 @@ public class PresetFilterEntrySerializationTests
     [Fact]
     public void PresetFilterNavigation_ShouldRemainNullableForApiModelValidation()
     {
-        PropertyInfo property = typeof(PresetFilterEntry).GetProperty(nameof(PresetFilterEntry.PresetFilter))!;
+        PropertyInfo property = typeof(PresetFilterEntry).GetProperty(
+            nameof(PresetFilterEntry.PresetFilter)
+        )!;
 
         NullabilityInfo nullability = new NullabilityInfoContext().Create(property);
 
         nullability.WriteState.ShouldBe(NullabilityState.Nullable);
+    }
+}
+
+public class InvalidPresetTests
+{
+    [Theory]
+    [InlineData("null")]
+    [InlineData("broken json")]
+    [InlineData(
+        "[{\"Property\":\"Sample.Sequence\",\"Type\":\"System.IO.FileInfo\",\"FilterValue\":\"file\"}]"
+    )]
+    public void InvalidPayloadClearsOldDescriptors(string serialized)
+    {
+        PresetFilterEntry entry = new()
+        {
+            SerializedDescriptors =
+                "[{\"Property\":\"Sample.Sequence\",\"Type\":\"System.String\",\"FilterValue\":\"old\"}]",
+        };
+        Assert.Single(entry.Descriptors);
+        entry.SerializedDescriptors = serialized;
+        Assert.True(entry.IsCorrupted);
+        Assert.Empty(entry.Descriptors);
     }
 }

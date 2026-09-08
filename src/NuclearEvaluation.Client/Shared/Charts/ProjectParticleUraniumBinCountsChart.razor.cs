@@ -1,7 +1,7 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Plotting;
-using System.Text.Json;
 
 namespace NuclearEvaluation.Client.Shared.Charts;
 
@@ -19,11 +19,13 @@ public partial class ProjectParticleUraniumBinCountsChart
     [Inject]
     protected INuclearEvaluationApi Api { get; set; } = null!;
 
-    ILookup<string, BinCount> _particleUraniumBinCounts = Enumerable.Empty<(string, BinCount)>()
-            .ToLookup(pair => pair.Item1, pair => pair.Item2);
+    ILookup<string, BinCount> _particleUraniumBinCounts = Enumerable
+        .Empty<(string, BinCount)>()
+        .ToLookup(pair => pair.Item1, pair => pair.Item2);
 
     string? _lastQueryKey;
     bool _isReady;
+    bool _hasError;
     int _loadSequence;
 
     protected override async Task OnParametersSetAsync()
@@ -44,26 +46,35 @@ public partial class ProjectParticleUraniumBinCountsChart
 
     DataQuery GetEffectiveQuery()
     {
-        return Query ?? new DataQuery
-        {
-            ProjectId = ProjectId,
-        };
+        return Query ?? new DataQuery { ProjectId = ProjectId };
     }
 
     async Task Load(DataQuery query)
     {
         int sequence = ++_loadSequence;
         _isReady = false;
+        _hasError = false;
         await InvokeAsync(StateHasChanged);
 
-        List<IsotopeBinCounts> data = await Api.GetProjectParticleUraniumBinCounts(query);
+        List<IsotopeBinCounts> data;
+        try
+        {
+            data = await Api.GetProjectParticleUraniumBinCounts(query);
+        }
+        catch (HttpRequestException)
+        {
+            if (sequence != _loadSequence)
+                return;
+            _hasError = true;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
         if (sequence != _loadSequence)
         {
             return;
         }
 
-        _particleUraniumBinCounts = data
-            .SelectMany(x => x.Bins.Select(b => (x.Isotope, Bin: b)))
+        _particleUraniumBinCounts = data.SelectMany(x => x.Bins.Select(b => (x.Isotope, Bin: b)))
             .ToLookup(x => x.Isotope, x => x.Bin);
         _isReady = true;
         await InvokeAsync(StateHasChanged);

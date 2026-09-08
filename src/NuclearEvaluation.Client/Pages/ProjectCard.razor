@@ -1,13 +1,20 @@
-﻿@page "/projects/{Id:int}"
+@page "/projects/{Id:int}"
 
 @using NuclearEvaluation.Client.Shared.Charts
 @using NuclearEvaluation.Client.Shared.Evaluation.Project
 
+<PageTitle>@(_projectView?.Name ?? "Project") | Nuclear Evaluation</PageTitle>
+
 @if (_isLoading)
 {
-
+    <p role="status">Loading project…</p>
 }
-else
+else if (_loadError is not null)
+{
+    <p role="alert">@_loadError</p>
+    <RadzenButton Text="Try again" Click="RetryLoad" />
+}
+else if (_projectView is not null)
 {
     <RadzenCard>
 
@@ -51,7 +58,7 @@ else
             <RadzenColumn xs="10" sm="10" md="10" lg="10">
                 <div>
                     <RadzenLabel Text="Series:" Style="font-weight:bold; display: block;" />
-                    <RadzenLabel Text="@($"{string.Join(", ", _projectView.SeriesIds)}")" Style="font-style: italic; margin-top: 4px;" />
+                    <RadzenLabel Text="@_projectView.SeriesIds" Style="font-style: italic; margin-top: 4px;" />
                 </div>
             </RadzenColumn>
             <RadzenColumn xs="2" sm="2" md="2" lg="2" Style="display: flex; justify-content: flex-end; align-items: flex-start;">

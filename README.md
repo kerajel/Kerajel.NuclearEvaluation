@@ -1,12 +1,33 @@
 # Nuclear Evaluation
 
-A .NET 10 web application for exploring nuclear-material evaluation data across projects,
-series, particle samples, sub-samples, and APM (Alpha Particle Measurement) records. It brings
-uranium-isotope analysis, decay correction, grids, charts, STEM upload previews, and reusable
-query presets into one evaluation workspace.
+A personal web application for exploring nuclear-material evaluation data: projects, series,
+samples, isotope measurements, charts, and spreadsheet previews.
 
-The public sandbox is anonymous by design. A self-hosted proof-of-work captcha, rate limits,
-upload caps, and scheduled resets keep the demo available without user accounts.
+Built with Blazor WebAssembly, ASP.NET Core, and SQL Server, it brings relational data exploration,
+reusable queries, isotope charts, and spreadsheet processing into one interactive workspace.
+
+**[Try the live demo](https://nuclearevaluation.com/)**
+
+### What to try
+
+- **Data Management:** browse and filter series, expand their samples, and inspect matching totals.
+- **Evaluation:** open a project, change its series membership, and explore isotope distributions.
+- **Query Builder:** combine filters across related entities and save reusable presets.
+- **STEM Preview:** upload Excel or delimited text files, inspect their rows, and remove individual files.
+
+The demo is shared and anonymous. It contains **generated example data**, and changes are periodically
+reset. Uploads are temporary. See [the calculation model](docs/calculation-notes.md) for decay
+correction, reference dates, and histogram definitions.
+
+### Design choices
+
+The browser owns component state and calls a typed HTTP API. SQL Server handles filtering,
+pagination, counts, and histogram aggregation so large datasets do not have to move into WASM memory.
+Spreadsheet rows are parsed on demand and bulk-copied into temporary staging tables.
+
+The application runs as a single host with an anonymous shared workspace.
+[Implementation notes](docs/implementation.md) describe query execution, upload processing,
+browser state, and automated test coverage.
 
 ## Architecture
 
@@ -14,8 +35,8 @@ upload caps, and scheduled resets keep the demo available without user accounts.
 |---|---|---|
 | `NuclearEvaluation.Client` | Blazor WebAssembly | All UI (pages, Radzen components, grids, charts, query builder) |
 | `NuclearEvaluation.Server` | ASP.NET Core | Web API controllers + hosts the WASM bundle; sandbox/captcha/rate-limiting |
-| `NuclearEvaluation.Shared` | Class library | View models, enums, query-builder filters, and the `INuclearEvaluationApi` contract (referenced by both client and server) |
-| `NuclearEvaluation.Kernel` | Class library | EF Core `DbContext`, domain entities, migrations, query execution, embedded seed script |
+| `NuclearEvaluation.Shared` | Class library | Domain/view models, enums, query-builder filters, and the `INuclearEvaluationApi` contract (referenced by both client and server) |
+| `NuclearEvaluation.Kernel` | Class library | EF Core `DbContext`, migrations, query execution, embedded seed script |
 | `Kerajel.Primitives` | Class library | Vendored helper types (`OperationResult`, `Debouncer`, …) |
 | `Kerajel.TabularDataReader` | Class library | Vendored delimited-text/Excel reader used by STEM preview parsing |
 
@@ -66,7 +87,9 @@ Requirements: .NET SDK 10.0 and a reachable SQL Server instance.
 To manage the schema by hand instead:
 
 ```bash
-dotnet ef database update --project src/NuclearEvaluation.Kernel --startup-project src/NuclearEvaluation.Server
+cd src/NuclearEvaluation.Server
+dotnet tool restore
+dotnet ef database update --project ../NuclearEvaluation.Kernel --startup-project .
 ```
 
 The setup/seed SQL lives at `src/NuclearEvaluation.Kernel/Data/Seed/NuclearEvaluationServerDbSetUp.sql`
@@ -84,8 +107,9 @@ Because the site is public and anonymous, the `Sandbox` configuration section go
   sessions (dropping their throwaway temp tables), and resets the database to seed once per
   interval (tracked in `DBO.SandboxState` so it survives app-pool recycling).
 
-The proof-of-work captcha secret and difficulty live under the `Captcha` section. Override
-both `Captcha:Secret` and the connection string in production.
+Set a private `Captcha:Secret` and the connection string on the production host. If no captcha
+secret is configured, the server generates a random key for that process, so verification cookies
+stop working when it restarts. Difficulty and cookie lifetime can also be set under `Captcha`.
 
 ## Tests
 
@@ -94,14 +118,26 @@ dotnet test
 ```
 
 - `NuclearEvaluation.Client.Tests` — bUnit component tests with a mocked API (no database).
-- `Kerajel.TabularDataReader.Tests` — CSV/Excel reader tests.
+- `Kerajel.TabularDataReader.Tests` — CSV/Excel parsing, culture, error propagation, and resource lifetime.
+- `NuclearEvaluation.Server.Tests` — captcha validation, upload cleanup, and optional SQL Server integration tests.
+
+The SQL tests create and delete a uniquely named database.
+CI runs them against its disposable SQL Server service. To enable them locally, set `NUCLEAR_TEST_SQL`
+to a connection string whose login can create and delete test databases. Without it, those tests
+are explicitly skipped.
+
+To keep build output outside the checkout:
+
+```bash
+dotnet test --configuration Release --artifacts-path /tmp/nuclear-evaluation-build
+```
 
 
 End-to-end browser regression tests live in `tests/e2e`. Start the app first against a disposable local or staging database, then run:
 
 ```bash
 cd tests/e2e
-npm install
+npm ci
 npx playwright install chromium
 npm test
 ```
@@ -138,6 +174,9 @@ dotnet publish src/NuclearEvaluation.Server -c Release -o ./publish
 
 Deploy the contents of `./publish` and supply `ConnectionStrings:NuclearEvaluationServerDbConnection`
 and `Captcha:Secret` via the host's configuration.
+
+Publish the server and its bundled WASM client together. EF Core migrations manage the database
+schema; sandbox initialization and scheduled resets manage the example data.
 
 For SmarterASP.NET Auto Build, do not upload a normal repository zip and do not point Auto Build at
 the repository root. SmarterASP.NET's Railpack flow restores before nested project folders are

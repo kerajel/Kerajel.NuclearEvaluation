@@ -37,6 +37,9 @@ public partial class ProjectCard : ComponentBase
     internal bool _isLoading = true;
 
     ProjectView _projectView = null!;
+    string? _loadError;
+    int? _loadedProjectId;
+    int _projectLoadSequence;
 
     ValidatedTextBox<ProjectView> _projectNameInputRef = null!;
     SeriesGrid _seriesGridRef = null!;
@@ -70,41 +73,67 @@ public partial class ProjectCard : ComponentBase
 
     DataQuery ParticleChartQuery => _particleChartQuery ?? CreateProjectChartQuery();
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         tabManager = new TabManager(NavigationManager, JSRuntime, "overview")
-                  .AddTab("overview", 0)
-                  .AddTab("series", 1)
-                  .AddTab("samples", 2)
-                  .AddTab("subsamples", 3)
-                  .AddTab("apm", ApmTabIndex)
-                  .AddTab("particles", ParticleTabIndex)
-                  .Initialize();
+            .AddTab("overview", 0)
+            .AddTab("series", 1)
+            .AddTab("samples", 2)
+            .AddTab("subsamples", 3)
+            .AddTab("apm", ApmTabIndex)
+            .AddTab("particles", ParticleTabIndex)
+            .Initialize();
+    }
 
-        if (!await LoadProjectView())
-        {
-            NavigationManager.NavigateTo("/not-found", forceLoad: true);
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedProjectId == Id)
             return;
-        }
-
-        _isLoading = false;
+        _loadedProjectId = Id;
+        _isEditingProjectName = false;
+        _isEditingSeries = false;
+        _apmChartQuery = null;
+        _particleChartQuery = null;
+        _apmGridLoaded = false;
+        _particleGridLoaded = false;
+        _isLoading = true;
+        int requestedId = Id;
+        await LoadProjectView();
+        if (requestedId == Id)
+            _isLoading = false;
     }
 
     async Task<bool> LoadProjectView()
     {
-        DataQuery query = new() { Filter = $"Id == {Id}" };
-
+        int sequence = ++_projectLoadSequence;
+        DataQuery query = new() { Filter = $"Id == {Id}", Top = 1 };
         DataResult<ProjectView> result = await Api.GetProjectViews(query);
-        ProjectView? projectView = result.Entries.SingleOrDefault();
-
-        if (projectView == null)
+        if (sequence != _projectLoadSequence)
+            return false;
+        _loadError = null;
+        if (!result.IsSuccessful)
         {
+            _loadError = "Could not load this project. Please try again.";
             return false;
         }
-
+        ProjectView? projectView = result.Entries.SingleOrDefault();
+        if (projectView is null)
+        {
+            NavigationManager.NavigateTo("/not-found");
+            return false;
+        }
         _projectView = projectView;
-        _decayCorrectionDateInput = _projectView.DecayCorrectionDate;
+        _decayCorrectionDateInput = projectView.DecayCorrectionDate;
         return true;
+    }
+
+    async Task RetryLoad()
+    {
+        _isLoading = true;
+        int requestedId = Id;
+        await LoadProjectView();
+        if (requestedId == Id)
+            _isLoading = false;
     }
 
     #region EditProjectName
@@ -131,12 +160,14 @@ public partial class ProjectCard : ComponentBase
     {
         if (_projectNameInputRef.IsReadyToCommit())
         {
-            await Api.UpdateProjectField(new ProjectFieldUpdate
-            {
-                ProjectId = _projectView.Id,
-                Field = ProjectField.Name,
-                StringValue = _projectView.Name,
-            });
+            await Api.UpdateProjectField(
+                new ProjectFieldUpdate
+                {
+                    ProjectId = _projectView.Id,
+                    Field = ProjectField.Name,
+                    StringValue = _projectView.Name,
+                }
+            );
 
             _projectNameInputRef.Commit();
 
@@ -157,9 +188,7 @@ public partial class ProjectCard : ComponentBase
 
     async Task EditSeries()
     {
-        int[] currentSeriesIds = _projectView.ProjectSeries
-            .Select(x => x.SeriesId)
-            .ToArray();
+        int[] currentSeriesIds = _projectView.ProjectSeries.Select(x => x.SeriesId).ToArray();
 
         _selectedSeriesIds = new HashSet<int>(currentSeriesIds);
         _projectSeriesIds = new HashSet<int>(currentSeriesIds);
@@ -181,11 +210,13 @@ public partial class ProjectCard : ComponentBase
 
         try
         {
-            await Api.UpdateProjectSeries(new ProjectSeriesUpdate
-            {
-                ProjectId = _projectView.Id,
-                SeriesIds = [.. selectedSeriesIds],
-            });
+            await Api.UpdateProjectSeries(
+                new ProjectSeriesUpdate
+                {
+                    ProjectId = _projectView.Id,
+                    SeriesIds = [.. selectedSeriesIds],
+                }
+            );
 
             await LoadProjectView();
 
@@ -240,14 +271,15 @@ public partial class ProjectCard : ComponentBase
     {
         if (_decayCorrectionDateInput != _projectView.DecayCorrectionDate)
         {
+            await Api.UpdateProjectField(
+                new ProjectFieldUpdate
+                {
+                    ProjectId = _projectView.Id,
+                    Field = ProjectField.DecayCorrectionDate,
+                    DateValue = _decayCorrectionDateInput,
+                }
+            );
             _projectView.DecayCorrectionDate = _decayCorrectionDateInput;
-
-            await Api.UpdateProjectField(new ProjectFieldUpdate
-            {
-                ProjectId = _projectView.Id,
-                Field = ProjectField.DecayCorrectionDate,
-                DateValue = _decayCorrectionDateInput,
-            });
 
             StateHasChanged();
             await Task.Yield();

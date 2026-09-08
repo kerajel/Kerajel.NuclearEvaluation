@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.JSInterop;
 using NuclearEvaluation.Client.Models;
 using NuclearEvaluation.Client.Shared.Grids;
 using NuclearEvaluation.Client.Shared.Misc;
@@ -31,7 +30,11 @@ public partial class StemPreview
 
     List<UploadedFile> files = [];
 
-    static readonly HashSet<FileStatus> inProgressStatuses = [FileStatus.Pending, FileStatus.Uploading];
+    static readonly HashSet<FileStatus> inProgressStatuses =
+    [
+        FileStatus.Pending,
+        FileStatus.Uploading,
+    ];
 
     InputFile fileInput = null!;
     int currentUploadBatchId = 0;
@@ -40,16 +43,17 @@ public partial class StemPreview
 
     private async Task HandleBeforeInternalNavigation(LocationChangingContext context)
     {
-        bool hasInProgressFiles = files.Any(
-            x => x.Status == FileStatus.Uploading
-                || x.Status == FileStatus.Uploaded);
+        bool hasInProgressFiles = files.Any(x =>
+            x.Status == FileStatus.Uploading || x.Status == FileStatus.Uploaded
+        );
 
         if (hasInProgressFiles)
         {
             bool? userConfirm = await DialogService.Confirm(
-                  "You have a current STEM preview that would be lost if you leave. Are you sure?",
-                  "Confirm navigation",
-                  Dialogs.YesNoConfirmOptions);
+                "You have a current STEM preview that would be lost if you leave. Are you sure?",
+                "Confirm navigation",
+                Dialogs.YesNoConfirmOptions
+            );
 
             if (userConfirm == false)
             {
@@ -68,20 +72,18 @@ public partial class StemPreview
         {
             if (file.Size <= maxPreviewFileSize)
             {
-                files.Add(new UploadedFile
-                {
-                    BrowserFile = file,
-                    Status = FileStatus.Pending,
-                });
+                files.Add(new UploadedFile { BrowserFile = file, Status = FileStatus.Pending });
             }
             else
             {
-                files.Add(new UploadedFile
-                {
-                    BrowserFile = file,
-                    Status = FileStatus.UploadError,
-                    ErrorMessage = $"Size exceeds {maxPreviewFileSize / (1024 * 1024)} MB",
-                });
+                files.Add(
+                    new UploadedFile
+                    {
+                        BrowserFile = file,
+                        Status = FileStatus.UploadError,
+                        ErrorMessage = $"Size exceeds {maxPreviewFileSize / (1024 * 1024)} MB",
+                    }
+                );
             }
         }
 
@@ -95,9 +97,7 @@ public partial class StemPreview
     {
         currentUploadBatchId++;
 
-        UploadedFile[] pendingFiles = files
-              .Where(f => f.Status == FileStatus.Pending)
-              .ToArray();
+        UploadedFile[] pendingFiles = files.Where(f => f.Status == FileStatus.Pending).ToArray();
 
         foreach (UploadedFile file in pendingFiles)
         {
@@ -111,7 +111,11 @@ public partial class StemPreview
                 continue;
             }
 
-            using IDisposable? scope = Logger.BeginScope("Processing file {fileId} on STEM session {stemSessionId}", file.Id, sessionId);
+            using IDisposable? scope = Logger.BeginScope(
+                "Processing file {fileId} on STEM session {stemSessionId}",
+                file.Id,
+                sessionId
+            );
 
             Logger.LogInformation("Processing started");
 
@@ -123,13 +127,17 @@ public partial class StemPreview
 
             try
             {
-                await using Stream stream = browserFile.OpenReadStream(maxPreviewFileSize, file.FileCancellationTokenSource.Token);
+                await using Stream stream = browserFile.OpenReadStream(
+                    maxPreviewFileSize,
+                    file.FileCancellationTokenSource.Token
+                );
                 OperationOutcome result = await Api.UploadStemPreviewFile(
-                      sessionId,
-                      file.Id,
-                      browserFile.Name,
-                      stream,
-                      file.FileCancellationTokenSource.Token);
+                    sessionId,
+                    file.Id,
+                    browserFile.Name,
+                    stream,
+                    file.FileCancellationTokenSource.Token
+                );
 
                 file.Status = result.IsSuccessful ? FileStatus.Uploaded : FileStatus.UploadError;
                 if (!result.IsSuccessful)
@@ -205,13 +213,14 @@ public partial class StemPreview
 
     private bool ShowStemPreviewEntryGrid()
     {
-        return files.Where(f => f.Status != FileStatus.Removed)
-                .GroupBy(f => f.UploadBatchId)
-                .Any(batch =>
-                {
-                    bool batchHasUploaded = batch.Any(f => f.Status == FileStatus.Uploaded);
-                    bool batchHasInProgress = batch.Any(f => inProgressStatuses.Contains(f.Status));
-                    return batchHasUploaded && !batchHasInProgress;
-                });
+        return files
+            .Where(f => f.Status != FileStatus.Removed)
+            .GroupBy(f => f.UploadBatchId)
+            .Any(batch =>
+            {
+                bool batchHasUploaded = batch.Any(f => f.Status == FileStatus.Uploaded);
+                bool batchHasInProgress = batch.Any(f => inProgressStatuses.Contains(f.Status));
+                return batchHasUploaded && !batchHasInProgress;
+            });
     }
 }

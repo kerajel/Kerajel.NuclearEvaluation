@@ -1,13 +1,10 @@
+using System.Runtime.CompilerServices;
 using Kerajel.Primitives.Enums;
 using Kerajel.Primitives.Models;
-using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 using NuclearEvaluation.Kernel.Models.Files;
-using NuclearEvaluation.Server.Interfaces.EFS;
-using NuclearEvaluation.Server.Interfaces.STEM;
 using NuclearEvaluation.Server.Services.Files;
 using Polly;
 using Polly.Bulkhead;
-using System.Runtime.CompilerServices;
 
 namespace NuclearEvaluation.Server.Services.STEM;
 
@@ -15,25 +12,28 @@ public class StemPreviewService(
     IStemPreviewParser stemPreviewParser,
     IStemPreviewEntryService stemPreviewEntryService,
     IEfsFileService efsFileService,
-    ILogger<StemPreviewService> logger) : IStemPreviewService
+    ILogger<StemPreviewService> logger
+) : IStemPreviewService
 {
     static readonly TimeSpan uploadTimeout = TimeSpan.FromMinutes(5);
 
-    static readonly AsyncBulkheadPolicy<OperationResult> bulkheadPolicy = Policy
-        .BulkheadAsync<OperationResult>(
+    static readonly AsyncBulkheadPolicy<OperationResult> bulkheadPolicy =
+        Policy.BulkheadAsync<OperationResult>(
             maxParallelization: 4,
             maxQueuingActions: 128,
             onBulkheadRejectedAsync: async context =>
             {
                 await Task.CompletedTask;
-            });
+            }
+        );
 
     public async Task<OperationResult> UploadStemPreviewFile(
         Guid sessionId,
         Stream stream,
         Guid fileId,
         string fileName,
-        CancellationToken? externalCt = default)
+        CancellationToken? externalCt = default
+    )
     {
         using CancellationTokenSource internalCts = new(uploadTimeout);
 
@@ -47,7 +47,8 @@ public class StemPreviewService(
         {
             result = await bulkheadPolicy.ExecuteAsync(
                 async (ct) => await Execute(),
-                linkedCts.Token);
+                linkedCts.Token
+            );
         }
         catch (BulkheadRejectedException ex)
         {
@@ -68,35 +69,55 @@ public class StemPreviewService(
         async Task<OperationResult> Execute()
         {
             string safeFileName = SafeFileName.FromClientFileName(fileName, fileId);
-            WriteFileCommand writeFileCommand = new(fileId, safeFileName, stream, true);
-
-            OperationResult<FileInfo> writeFileResult = await efsFileService.Write(writeFileCommand, linkedCts.Token);
-
-            if (!writeFileResult.IsSuccessful)
+            bool metadataInserted = false;
+            try
             {
-                return OperationResult.Faulted(writeFileResult);
+                WriteFileCommand command = new(fileId, safeFileName, stream, true);
+                OperationResult<FileInfo> written = await efsFileService.Write(
+                    command,
+                    linkedCts.Token
+                );
+                if (!written.IsSuccessful)
+                    return OperationResult.Faulted(written);
+
+                await stemPreviewEntryService.InsertStemPreviewFileMetadata(
+                    sessionId,
+                    new(fileId, safeFileName),
+                    linkedCts.Token
+                );
+                metadataInserted = true;
+                using FileStream fs = written.Content!.OpenRead();
+                IAsyncEnumerable<StemPreviewEntry> entries = stemPreviewParser.Parse(
+                    fs,
+                    safeFileName,
+                    linkedCts.Token
+                );
+                await stemPreviewEntryService.InsertStemPreviewEntries(
+                    sessionId,
+                    AssignFileId(entries, fileId, linkedCts.Token),
+                    linkedCts.Token
+                );
+                linkedCts.Token.ThrowIfCancellationRequested();
+                await stemPreviewEntryService.SetStemPreviewFileAsFullyUploaded(sessionId, fileId);
+                return OperationResult.Succeeded();
             }
-
-            StemPreviewFileMetadata fileMetadata = new(fileId, safeFileName);
-
-            await stemPreviewEntryService.InsertStemPreviewFileMetadata(sessionId, fileMetadata, linkedCts.Token);
-
-            using FileStream fs = writeFileResult.Content!.OpenRead();
-
-            IAsyncEnumerable<StemPreviewEntry> asyncEnumerable = stemPreviewParser.Parse(fs, safeFileName, linkedCts.Token);
-            asyncEnumerable = AssignFileId(asyncEnumerable, fileId, linkedCts.Token);
-
-            await stemPreviewEntryService.InsertStemPreviewEntries(sessionId, asyncEnumerable, linkedCts.Token);
-            await stemPreviewEntryService.SetStemPreviewFileAsFullyUploaded(sessionId, fileId);
-
-            OperationResult deleteFileResult = await efsFileService.Delete(fileId);
-
-            if (!deleteFileResult.IsSuccessful)
+            catch
             {
-                logger.LogError("Failed to delete file '{fileId}' from the EFS", fileId);
+                // Bulk copy can commit earlier batches before a later row fails.
+                if (metadataInserted)
+                    await DeleteFileData(sessionId, fileId);
+                throw;
             }
-
-            return new OperationResult(OperationStatus.Succeeded);
+            finally
+            {
+                // The upload stream is disposed before deleting the staged file.
+                // Clean up partial writes and failed parses even after cancellation.
+                OperationResult deleted = await efsFileService.Delete(fileId);
+                if (!deleted.IsSuccessful)
+                {
+                    logger.LogWarning("Failed to delete staged file {FileId}", fileId);
+                }
+            }
         }
     }
 
@@ -117,7 +138,8 @@ public class StemPreviewService(
     static async IAsyncEnumerable<StemPreviewEntry> AssignFileId(
         IAsyncEnumerable<StemPreviewEntry> source,
         Guid fileId,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
     {
         await foreach (StemPreviewEntry entry in source.WithCancellation(cancellationToken))
         {

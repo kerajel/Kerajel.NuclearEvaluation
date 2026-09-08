@@ -1,5 +1,5 @@
-﻿using Kerajel.Primitives.Enums;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
+using Kerajel.Primitives.Enums;
 
 namespace Kerajel.Primitives.Models;
 

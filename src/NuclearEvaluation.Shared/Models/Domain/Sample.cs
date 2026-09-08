@@ -1,6 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Shared.Enums;
 
 namespace NuclearEvaluation.Shared.Models.Domain;
@@ -23,10 +23,7 @@ public class Sample
     string _sampleClass = string.Empty;
     public string SampleClass
     {
-        get
-        {
-            return _sampleClass;
-        }
+        get { return _sampleClass; }
         set
         {
             CalculateSampleType(value);
@@ -55,7 +52,7 @@ public class Sample
 
     public static string GetSampleTypeSqlExpression()
     {
-        return $"CASE WHEN {nameof(SampleClass)} LIKE 'PIC%' THEN {(byte)SampleType.Pic} WHEN {nameof(SampleClass)} LIKE '%QC%' THEN {(byte)SampleType.Qc} ELSE {(byte)SampleType.Field} END";
+        return $"CAST(CASE WHEN {nameof(SampleClass)} LIKE 'PIC%' THEN {(byte)SampleType.Pic} WHEN {nameof(SampleClass)} LIKE '%QC%' THEN {(byte)SampleType.Qc} ELSE {(byte)SampleType.Field} END AS tinyint)";
     }
 
     [Precision(11, 8)]

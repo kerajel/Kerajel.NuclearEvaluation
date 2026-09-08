@@ -17,7 +17,8 @@ public partial class ProjectGrid : BaseGridGeneric<ProjectView>
     {
         DataQuery query = loadDataArgs.ToDataQuery();
 
-        await FetchData(query, () => Api.GetProjectViews(query));
+        if (!await FetchData(query, () => Api.GetProjectViews(query)))
+            return;
 
         isLoading = false;
     }

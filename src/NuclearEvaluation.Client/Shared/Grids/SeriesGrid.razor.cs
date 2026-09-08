@@ -53,15 +53,17 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
         DataQuery query = loadDataArgs.ToDataQuery(
             presetFilterBox: GetPresetFilterBox?.Invoke(),
             projectId: ProjectId,
-            priorityIds: SelectedEntryIds.Count > 0 ? SelectedEntryIds : null);
+            priorityIds: SelectedEntryIds.Count > 0 ? SelectedEntryIds : null
+        );
 
-        await FetchData(query, () => Api.GetSeriesViews(query));
+        if (!await FetchData(query, () => Api.GetSeriesViews(query)))
+            return;
 
         currentQuery = query;
 
         isLoading = false;
 
-        _ = OnSeriesSetChanged.InvokeAsync(query);
+        await OnSeriesSetChanged.InvokeAsync(query);
     }
 
     public override async Task Reset(bool resetColumnState = true, bool resetRowState = false)
@@ -184,12 +186,12 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
             return;
         }
 
-        ConfirmOptions options = new()
-        {
-            OkButtonText = "Yes",
-            CancelButtonText = "No",
-        };
-        bool? isConfirmed = await DialogService.Confirm("Are you sure you want to delete this series?", "Confirm Deletion", options);
+        ConfirmOptions options = new() { OkButtonText = "Yes", CancelButtonText = "No" };
+        bool? isConfirmed = await DialogService.Confirm(
+            "Are you sure you want to delete this series?",
+            "Confirm Deletion",
+            options
+        );
         if (!isConfirmed.HasValue || !isConfirmed.Value)
         {
             return;

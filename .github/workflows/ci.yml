@@ -26,12 +26,12 @@ jobs:
           --health-start-period=20s
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6.0.0
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Restore
         run: dotnet restore Kerajel.NuclearEvaluation.sln
@@ -40,4 +40,6 @@ jobs:
         run: dotnet build Kerajel.NuclearEvaluation.sln --configuration Release --no-restore
 
       - name: Test
+        env:
+          NUCLEAR_TEST_SQL: "Server=localhost;User Id=sa;Password=Local_Dev_Pass_123;TrustServerCertificate=True"
         run: dotnet test Kerajel.NuclearEvaluation.sln --configuration Release --no-build --verbosity normal

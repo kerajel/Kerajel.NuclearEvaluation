@@ -47,3 +47,15 @@ async function checkAndDownloadFile(url) {
         showError(error.message);
     }
 }
+// Bound the browser cache so visiting many projects cannot grow it indefinitely.
+function cacheGridResult(key, json) {
+    const prefix = 'ne-grid-cache:';
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(prefix) && k !== key);
+    const timestamp = k => {
+        try { return Date.parse(JSON.parse(localStorage.getItem(k)).storedAtUtc) || 0; }
+        catch { return 0; }
+    };
+    keys.sort((a, b) => timestamp(a) - timestamp(b));
+    while (keys.length >= 64) localStorage.removeItem(keys.shift());
+    localStorage.setItem(key, json);
+}

@@ -1,9 +1,9 @@
-﻿using CsvHelper.Configuration;
-using CsvHelper;
 using System.Globalization;
+using System.Runtime.CompilerServices;
+using CsvHelper;
+using CsvHelper.Configuration;
 using CsvHelper.TypeConversion;
 using Kerajel.TabularDataReader;
-using System.Runtime.CompilerServices;
 
 namespace NuclearEvaluation.Server.Services.STEM;
 
@@ -12,23 +12,16 @@ public class StemPreviewParser : IStemPreviewParser
     public async IAsyncEnumerable<StemPreviewEntry> Parse(
         Stream stream,
         string fileName,
-        [EnumeratorCancellation] CancellationToken ct = default)
+        [EnumeratorCancellation] CancellationToken ct = default
+    )
     {
-        TabularDataReader reader = new TabularDataReader();
-        CsvReader csvReader = reader.GetCsvReader(stream, fileName);
+        using TabularDataReader reader = new();
+        using CsvReader csvReader = reader.GetCsvReader(stream, fileName);
         csvReader.Context.RegisterClassMap<StemPreviewEntryMap>();
 
-        try
+        await foreach (StemPreviewEntry entry in csvReader.GetRecordsAsync<StemPreviewEntry>(ct))
         {
-            await foreach (StemPreviewEntry entry in csvReader.GetRecordsAsync<StemPreviewEntry>(ct))
-            {
-                yield return entry;
-            }
-        }
-        finally
-        {
-            csvReader.Dispose();
-            reader.Dispose();
+            yield return entry;
         }
     }
 
@@ -38,8 +31,7 @@ public class StemPreviewParser : IStemPreviewParser
         {
             Map(m => m.Id).Name("Identifier");
             Map(m => m.LabCode).Name("LaboratoryCode");
-            Map(m => m.AnalysisDate).Name("AnalysisDate")
-                    .TypeConverter<StemDateConverter>();
+            Map(m => m.AnalysisDate).Name("AnalysisDate").TypeConverter<StemDateConverter>();
             Map(m => m.IsNu).Name("IsNu");
             Map(m => m.U234).Name("U234").Optional();
             Map(m => m.ErU234).Name("ErU234").Optional();
@@ -57,11 +49,25 @@ public class StemPreviewParser : IStemPreviewParser
                 return null;
             }
 
-            if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
+            if (
+                DateTime.TryParse(
+                    text,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out DateTime date
+                )
+            )
             {
                 return DateOnly.FromDateTime(date);
             }
-            else if (double.TryParse(text, out double oaDate))
+            else if (
+                double.TryParse(
+                    text,
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out double oaDate
+                )
+            )
             {
                 try
                 {

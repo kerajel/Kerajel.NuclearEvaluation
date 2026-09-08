@@ -1,6 +1,7 @@
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Enums;
 using NuclearEvaluation.Shared.Contracts;
-using System.Linq.Expressions;
 
 namespace NuclearEvaluation.Kernel.Commands;
 
@@ -9,8 +10,9 @@ namespace NuclearEvaluation.Kernel.Commands;
 /// client plus the expression-based refinements only the server can construct.
 /// </summary>
 public class FetchDataCommand<T>
+    where T : class
 {
-    readonly List<dynamic> includes = [];
+    readonly List<Func<IQueryable<T>, IQueryable<T>>> includes = [];
 
     public Expression<Func<T, bool>>? TopLevelFilterExpression { get; set; }
 
@@ -18,11 +20,13 @@ public class FetchDataCommand<T>
 
     public DataQuery? Query { get; set; }
 
+    public CancellationToken CancellationToken { get; set; }
+
     public bool AsNoTracking { get; set; } = true;
 
     public bool HasOrderBy => !string.IsNullOrWhiteSpace(Query?.OrderBy);
 
-    public IEnumerable<dynamic> Includes => includes;
+    public IEnumerable<Func<IQueryable<T>, IQueryable<T>>> Includes => includes;
 
     public QueryKind QueryKind
     {
@@ -40,8 +44,9 @@ public class FetchDataCommand<T>
         }
     }
 
-    public void Include<TChild>(Expression<Func<T, TChild>> queryIncludeFilter) where TChild : class
+    public void Include<TChild>(Expression<Func<T, TChild>> queryIncludeFilter)
+        where TChild : class
     {
-        includes.Add(queryIncludeFilter);
+        includes.Add(query => query.Include(queryIncludeFilter));
     }
 }

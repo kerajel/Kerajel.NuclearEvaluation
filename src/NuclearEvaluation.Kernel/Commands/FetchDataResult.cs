@@ -1,5 +1,5 @@
-﻿using Kerajel.Primitives.Models;
-using Kerajel.Primitives.Enums;
+﻿using Kerajel.Primitives.Enums;
+using Kerajel.Primitives.Models;
 
 namespace NuclearEvaluation.Kernel.Commands;
 
@@ -11,19 +11,11 @@ public class FetchDataResult<T>() : OperationResultBase
 
     public static FetchDataResult<T> Succeeded(IEnumerable<T> entries)
     {
-        return new()
-        {
-            Entries = entries,
-            OperationStatus = OperationStatus.Succeeded,
-        };
+        return new() { Entries = entries, OperationStatus = OperationStatus.Succeeded };
     }
 
     public static FetchDataResult<T> Faulted(Exception ex)
     {
-        return new FetchDataResult<T>
-        {
-            Exception = ex,
-            OperationStatus = OperationStatus.Error,
-        };
+        return new FetchDataResult<T> { Exception = ex, OperationStatus = OperationStatus.Error };
     }
 }

@@ -20,6 +20,8 @@ public readonly record struct GridCacheHit<T>(bool Found, List<T> Entries, int T
 
 public class GridResultCache : IGridResultCache
 {
+    static readonly TimeSpan CacheLifetime = TimeSpan.FromMinutes(10);
+
     const string KeyPrefix = "ne-grid-cache:";
 
     static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -45,9 +47,17 @@ public class GridResultCache : IGridResultCache
             }
 
             Envelope<T>? envelope = JsonSerializer.Deserialize<Envelope<T>>(json, JsonOptions);
-            return envelope is null
-                ? new GridCacheHit<T>(false, [], 0)
-                : new GridCacheHit<T>(true, envelope.Entries, envelope.TotalCount);
+            if (
+                envelope?.Entries is null
+                || envelope.TotalCount < 0
+                || DateTimeOffset.UtcNow - envelope.StoredAtUtc > CacheLifetime
+                || envelope.StoredAtUtc > DateTimeOffset.UtcNow
+            )
+            {
+                await _js.InvokeVoidAsync("localStorage.removeItem", KeyPrefix + key);
+                return new GridCacheHit<T>(false, [], 0);
+            }
+            return new GridCacheHit<T>(true, envelope.Entries, envelope.TotalCount);
         }
         catch
         {
@@ -60,8 +70,16 @@ public class GridResultCache : IGridResultCache
     {
         try
         {
-            string json = JsonSerializer.Serialize(new Envelope<T> { Entries = entries, TotalCount = totalCount }, JsonOptions);
-            await _js.InvokeVoidAsync("localStorage.setItem", KeyPrefix + key, json);
+            string json = JsonSerializer.Serialize(
+                new Envelope<T>
+                {
+                    Entries = entries,
+                    TotalCount = totalCount,
+                    StoredAtUtc = DateTimeOffset.UtcNow,
+                },
+                JsonOptions
+            );
+            await _js.InvokeVoidAsync("cacheGridResult", KeyPrefix + key, json);
         }
         catch
         {
@@ -71,6 +89,7 @@ public class GridResultCache : IGridResultCache
 
     sealed class Envelope<T>
     {
+        public DateTimeOffset StoredAtUtc { get; set; }
         public List<T> Entries { get; set; } = [];
         public int TotalCount { get; set; }
     }

@@ -1,7 +1,6 @@
 using Kerajel.Primitives.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using NuclearEvaluation.Server.Interfaces.STEM;
 using NuclearEvaluation.Server.Services.Sandbox;
 using NuclearEvaluation.Shared;
 using NuclearEvaluation.Shared.Contracts;
@@ -15,7 +14,10 @@ public class StemController : ControllerBase
     readonly IStemPreviewService _stemPreviewService;
     readonly IStorageQuotaService _storageQuotaService;
 
-    public StemController(IStemPreviewService stemPreviewService, IStorageQuotaService storageQuotaService)
+    public StemController(
+        IStemPreviewService stemPreviewService,
+        IStorageQuotaService storageQuotaService
+    )
     {
         _stemPreviewService = stemPreviewService;
         _storageQuotaService = storageQuotaService;
@@ -24,7 +26,12 @@ public class StemController : ControllerBase
     [HttpPost("{sessionId:guid}/files")]
     [EnableRateLimiting(RateLimitPolicies.Uploads)]
     [RequestSizeLimit(UploadLimits.MaxStemPreviewFileSizeBytes + 8192)]
-    public async Task<OperationOutcome> Upload(Guid sessionId, [FromForm] Guid fileId, IFormFile file, CancellationToken ct)
+    public async Task<OperationOutcome> Upload(
+        Guid sessionId,
+        [FromForm] Guid fileId,
+        IFormFile file,
+        CancellationToken ct
+    )
     {
         if (file is null || file.Length == 0)
         {
@@ -36,7 +43,9 @@ public class StemController : ControllerBase
         }
         if (!_storageQuotaService.CanAccept(file.Length))
         {
-            return OperationOutcome.Fail("The site has reached its storage limit. Please try again later.");
+            return OperationOutcome.Fail(
+                "The site has reached its storage limit. Please try again later."
+            );
         }
 
         // The client supplies the file id so it can later delete exactly this file's staged rows.
@@ -46,7 +55,13 @@ public class StemController : ControllerBase
         }
 
         await using Stream stream = file.OpenReadStream();
-        OperationResult result = await _stemPreviewService.UploadStemPreviewFile(sessionId, stream, fileId, file.FileName, ct);
+        OperationResult result = await _stemPreviewService.UploadStemPreviewFile(
+            sessionId,
+            stream,
+            fileId,
+            file.FileName,
+            ct
+        );
 
         _storageQuotaService.Invalidate();
 

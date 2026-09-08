@@ -1,9 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Shared.Models.Views;
-using NuclearEvaluation.Server.Interfaces.Data;
-using NuclearEvaluation.Server.Services.DB;
 
 namespace NuclearEvaluation.Server.Services.Data;
 
@@ -13,12 +9,16 @@ public class SubSampleService : DbServiceBase, ISubSampleService
 
     public SubSampleService(
         NuclearEvaluationServerDbContext _dbContext,
-        ILogger<SubSampleService> logger) : base(_dbContext)
+        ILogger<SubSampleService> logger
+    )
+        : base(_dbContext)
     {
         _logger = logger;
     }
 
-    public async Task<FetchDataResult<SubSampleView>> GetSubSampleViews(FetchDataCommand<SubSampleView> command)
+    public async Task<FetchDataResult<SubSampleView>> GetSubSampleViews(
+        FetchDataCommand<SubSampleView> command
+    )
     {
         try
         {
@@ -26,15 +26,16 @@ public class SubSampleService : DbServiceBase, ISubSampleService
             int? projectId = command.Query?.ProjectId;
             if (projectId.HasValue)
             {
-                baseQuery = baseQuery.Where(x => x.Sample.Series.ProjectSeries.Any(s => s.ProjectId == projectId.Value));
+                baseQuery = baseQuery.Where(x =>
+                    x.Sample.Series.ProjectSeries.Any(s => s.ProjectId == projectId.Value)
+                );
             }
             return await ExecuteQuery(baseQuery, command);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "");
             return FetchDataResult<SubSampleView>.Faulted(ex);
         }
-
     }
 }

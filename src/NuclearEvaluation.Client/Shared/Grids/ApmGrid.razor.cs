@@ -34,9 +34,11 @@ public partial class ApmGrid : BaseGridGeneric<ApmView>
         DataQuery query = loadDataArgs.ToDataQuery(
             presetFilterBox: GetPresetFilterBox?.Invoke(),
             projectId: ProjectId,
-            decayCorrected: EnableDecayCorrection);
+            decayCorrected: EnableDecayCorrection
+        );
 
-        await FetchData(query, () => Api.GetApmViews(query));
+        if (!await FetchData(query, () => Api.GetApmViews(query)))
+            return;
 
         isLoading = false;
 

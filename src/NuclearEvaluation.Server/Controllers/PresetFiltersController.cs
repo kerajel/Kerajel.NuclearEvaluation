@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using NuclearEvaluation.Kernel.Data.Context;
-using NuclearEvaluation.Kernel.Extensions;
 using NuclearEvaluation.Shared.Models.Filters;
 using Z.EntityFramework.Plus;
 
@@ -21,8 +19,8 @@ public class PresetFiltersController : ControllerBase
     [HttpGet]
     public async Task<List<PresetFilter>> GetAll()
     {
-        return await _dbContext.PresetFilter
-            .AsNoTracking()
+        return await _dbContext
+            .PresetFilter.AsNoTracking()
             .Include(x => x.Entries)
             .OrderBy(x => x.Name)
             .ToListAsync();
@@ -45,8 +43,8 @@ public class PresetFiltersController : ControllerBase
     [HttpPut]
     public async Task<IActionResult> Update([FromBody] PresetFilter filter)
     {
-        PresetFilter? existing = await _dbContext.PresetFilter
-            .Include(x => x.Entries)
+        PresetFilter? existing = await _dbContext
+            .PresetFilter.Include(x => x.Entries)
             .SingleOrDefaultAsync(x => x.Id == filter.Id);
 
         if (existing is null)
@@ -56,13 +54,15 @@ public class PresetFiltersController : ControllerBase
 
         existing.Name = filter.Name;
         _dbContext.PresetFilterEntry.RemoveRange(existing.Entries);
-        existing.Entries = filter.Entries.Select(e =>
-        {
-            e.Id = 0;
-            e.PresetFilterId = existing.Id;
-            e.PresetFilter = existing;
-            return e;
-        }).ToList();
+        existing.Entries = filter
+            .Entries.Select(e =>
+            {
+                e.Id = 0;
+                e.PresetFilterId = existing.Id;
+                e.PresetFilter = existing;
+                return e;
+            })
+            .ToList();
 
         await _dbContext.SaveChangesAsync();
         return Ok();
@@ -78,7 +78,9 @@ public class PresetFiltersController : ControllerBase
     [HttpGet("name-available")]
     public async Task<bool> NameAvailable([FromQuery] string name, [FromQuery] int excludeId = 0)
     {
-        bool exists = await _dbContext.PresetFilter.AnyAsync(x => x.Name == name && x.Id != excludeId);
+        bool exists = await _dbContext.PresetFilter.AnyAsync(x =>
+            x.Name == name && x.Id != excludeId
+        );
         return !exists;
     }
 }

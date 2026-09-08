@@ -1,11 +1,11 @@
+using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Components;
 using NuclearEvaluation.Client.Shared.Generics;
 using NuclearEvaluation.Client.Validators;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Enums;
 using NuclearEvaluation.Shared.Models.Filters;
-using FluentValidation;
-using FluentValidation.Results;
 using Radzen;
 
 namespace NuclearEvaluation.Client.Shared.Evaluation.QueryBuilder;
@@ -34,27 +34,29 @@ public partial class PresetFilterDropDown : ComponentBase
 
     int? ActiveFilterId => _activeFilter.Id == 0 ? null : _activeFilter.Id;
 
-    string SubmitIcon => _operationMode == OperationMode.Editing
-        ? "check"
-        : _activeFilter.Id == 0 ? "save" : "edit";
+    string SubmitIcon =>
+        _operationMode == OperationMode.Editing ? "check"
+        : _activeFilter.Id == 0 ? "save"
+        : "edit";
 
-    string SubmitText => _operationMode == OperationMode.Editing
-        ? "Save"
-        : _activeFilter.Id == 0 ? "Save preset" : "Edit preset";
+    string SubmitText =>
+        _operationMode == OperationMode.Editing ? "Save"
+        : _activeFilter.Id == 0 ? "Save preset"
+        : "Edit preset";
 
-    string SubmitTitle => _operationMode == OperationMode.Editing
-        ? "Save the current query builder filters."
-        : _activeFilter.Id == 0
-            ? "Save the current query builder filters as a preset."
-            : "Rename or update the selected saved filter.";
+    string SubmitTitle =>
+        _operationMode == OperationMode.Editing ? "Save the current query builder filters."
+        : _activeFilter.Id == 0 ? "Save the current query builder filters as a preset."
+        : "Rename or update the selected saved filter.";
 
     string CancelIcon => _operationMode == OperationMode.Editing ? "close" : "filter_alt_off";
 
     string CancelText => _operationMode == OperationMode.Editing ? "Cancel" : "Clear preset";
 
-    string CancelTitle => _operationMode == OperationMode.Editing
-        ? "Cancel editing this saved filter."
-        : "Clear the selected saved filter and reload the results.";
+    string CancelTitle =>
+        _operationMode == OperationMode.Editing
+            ? "Cancel editing this saved filter."
+            : "Clear the selected saved filter and reload the results.";
 
     string ToolbarButtonStyle { get; } = "padding: 5px 10px; white-space: nowrap;";
 
@@ -102,8 +104,10 @@ public partial class PresetFilterDropDown : ComponentBase
             return;
         }
 
-        ValidationResult validationResult = await PresetFilterValidator
-            .ValidateAsync(_activeFilter, options => options.IncludeProperties(nameof(PresetFilter.Name)));
+        ValidationResult validationResult = await PresetFilterValidator.ValidateAsync(
+            _activeFilter,
+            options => options.IncludeProperties(nameof(PresetFilter.Name))
+        );
 
         if (!validationResult.IsValid)
         {
@@ -154,7 +158,11 @@ public partial class PresetFilterDropDown : ComponentBase
 
     async Task ConfirmDelete()
     {
-        bool? result = await DialogService.Confirm("Are you sure you want to delete this filter?", "Confirm Delete", new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+        bool? result = await DialogService.Confirm(
+            "Are you sure you want to delete this filter?",
+            "Confirm Delete",
+            new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" }
+        );
         if (result.HasValue && result.Value)
         {
             await DeleteFilter();

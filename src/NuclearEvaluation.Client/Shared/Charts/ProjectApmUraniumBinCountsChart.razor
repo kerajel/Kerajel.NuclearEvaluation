@@ -1,3 +1,9 @@
+@if (_hasError)
+{
+    <p role="alert">The chart could not be loaded.</p>
+    <RadzenButton Text="Retry chart" Click="Refresh" />
+}
+
 @if (_isReady && !string.IsNullOrWhiteSpace(Caption))
 {
     <div class="ne-chart-caption">@Caption</div>
@@ -7,19 +13,19 @@
 {
     <RadzenChart>
         <RadzenChartTooltipOptions Shared="@true" />
-        <RadzenLineSeries Smooth="@true" Data="@(_apmUraniumBinCounts[nameof(ApmBase.U234)])" CategoryProperty="Name" Title="@nameof(ApmBase.U234)" LineType="LineType.Dashed" ValueProperty="Count">
+        <RadzenLineSeries Smooth="@false" Data="@(_apmUraniumBinCounts[nameof(ApmBase.U234)])" CategoryProperty="Name" Title="@nameof(ApmBase.U234)" LineType="LineType.Dashed" ValueProperty="Count">
             <RadzenMarkers Visible="@true" MarkerType="MarkerType.Square" />
             <RadzenSeriesDataLabels Visible="@true" />
         </RadzenLineSeries>
-        <RadzenLineSeries Smooth="@true" Data="@(_apmUraniumBinCounts[nameof(ApmBase.U235)])" CategoryProperty="Name" Title="@nameof(ApmBase.U235)" LineType="LineType.Dashed" ValueProperty="Count">
+        <RadzenLineSeries Smooth="@false" Data="@(_apmUraniumBinCounts[nameof(ApmBase.U235)])" CategoryProperty="Name" Title="@nameof(ApmBase.U235)" LineType="LineType.Dashed" ValueProperty="Count">
             <RadzenMarkers Visible="@true" MarkerType="MarkerType.Square" />
             <RadzenSeriesDataLabels Visible="@true" />
         </RadzenLineSeries>
-        <RadzenLineSeries Smooth="@true" Data="@(_apmUraniumBinCounts[nameof(ApmBase.U236)])" CategoryProperty="Name" Title="@nameof(ApmBase.U236)" LineType="LineType.Dashed" ValueProperty="Count">
+        <RadzenLineSeries Smooth="@false" Data="@(_apmUraniumBinCounts[nameof(ApmBase.U236)])" CategoryProperty="Name" Title="@nameof(ApmBase.U236)" LineType="LineType.Dashed" ValueProperty="Count">
             <RadzenMarkers Visible="@true" MarkerType="MarkerType.Square" />
             <RadzenSeriesDataLabels Visible="@true" />
         </RadzenLineSeries>
-        <RadzenLineSeries Smooth="@true" Data="@(_apmUraniumBinCounts[nameof(ApmBase.U238)])" CategoryProperty="Name" Title="@nameof(ApmBase.U238)" LineType="LineType.Dashed" ValueProperty="Count">
+        <RadzenLineSeries Smooth="@false" Data="@(_apmUraniumBinCounts[nameof(ApmBase.U238)])" CategoryProperty="Name" Title="@nameof(ApmBase.U238)" LineType="LineType.Dashed" ValueProperty="Count">
             <RadzenMarkers Visible="@true" MarkerType="MarkerType.Square" />
             <RadzenSeriesDataLabels Visible="@true" />
         </RadzenLineSeries>

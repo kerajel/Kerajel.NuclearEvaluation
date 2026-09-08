@@ -1,17 +1,14 @@
-using Kerajel.Primitives.Enums;
-using LinqToDB.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Data.Queries;
-using NuclearEvaluation.Kernel.Enums;
-using NuclearEvaluation.Kernel.Extensions;
-using NuclearEvaluation.Shared.Enums;
-using NuclearEvaluation.Shared.Extensions;
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using System.Reflection;
-using Z.EntityFramework.Plus;
+using Kerajel.Primitives.Enums;
+using Microsoft.EntityFrameworkCore;
+using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Data.Queries;
+using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Shared.Enums;
+using NuclearEvaluation.Shared.Extensions;
 
 namespace NuclearEvaluation.Server.Services.DB;
 
@@ -29,11 +26,17 @@ public class DbServiceBase
     public async Task<FetchDataResult<T>> ExecuteQuery<T>(
         IQueryable<T> query,
         FetchDataCommand<T> cmd,
-        CancellationToken ct = default) where T : class
+        CancellationToken ct = default
+    )
+        where T : class
     {
         FetchDataResult<T> result = FetchDataResult<T>.Succeeded(Array.Empty<T>());
 
-        IQueryable<T> filteredQuery = GetFilteredQuery(query, cmd);
+        ct = ct == default ? cmd.CancellationToken : ct;
+        IQueryable<T> filteredQuery = GetFilteredQuery(
+            cmd.AsNoTracking ? query.AsNoTracking() : query,
+            cmd
+        );
 
         IQueryable<T> orderedQuery = filteredQuery;
 
@@ -46,30 +49,22 @@ public class DbServiceBase
         ParameterExpression param = Expression.Parameter(typeof(T), "x");
         MemberExpression keyAccess = Expression.Property(param, keyProperty.Name);
         Expression convertedKeyAccess = Expression.Convert(keyAccess, typeof(object));
-        Expression<Func<T, object>> lambdaKeyPropertyAccess = Expression.Lambda<Func<T, object>>(convertedKeyAccess, param);
+        Expression<Func<T, object>> lambdaKeyPropertyAccess = Expression.Lambda<Func<T, object>>(
+            convertedKeyAccess,
+            param
+        );
 
         IQueryable<T> dataQuery = orderedQuery
             .OrderByWithFallback(cmd.Query, lambdaKeyPropertyAccess)
             .PageWithFallback(cmd.Query);
 
-        // Apply includes last: the Z.EntityFramework.Plus IncludeOptimized provider does not
-        // support the dynamic-LINQ string Where/OrderBy used above, so navigations are loaded
-        // only on the final paged query.
-        foreach (dynamic include in cmd.Includes)
+        foreach (Func<IQueryable<T>, IQueryable<T>> include in cmd.Includes)
         {
-            dataQuery = QueryIncludeOptimizedExtensions.IncludeOptimized(dataQuery, include);
+            dataQuery = include(dataQuery);
         }
 
-        result.TotalCount = await filteredQuery.CountAsyncEF(ct);
-        result.Entries = await dataQuery.ToArrayAsyncEF(ct);
-
-        bool shouldDetach = cmd.AsNoTracking && _dbContext.Model.FindEntityType(typeof(T)) is not null;
-
-        if (shouldDetach)
-        {
-            foreach (T entry in result.Entries)
-                _dbContext.Entry(entry).State = EntityState.Detached;
-        }
+        result.TotalCount = await filteredQuery.CountAsync(ct);
+        result.Entries = await dataQuery.ToArrayAsync(ct);
 
         if (result.Entries.IsNullOrEmpty())
         {
@@ -79,20 +74,24 @@ public class DbServiceBase
         return result;
     }
 
-    protected IQueryable<T> GetFilteredQuery<T>(IQueryable<T> query, FetchDataCommand<T> command) where T : class
+    protected IQueryable<T> GetFilteredQuery<T>(IQueryable<T> query, FetchDataCommand<T> command)
+        where T : class
     {
         IQueryable<T> filteredQuery = query;
 
         PropertyInfo keyProperty = GetKeyProperty<T>();
 
-        if (command.QueryKind == QueryKind.QueryBuilder)
+        if (command.Query?.PresetFilterBox?.HasFilter() == true)
         {
             IQueryable<int> qbFilter = ApplyPresetFilterBox(command);
 
             ParameterExpression paramEntity = Expression.Parameter(typeof(T), "x");
             MemberExpression memberExpr = Expression.Property(paramEntity, keyProperty);
             UnaryExpression convertExpr = Expression.Convert(memberExpr, typeof(object));
-            Expression<Func<T, object>> keySelector = Expression.Lambda<Func<T, object>>(convertExpr, paramEntity);
+            Expression<Func<T, object>> keySelector = Expression.Lambda<Func<T, object>>(
+                convertExpr,
+                paramEntity
+            );
 
             filteredQuery = filteredQuery.Join(
                 qbFilter,
@@ -109,74 +108,88 @@ public class DbServiceBase
         return filteredQuery;
     }
 
-    protected IQueryable<int> ApplyPresetFilterBox<T>(FetchDataCommand<T> command) where T : class
+    protected IQueryable<int> ApplyPresetFilterBox<T>(FetchDataCommand<T> command)
+        where T : class
     {
         IQueryable<PresetFilterQueryObject> compositeQuery = GetBasePresetFilterQuery();
 
-        foreach ((PresetFilterEntryType entryType, string? value) in command.Query!.PresetFilterBox!.AsEnumerable())
+        foreach (
+            (
+                PresetFilterEntryType entryType,
+                string? value
+            ) in command.Query!.PresetFilterBox!.AsEnumerable()
+        )
         {
             compositeQuery = compositeQuery.FilterWithFallback(value);
         }
 
-        PropertyInfo pi = typeof(PresetFilterQueryObject).GetProperties()
+        PropertyInfo pi = typeof(PresetFilterQueryObject)
+            .GetProperties()
             .First(prop => prop.PropertyType == typeof(T));
 
         PropertyInfo keyProperty = GetKeyProperty<T>();
         ParameterExpression param = Expression.Parameter(typeof(PresetFilterQueryObject), "x");
         MemberExpression propertyAccess = Expression.Property(param, pi);
         MemberExpression propertyIdAccess = Expression.Property(propertyAccess, keyProperty.Name);
-        Expression<Func<PresetFilterQueryObject, int>> lambda = Expression.Lambda<Func<PresetFilterQueryObject, int>>(propertyIdAccess, param);
+        Expression<Func<PresetFilterQueryObject, int>> lambda = Expression.Lambda<
+            Func<PresetFilterQueryObject, int>
+        >(propertyIdAccess, param);
 
-        return compositeQuery
-            .Select(lambda)
-            .GroupBy(x => x)
-            .Select(x => x.Key);
+        return compositeQuery.Select(lambda).GroupBy(x => x).Select(x => x.Key);
     }
 
-    private static PropertyInfo GetKeyProperty<T>() where T : class
+    private static PropertyInfo GetKeyProperty<T>()
+        where T : class
     {
-        return _keyPropertyCache.GetOrAdd(typeof(T), static t =>
-        {
-            PropertyInfo[] keyProperties = t.GetProperties()
-                .Where(prop => Attribute.IsDefined(prop, typeof(KeyAttribute)))
-                .ToArray();
-
-            if (keyProperties.Length > 1)
+        return _keyPropertyCache.GetOrAdd(
+            typeof(T),
+            static t =>
             {
-                throw new InvalidOperationException("Entities with composite keys are not supported yet.");
-            }
+                PropertyInfo[] keyProperties = t.GetProperties()
+                    .Where(prop => Attribute.IsDefined(prop, typeof(KeyAttribute)))
+                    .ToArray();
 
-            if (keyProperties.Length == 0)
-            {
-                throw new InvalidOperationException("No property is marked with the [Key] attribute.");
-            }
+                if (keyProperties.Length > 1)
+                {
+                    throw new InvalidOperationException(
+                        "Entities with composite keys are not supported yet."
+                    );
+                }
 
-            return keyProperties.Single();
-        });
+                if (keyProperties.Length == 0)
+                {
+                    throw new InvalidOperationException(
+                        "No property is marked with the [Key] attribute."
+                    );
+                }
+
+                return keyProperties.Single();
+            }
+        );
     }
 
     protected IQueryable<PresetFilterQueryObject> GetBasePresetFilterQuery()
     {
         return from series in _dbContext.SeriesView
-               from sample in _dbContext.SampleView
-                   .Where(sample => sample.SeriesId == series.Id)
-                   .DefaultIfEmpty()
-               from subSample in _dbContext.SubSampleView
-                   .Where(subSample => subSample.SampleId == sample.Id)
-                   .DefaultIfEmpty()
-               from apm in _dbContext.ApmView
-                   .Where(apm => apm.SubSampleId == subSample.Id)
-                   .DefaultIfEmpty()
-               from particle in _dbContext.ParticleView
-                   .Where(particle => particle.SubSampleId == subSample.Id)
-                   .DefaultIfEmpty()
-               select new PresetFilterQueryObject
-               {
-                   Series = series,
-                   Sample = sample,
-                   SubSample = subSample,
-                   Apm = apm,
-                   Particle = particle,
-               };
+            from sample in _dbContext
+                .SampleView.Where(sample => sample.SeriesId == series.Id)
+                .DefaultIfEmpty()
+            from subSample in _dbContext
+                .SubSampleView.Where(subSample => subSample.SampleId == sample.Id)
+                .DefaultIfEmpty()
+            from apm in _dbContext
+                .ApmView.Where(apm => apm.SubSampleId == subSample.Id)
+                .DefaultIfEmpty()
+            from particle in _dbContext
+                .ParticleView.Where(particle => particle.SubSampleId == subSample.Id)
+                .DefaultIfEmpty()
+            select new PresetFilterQueryObject
+            {
+                Series = series,
+                Sample = sample,
+                SubSample = subSample,
+                Apm = apm,
+                Particle = particle,
+            };
     }
 }

@@ -159,3 +159,14 @@ a:focus {
 .loading-progress-text:after {
     content: var(--blazor-load-percentage-text, "Loading");
 }
+
+.ne-intro { max-width: 52rem; }
+.ne-intro h1 { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; margin: 1rem 0; }
+.ne-intro-lead { font-size: 1.35rem; line-height: 1.5; }
+.ne-demo-note { color: var(--rz-text-secondary-color); }
+.ne-feature-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1.25rem; margin-top: 2.5rem; }
+.ne-feature-card { display: flex; flex-direction: column; align-items: flex-start; padding: 1.5rem; border: 1px solid var(--rz-base-500); border-radius: 0.5rem; }
+.ne-feature-card h2 { font-size: 1.3rem; margin: 1rem 0 0.5rem; }
+.ne-feature-card p { flex: 1; }
+.ne-feature-card a { font-weight: 600; }
+.stem-dropzone:focus-within { outline: 2px solid var(--rz-primary); outline-offset: 3px; }

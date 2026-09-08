@@ -1,4 +1,4 @@
-﻿namespace Kerajel.Primitives.Helpers;
+namespace Kerajel.Primitives.Helpers;
 
 public class Debouncer<TResult>
 {
@@ -7,7 +7,6 @@ public class Debouncer<TResult>
     readonly List<TaskCompletionSource<TResult>> _pendingTasks = [];
 
     Timer? _debounceTimer;
-    CancellationTokenSource? _cancellationTokenSource;
     Func<Task<TResult>>? _executeAction;
 
     public Debouncer(TimeSpan interval)
@@ -17,19 +16,22 @@ public class Debouncer<TResult>
 
     public Task<TResult> ExecuteAsync(Func<Task<TResult>> action)
     {
-        TaskCompletionSource<TResult> taskCompletionSource = new();
+        TaskCompletionSource<TResult> taskCompletionSource = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
         lock (_syncRoot)
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = new CancellationTokenSource();
-
             _executeAction = action;
             _pendingTasks.Add(taskCompletionSource);
 
             if (_debounceTimer == null)
             {
-                _debounceTimer = new Timer(OnTimerElapsed, null, _debounceInterval, Timeout.InfiniteTimeSpan);
+                _debounceTimer = new Timer(
+                    OnTimerElapsed,
+                    null,
+                    _debounceInterval,
+                    Timeout.InfiniteTimeSpan
+                );
             }
             else
             {
@@ -44,8 +46,6 @@ public class Debouncer<TResult>
         List<TaskCompletionSource<TResult>> pendingTasksCopy;
         lock (_syncRoot)
         {
-            _cancellationTokenSource?.Cancel();
-
             pendingTasksCopy = new List<TaskCompletionSource<TResult>>(_pendingTasks);
             _pendingTasks.Clear();
 
@@ -68,7 +68,6 @@ public class Debouncer<TResult>
     {
         List<TaskCompletionSource<TResult>> tasksToComplete;
         Func<Task<TResult>>? actionToExecute;
-        CancellationToken cancellationToken;
 
         lock (_syncRoot)
         {
@@ -76,7 +75,6 @@ public class Debouncer<TResult>
             _pendingTasks.Clear();
             actionToExecute = _executeAction;
             _executeAction = null;
-            cancellationToken = _cancellationTokenSource?.Token ?? CancellationToken.None;
         }
 
         try

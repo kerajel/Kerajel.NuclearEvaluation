@@ -144,20 +144,20 @@ npm test
 
 The suite uses `http://localhost:8080` by default. Override it with `E2E_BASE_URL` when testing another disposable target. Use `E2E_WORKERS` to tune browser parallelism, or `npm run test:serial` for one-worker debugging.
 
-Or run the browser suite through Docker Compose, which starts the app dependencies and uses a dedicated Playwright test container:
+For repeatable agent and CI runs, use the repository script. It creates an isolated Compose project, assigns random host ports so it can run beside the development stack, and removes its database and storage volumes when finished:
 
 ```bash
-docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e
+./scripts/run-e2e.sh
 ```
 
-The Docker e2e profile defaults to 2 Playwright workers, which keeps the local SQL Server
-container steadier while still running tests in parallel. Override with `E2E_WORKERS` for a
-faster stress run, for example:
+The Docker e2e profile defaults to two Playwright workers. Override `E2E_WORKERS` when needed:
 
-```powershell
-$env:E2E_WORKERS = "4"
-docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e
+```bash
+E2E_WORKERS=4 ./scripts/run-e2e.sh
 ```
+
+The checked-in Playwright Codex agents can explore the running app, turn the scenario checklist in `docs/testing/test-cases.md` into executable tests, and investigate failures. Their seed test is `tests/e2e/specs/seed.spec.ts`. Generated tests run through the same Playwright configuration and CI job as hand-written tests.
+
 ## Production deployment
 
 Production site: <https://nuclearevaluation.com/>.

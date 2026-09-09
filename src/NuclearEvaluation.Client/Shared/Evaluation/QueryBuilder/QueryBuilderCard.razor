@@ -5,6 +5,7 @@
         <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Series))"
                         Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Series)"
                         TValue="bool"
+                        AriaLabel="Series filter"
                         Style="@CheckBoxStyle" />
         <RadzenHeading Size="@HeadingSize"
                        Text="Series"
@@ -17,6 +18,7 @@
         <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Sample))"
                         Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Sample)"
                         TValue="bool"
+                        AriaLabel="Sample filter"
                         Style="@CheckBoxStyle" />
         <RadzenHeading Size="@HeadingSize"
                        Text="Sample"
@@ -29,6 +31,7 @@
         <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.SubSample))"
                         Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.SubSample)"
                         TValue="bool"
+                        AriaLabel="SubSample filter"
                         Style="@CheckBoxStyle" />
         <RadzenHeading Size="@HeadingSize"
                        Text="SubSample"
@@ -41,6 +44,7 @@
         <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Apm))"
                         Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Apm)"
                         TValue="bool"
+                        AriaLabel="Apm filter"
                         Style="@CheckBoxStyle" />
         <RadzenHeading Size="@HeadingSize"
                        Text="Apm"
@@ -53,6 +57,7 @@
         <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Particle))"
                         Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Particle)"
                         TValue="bool"
+                        AriaLabel="Particle filter"
                         Style="@CheckBoxStyle" />
         <RadzenHeading Size="@HeadingSize"
                        Text="Particle"
@@ -72,6 +77,7 @@
                                     Value="@_activeGrid"
                                     ValueChanged="OnDataGridSelected"
                                     TValue="IDataGridComponent"
+                                    aria-label="Result entity"
                                     Style="width: 220px;" />
                 </div>
 

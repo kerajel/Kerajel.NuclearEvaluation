@@ -3,8 +3,21 @@
     <p role="alert">Totals could not be loaded. Change a filter or reload the page to retry.</p>
 }
 
-<div class="ne-compact-grid">
-<RadzenDataGrid Data="@_countSummary" AllowFiltering="false" AllowColumnResize="false" AllowSorting="false" AllowPaging="false" ColumnWidth="200px">
+<div class="ne-compact-grid ne-series-counts-grid"
+     aria-busy="@(_isLoading ? "true" : "false")">
+<RadzenDataGrid Data="@_countSummary"
+                IsLoading="@_isLoading"
+                AllowFiltering="false"
+                AllowColumnResize="false"
+                AllowSorting="false"
+                AllowPaging="false"
+                ColumnWidth="200px">
+    <EmptyTemplate>
+        @if (!_isLoading)
+        {
+            <span>No records to display</span>
+        }
+    </EmptyTemplate>
     <Columns>
         <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.SeriesCount)" Title="Total Series" TextAlign="TextAlign.Center" FormatString="{0:N0}" />
         <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.SampleCount)" Title="Total Samples" TextAlign="TextAlign.Center" FormatString="{0:N0}" />

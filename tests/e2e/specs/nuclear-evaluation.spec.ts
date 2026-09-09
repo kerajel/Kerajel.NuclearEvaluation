@@ -208,6 +208,53 @@ test('DM-04 disabled delete tooltip is native title and does not create horizont
   expect(state.scrollWidth).toBeLessThanOrEqual(state.clientWidth + 8);
 });
 
+test('DM-05 returning to Data Management keeps cached totals visible during refresh', async ({ page }) => {
+  await gotoApp(page, '/data-management');
+  const totals = page.locator('.ne-series-counts-grid');
+  await expect(totals).toContainText('100,000', { timeout: 60_000 });
+  await expect(totals).toHaveAttribute('aria-busy', 'false');
+  await page.waitForFunction(() => Object.keys(localStorage).some(key => key.includes('series-counts|')));
+
+  await gotoApp(page, '/');
+  await page.route('**/api/views/series-counts', async route => {
+    await new Promise(resolve => setTimeout(resolve, 1_500));
+    await route.continue();
+  }, { times: 1 });
+  await page.evaluate(() => {
+    const trackedWindow = window as Window & {
+      __totalsEmptyFlash?: boolean;
+      __totalsObserver?: MutationObserver;
+    };
+    trackedWindow.__totalsEmptyFlash = false;
+    trackedWindow.__totalsObserver = new MutationObserver(() => {
+      const text = document.querySelector('.ne-series-counts-grid')?.textContent ?? '';
+      if (text.includes('No records to display')) {
+        trackedWindow.__totalsEmptyFlash = true;
+      }
+    });
+    trackedWindow.__totalsObserver.observe(document.body, {
+      childList: true,
+      characterData: true,
+      subtree: true
+    });
+  });
+
+  await page.getByText('Data Management', { exact: true }).click();
+  await expect(totals).toHaveAttribute('aria-busy', 'true');
+  await expect(totals).toContainText('100,000');
+  await expect(totals).toHaveAttribute('aria-busy', 'false', { timeout: 60_000 });
+
+  const sawEmptyFlash = await page.evaluate(() => {
+    const trackedWindow = window as Window & {
+      __totalsEmptyFlash?: boolean;
+      __totalsObserver?: MutationObserver;
+    };
+    trackedWindow.__totalsObserver?.disconnect();
+    return trackedWindow.__totalsEmptyFlash ?? false;
+  });
+  expect(sawEmptyFlash).toBe(false);
+});
+
 test('BE-01 project view filtering by id succeeds with includes applied last', async ({ page }) => {
   const result = await apiPost<FetchDataResult>(page, '/api/views/projects', { filter: 'Id == 1', top: 5, skip: 0 });
 

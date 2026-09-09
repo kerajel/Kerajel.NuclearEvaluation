@@ -16,12 +16,16 @@ public partial class SeriesCountsGrid
 
     SeriesCountsView[] _countSummary = [];
     int _sequence;
+    bool _isLoading = true;
     bool _hasError;
 
     public async Task RefreshSummaryData(DataQuery query)
     {
         int sequence = ++_sequence;
         string key = $"series-counts|{JsonSerializer.Serialize(query)}";
+        _isLoading = true;
+        _hasError = false;
+        await InvokeAsync(StateHasChanged);
 
         // Show last known totals from the browser cache immediately, then refresh.
         GridCacheHit<SeriesCountsView> cached = await ResultCache.TryGetAsync<SeriesCountsView>(
@@ -32,7 +36,7 @@ public partial class SeriesCountsGrid
         if (cached.Found && cached.Entries.Count > 0)
         {
             _countSummary = [cached.Entries[0]];
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
 
         SeriesCountsView fresh;
@@ -44,9 +48,9 @@ public partial class SeriesCountsGrid
         {
             if (sequence != _sequence)
                 return;
-            _countSummary = [];
+            _isLoading = false;
             _hasError = true;
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
             return;
         }
 
@@ -58,7 +62,9 @@ public partial class SeriesCountsGrid
 
         _hasError = false;
         _countSummary = [fresh];
+        _isLoading = false;
+        await InvokeAsync(StateHasChanged);
+
         await ResultCache.SetAsync(key, new List<SeriesCountsView> { fresh }, 1);
-        StateHasChanged();
     }
 }

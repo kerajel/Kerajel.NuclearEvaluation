@@ -12,7 +12,7 @@ This checklist defines the application scenarios and their expected behavior.
 
 ## Browser suite
 
-- Runner: `tests/e2e/specs/nuclear-evaluation.spec.ts`
+- Runner: `tests/e2e/specs/*.spec.ts`
 - Docker command: `docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e e2e`
 - Docker defaults to two Playwright workers. Set `E2E_WORKERS` to change parallelism, or use `npm run test:serial` for one worker.
 
@@ -33,6 +33,9 @@ This checklist defines the application scenarios and their expected behavior.
 | BE-03 | Backend/Data | Sample External Code filtering works through data/query-builder-compatible API | Fetch a sample row; filter samples by its `ExternalCode`; filter query-builder composite by `Sample.ExternalCode` | Direct sample filtering succeeds, and query-builder mode accepts `Sample.ExternalCode` without error. |
 | BE-04 | Backend/Data | Project-scoped grids and charts return data for project 1 | Call series/sample/subsample/apm/particle scoped grids; call APM and particle chart APIs | All scoped endpoints succeed and chart APIs return arrays. |
 | QB-01 | Query Builder | Filter edits wait for Apply query; enum conditions execute | Toggle Sample on/off, add External Code equals 001 OR Sample Type equals Qc, then Apply query | Editing preserves the current grid without data requests; applying succeeds with the matching series. |
+| QB-02–QB-19, QB-22–QB-64 | Query Builder | Scalar types and operators execute through the browser UI | Apply text, integer, decimal, enum, date, boolean, and null filters across Series, Sample, SubSample, APM, and Particle using positive and negative equality, every comparison boundary, contains/does-not-contain, starts-with, ends-with, empty, and null operators | Each generated filter reaches the correct entity slot, succeeds, and returns results consistent with the seeded relationship graph. |
+| QB-20 | Query Builder | Filters from all five entities compose across every result grid | Combine exact Series/Sample/SubSample conditions with APM and Particle comparisons; apply; switch through Series, Sample, SubSample, APM, and Particle results | Every result endpoint receives all five filter entries and returns the matching relationship chain. |
+| QB-21 | Query Builder | Rich preset lifecycle persists descriptors and logical operands | Build a five-entity preset with text, integer, date, boolean, enum, decimal/null, AND, and OR state; save; reload and retrieve; rename; delete | Descriptor types and operators survive persistence, retrieval reapplies all entries, rename preserves them, and delete removes the preset from storage and the dropdown. |
 | UI-02 | Evaluation | Evaluation page query-builder shell renders expected controls | Open Evaluation; open Query Builder tab; inspect filter sections and controls | Query Builder contains filter sections, Apply, grid selector, and preset controls. |
 | STEM-01 | STEM Upload | STEM tab exposes sample downloads and multi-file drop target | Open STEM Preview tab; inspect download links and file input attributes | Sample downloads exist, file input has multiple enabled, supported extensions are advertised, and visible dropzone content does not intercept pointer events. |
 | STEM-02 | STEM Upload | Uploading two STEM CSV files previews both, deleting one removes only its rows | Select two valid CSV files; upload; delete first uploaded file; check preview grid | Both files upload; deleting one removes only that file rows while keeping the other. |

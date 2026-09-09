@@ -1,4 +1,4 @@
-import { expect, test, type Page } from 'playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { closeSync, openSync, statSync, writeSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

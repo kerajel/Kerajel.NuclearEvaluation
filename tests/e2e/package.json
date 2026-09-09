@@ -4,12 +4,15 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
+    "test:query-builder": "playwright test specs/query-builder.spec.ts",
+    "test:smoke": "playwright test --grep @smoke",
     "test:serial": "playwright test --workers=1",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
+    "test:list": "playwright test --list",
     "install:browsers": "playwright install chromium"
   },
   "devDependencies": {
-    "playwright": "1.63.0"
+    "@playwright/test": "1.63.0"
   }
 }

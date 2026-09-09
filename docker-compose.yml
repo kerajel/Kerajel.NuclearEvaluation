@@ -8,7 +8,7 @@ services:
       MSSQL_SA_PASSWORD: "Local_Dev_Pass_123"
       MSSQL_PID: "Developer"
     ports:
-      - "1433:1433"
+      - "${NUCLEAR_DB_PORT:-1433}:1433"
     volumes:
       - mssql-data:/var/opt/mssql
     healthcheck:
@@ -32,7 +32,7 @@ services:
       Sandbox__ResetIntervalHours: "24"
       Sandbox__SweepIntervalMinutes: "30"
     ports:
-      - "8080:8080"
+      - "${NUCLEAR_APP_PORT:-8080}:8080"
     networks:
       default:
         aliases:
@@ -46,6 +46,10 @@ services:
     build:
       context: .
       dockerfile: tests/e2e/Dockerfile
+      args:
+        E2E_UID: "${E2E_UID:-1000}"
+        E2E_GID: "${E2E_GID:-1000}"
+    shm_size: "1gb"
     depends_on:
       app:
         condition: service_started

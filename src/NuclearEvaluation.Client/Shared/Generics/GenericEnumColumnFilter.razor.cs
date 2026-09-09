@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using NuclearEvaluation.Client.Services;
 using NuclearEvaluation.Shared.Contracts;
 using Radzen;
 using Radzen.Blazor;
@@ -70,12 +69,17 @@ public partial class GenericEnumColumnFilter<T, K>
 
     async Task OnApply()
     {
-        string? whereExpression = _selectedItems?.Any() == true
-            ? string.Join($" {Enum.GetName(LogicalFilterOperator.Or)} ",
-              _selectedItems.Select(s => $"{PropertyName} == {(int)(object)s}"))
-            : default;
+        string? whereExpression =
+            _selectedItems?.Any() == true
+                ? string.Join(
+                    $" {Enum.GetName(LogicalFilterOperator.Or)} ",
+                    _selectedItems.Select(s => $"{PropertyName} == {(int)(object)s}")
+                )
+                : default;
 
-        whereExpression = string.IsNullOrWhiteSpace(whereExpression) ? default : $" ({whereExpression}) ";
+        whereExpression = string.IsNullOrWhiteSpace(whereExpression)
+            ? default
+            : $" ({whereExpression}) ";
 
         await Column!.SetCustomFilterExpressionAsync(whereExpression);
     }

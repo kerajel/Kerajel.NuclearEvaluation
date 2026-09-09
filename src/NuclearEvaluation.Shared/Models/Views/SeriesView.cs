@@ -1,5 +1,5 @@
-﻿using NuclearEvaluation.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using NuclearEvaluation.Shared.Enums;
 
 namespace NuclearEvaluation.Shared.Models.Views;
 

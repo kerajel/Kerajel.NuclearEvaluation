@@ -15,7 +15,10 @@ public partial class NuclearEvaluationServerDbContext : DbContext
 
     public NuclearEvaluationServerDbContext() { }
 
-    public NuclearEvaluationServerDbContext(DbContextOptions<NuclearEvaluationServerDbContext> options) : base(options) { }
+    public NuclearEvaluationServerDbContext(
+        DbContextOptions<NuclearEvaluationServerDbContext> options
+    )
+        : base(options) { }
 
     public DbSet<Project> Project { get; set; }
     public DbSet<Series> Series { get; set; }
@@ -45,8 +48,10 @@ public partial class NuclearEvaluationServerDbContext : DbContext
     {
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseSqlServer(""
-                , b => b.MigrationsHistoryTable("__EFMigrationsHistory", DboSchema));
+            optionsBuilder.UseSqlServer(
+                "",
+                b => b.MigrationsHistoryTable("__EFMigrationsHistory", DboSchema)
+            );
         }
     }
 
@@ -79,9 +84,10 @@ public partial class NuclearEvaluationServerDbContext : DbContext
         modelBuilder.Entity<PresetFilterEntry>(entity =>
         {
             entity.ToTable("PresetFilterEntry", EvaluationSchema);
-            entity.Property(b => b.SerializedDescriptors)
-                  .HasField("_serializedDescriptors")
-                  .UsePropertyAccessMode(PropertyAccessMode.Property);
+            entity
+                .Property(b => b.SerializedDescriptors)
+                .HasField("_serializedDescriptors")
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
         });
     }
 
@@ -90,16 +96,16 @@ public partial class NuclearEvaluationServerDbContext : DbContext
         modelBuilder.Entity<Series>(entity =>
         {
             entity.ToTable("Series", DataSchema);
-            entity.Property(e => e.Id)
-                  .UseIdentityColumn(seed: 10000);
+            entity.Property(e => e.Id).UseIdentityColumn(seed: 10000);
         });
 
         modelBuilder.Entity<Sample>(entity =>
         {
             entity.ToTable("Sample", DataSchema);
-            entity.Property(x => x.SampleType)
-                  .HasColumnType("tinyint")
-                  .HasComputedColumnSql(Shared.Models.Domain.Sample.GetSampleTypeSqlExpression());
+            entity
+                .Property(x => x.SampleType)
+                .HasColumnType("tinyint")
+                .HasComputedColumnSql(Shared.Models.Domain.Sample.GetSampleTypeSqlExpression());
         });
 
         modelBuilder.Entity<SubSample>(entity =>
@@ -129,14 +135,15 @@ public partial class NuclearEvaluationServerDbContext : DbContext
         {
             entity.ToTable("ProjectSeries", EvaluationSchema);
             entity.HasKey(ps => new { ps.ProjectId, ps.SeriesId });
-            entity.HasOne(ps => ps.Project)
-                  .WithMany(p => p.ProjectSeries)
-                  .HasForeignKey(ps => ps.ProjectId);
-            entity.HasOne(ps => ps.Series)
-                  .WithMany(s => s.ProjectSeries)
-                  .HasForeignKey(ps => ps.SeriesId);
+            entity
+                .HasOne(ps => ps.Project)
+                .WithMany(p => p.ProjectSeries)
+                .HasForeignKey(ps => ps.ProjectId);
+            entity
+                .HasOne(ps => ps.Series)
+                .WithMany(s => s.ProjectSeries)
+                .HasForeignKey(ps => ps.SeriesId);
         });
-
     }
 
     static void ConfigureDataSchemaViews(ModelBuilder modelBuilder)
@@ -145,15 +152,17 @@ public partial class NuclearEvaluationServerDbContext : DbContext
         {
             entity.HasAlternateKey(x => x.Id);
             entity.ToView("SeriesView", DataSchema);
-            entity.HasMany(sv => sv.ProjectSeries)
-                  .WithOne(pvs => pvs.Series)
-                  .HasForeignKey(pvs => pvs.SeriesId);
+            entity
+                .HasMany(sv => sv.ProjectSeries)
+                .WithOne(pvs => pvs.Series)
+                .HasForeignKey(pvs => pvs.SeriesId);
         });
 
         modelBuilder.Entity<SampleView>(entity =>
         {
             entity.HasAlternateKey(x => x.Id);
             entity.ToView("SampleView", DataSchema);
+            entity.Property(x => x.SampleType).HasColumnType("tinyint");
         });
 
         modelBuilder.Entity<SubSampleView>(entity =>
@@ -187,21 +196,24 @@ public partial class NuclearEvaluationServerDbContext : DbContext
         {
             entity.HasAlternateKey(x => x.Id);
             entity.ToView("ProjectView", EvaluationSchema);
-            entity.HasMany(pv => pv.ProjectSeries)
-                  .WithOne(pvs => pvs.Project)
-                  .HasForeignKey(pvs => pvs.ProjectId);
+            entity
+                .HasMany(pv => pv.ProjectSeries)
+                .WithOne(pvs => pvs.Project)
+                .HasForeignKey(pvs => pvs.ProjectId);
         });
 
         modelBuilder.Entity<ProjectViewSeriesView>(entity =>
         {
             entity.HasKey(pvs => new { pvs.ProjectId, pvs.SeriesId });
             entity.ToView("ProjectViewSeriesView", EvaluationSchema);
-            entity.HasOne(pvs => pvs.Project)
-                  .WithMany(pv => pv.ProjectSeries)
-                  .HasForeignKey(pvs => pvs.ProjectId);
-            entity.HasOne(pvs => pvs.Series)
-                  .WithMany(sv => sv.ProjectSeries)
-                  .HasForeignKey(pvs => pvs.SeriesId);
+            entity
+                .HasOne(pvs => pvs.Project)
+                .WithMany(pv => pv.ProjectSeries)
+                .HasForeignKey(pvs => pvs.ProjectId);
+            entity
+                .HasOne(pvs => pvs.Series)
+                .WithMany(sv => sv.ProjectSeries)
+                .HasForeignKey(pvs => pvs.SeriesId);
         });
 
         modelBuilder.Entity<ProjectDecayCorrectedParticleView>(entity =>
@@ -215,7 +227,6 @@ public partial class NuclearEvaluationServerDbContext : DbContext
             entity.ToView("ProjectDecayCorrectedApmView", EvaluationSchema);
             entity.HasBaseType(null as Type);
         });
-
     }
 
     static void ConfigureDefaultOnDeleteBehavior(ModelBuilder modelBuilder)
@@ -231,7 +242,8 @@ public partial class NuclearEvaluationServerDbContext : DbContext
 
     static void ConfigureCascadeOnDeleteBehavior(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<PresetFilter>()
+        modelBuilder
+            .Entity<PresetFilter>()
             .HasMany(p => p.Entries)
             .WithOne(e => e.PresetFilter)
             .HasForeignKey(e => e.PresetFilterId)

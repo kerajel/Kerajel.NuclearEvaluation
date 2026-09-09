@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using System.IO.Pipes;
+using System.Globalization;
 using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -7,147 +6,148 @@ using ExcelDataReader;
 
 namespace Kerajel.TabularDataReader;
 
-public class TabularDataReader : IDisposable
+/// <summary>Reads delimited text or a worksheet through the same streaming CSV interface.</summary>
+public sealed class TabularDataReader : IDisposable
 {
-    private const int _batchSize = 10_000;
-    private AnonymousPipeServerStream _pipeServer = null!;
-    private AnonymousPipeClientStream _pipeClient = null!;
-    private Task _writerTask = null!;
-    private CsvReader _csvReader = null!;
-    private StreamReader _streamReader = null!;
-    private bool _disposed;
+    readonly List<CsvReader> _readers = [];
+    bool _disposed;
 
-    static readonly HashSet<string> _supportedSpreadSheetFormats = new(StringComparer.OrdinalIgnoreCase)
+    static readonly HashSet<string> SpreadsheetExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".xlsx",
         ".xlsb",
-        ".xls"
+        ".xls",
     };
 
-    static readonly CsvConfiguration _csvConfig = new(CultureInfo.InvariantCulture)
-    {
-        HasHeaderRecord = true,
-        DetectDelimiter = true,
-        DetectDelimiterValues = [",", "\t", ";", "|"],
-    };
+    static CsvConfiguration CreateCsvConfiguration() =>
+        new(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = true,
+            DetectDelimiter = true,
+            DetectDelimiterValues = [",", "\t", ";", "|"],
+        };
 
     static TabularDataReader()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
 
-    public CsvReader GetCsvReader(Stream stream, string fileName, string? sheetName = default)
+    /// <summary>The returned reader owns the input stream and is also disposed with this instance.</summary>
+    public CsvReader GetCsvReader(Stream stream, string fileName, string? sheetName = null)
     {
-        string fileExtension = Path.GetExtension(fileName);
-
-        if (_supportedSpreadSheetFormats.Contains(fileExtension))
-        {
-            return FromSpreadsheet(stream, sheetName);
-        }
-        else
-        {
-            return FromPlainText(stream);
-        }
-    }
-
-    private static CsvReader FromPlainText(Stream stream)
-    {
-        StreamReader plainTextReader = new(stream);
-        CsvReader plainCsvReader = new(plainTextReader, _csvConfig);
-        return plainCsvReader;
-    }
-
-    private CsvReader FromSpreadsheet(Stream stream, string? sheetName)
-    {
-        _pipeServer = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.None);
-        _pipeClient = new AnonymousPipeClientStream(PipeDirection.In, _pipeServer.ClientSafePipeHandle);
-
-        _writerTask = Task.Run(async () =>
-        {
-            using IExcelDataReader excelReader = ExcelReaderFactory.CreateReader(stream);
-            using StreamWriter writer = new(_pipeServer);
-            using CsvWriter csvWriter = new(writer, _csvConfig);
-
-            ResolveTargetWorksheet(sheetName, excelReader);
-
-            int recordCount = 0;
-            while (excelReader.Read())
-            {
-                object[] values = new object[excelReader.FieldCount];
-                int valueCount = excelReader.GetValues(values);
-                for (int i = 0; i < valueCount; i++)
-                {
-                    csvWriter.WriteField(values[i]);
-                }
-                csvWriter.NextRecord();
-                recordCount++;
-                if (recordCount % _batchSize == 0)
-                {
-                    await writer.FlushAsync().ConfigureAwait(false);
-                }
-            }
-            await writer.FlushAsync().ConfigureAwait(false);
-        });
-
-        _streamReader = new StreamReader(_pipeClient);
-        _csvReader = new CsvReader(_streamReader, _csvConfig);
-        return _csvReader;
-    }
-
-    private static void ResolveTargetWorksheet(string? sheetName, IExcelDataReader excelReader)
-    {
-        if (!string.IsNullOrEmpty(sheetName))
-        {
-            bool sheetFound = false;
-            do
-            {
-                if (excelReader.Name == sheetName)
-                {
-                    sheetFound = true;
-                    break;
-                }
-            }
-            while (excelReader.NextResult());
-            if (!sheetFound)
-            {
-                throw new ArgumentException($"Sheet '{sheetName}' not found in Excel file");
-            }
-        }
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        TextReader textReader = SpreadsheetExtensions.Contains(Path.GetExtension(fileName))
+            ? new WorksheetTextReader(stream, sheetName)
+            : new StreamReader(stream);
+        CsvReader reader = new(textReader, CreateCsvConfiguration());
+        _readers.Add(reader);
+        return reader;
     }
 
     public void Dispose()
     {
-        if (!_disposed)
+        if (_disposed)
+            return;
+        _disposed = true;
+        foreach (CsvReader reader in _readers)
         {
+            reader.Dispose();
+        }
+        _readers.Clear();
+    }
+
+    // Convert one row at a time on demand. A producer task and OS pipe are unnecessary:
+    // they hide workbook errors and can block when the consumer stops reading early.
+    sealed class WorksheetTextReader : TextReader
+    {
+        readonly IExcelDataReader _excel;
+        readonly StringWriter _text = new(CultureInfo.InvariantCulture);
+        readonly CsvWriter _csv;
+        int _position;
+        bool _disposed;
+
+        public WorksheetTextReader(Stream stream, string? sheetName)
+        {
+            _excel = ExcelReaderFactory.CreateReader(stream);
             try
             {
-                if (_writerTask != null)
+                if (!string.IsNullOrEmpty(sheetName))
                 {
-                    _writerTask.Wait(TimeSpan.FromSeconds(30));
+                    while (_excel.Name != sheetName)
+                    {
+                        if (!_excel.NextResult())
+                        {
+                            throw new ArgumentException(
+                                $"Sheet '{sheetName}' not found in Excel file",
+                                nameof(sheetName)
+                            );
+                        }
+                    }
                 }
+                _csv = new CsvWriter(_text, CultureInfo.InvariantCulture, leaveOpen: true);
             }
             catch
             {
-                
+                _excel.Dispose();
+                _text.Dispose();
+                throw;
             }
-            if (_csvReader != null)
+        }
+
+        public override int Read(char[] buffer, int index, int count) =>
+            Read(buffer.AsSpan(index, count));
+
+        public override int Read(Span<char> buffer)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            int written = 0;
+            StringBuilder row = _text.GetStringBuilder();
+            while (written < buffer.Length)
             {
-                _csvReader.Dispose();
+                if (_position == row.Length)
+                {
+                    if (!_excel.Read())
+                        break;
+                    row.Clear();
+                    _position = 0;
+                    for (int column = 0; column < _excel.FieldCount; column++)
+                    {
+                        _csv.WriteField(_excel.GetValue(column));
+                    }
+                    _csv.NextRecord();
+                    _csv.Flush();
+                }
+
+                int count = Math.Min(row.Length - _position, buffer.Length - written);
+                row.CopyTo(_position, buffer.Slice(written, count), count);
+                _position += count;
+                written += count;
             }
-            if (_streamReader != null)
+            return written;
+        }
+
+        public override Task<int> ReadAsync(char[] buffer, int index, int count) =>
+            Task.FromResult(Read(buffer, index, count));
+
+        public override ValueTask<int> ReadAsync(
+            Memory<char> buffer,
+            CancellationToken cancellationToken = default
+        )
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(Read(buffer.Span));
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && !_disposed)
             {
-                _streamReader.Dispose();
+                _disposed = true;
+                _csv.Dispose();
+                _text.Dispose();
+                _excel.Dispose();
             }
-            if (_pipeServer != null)
-            {
-                _pipeServer.Dispose();
-            }
-            if (_pipeClient != null)
-            {
-                _pipeClient.Dispose();
-            }
-            _disposed = true;
-            GC.SuppressFinalize(this);
+            base.Dispose(disposing);
         }
     }
 }

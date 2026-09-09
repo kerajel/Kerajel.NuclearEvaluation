@@ -1,6 +1,4 @@
 using Microsoft.Extensions.Options;
-using NuclearEvaluation.Server.Interfaces.EFS;
-using NuclearEvaluation.Server.Services.STEM;
 
 namespace NuclearEvaluation.Server.Services.Sandbox;
 
@@ -22,7 +20,8 @@ public class SandboxMaintenanceService : BackgroundService
         IStorageQuotaService storageQuotaService,
         IStemSessionManager stemSessionManager,
         IOptions<SandboxSettings> settings,
-        ILogger<SandboxMaintenanceService> logger)
+        ILogger<SandboxMaintenanceService> logger
+    )
     {
         _scopeFactory = scopeFactory;
         _storageQuotaService = storageQuotaService;
@@ -47,7 +46,9 @@ public class SandboxMaintenanceService : BackgroundService
         try
         {
             PurgeExpiredFiles();
-            await _stemSessionManager.EvictIdleAsync(TimeSpan.FromMinutes(Math.Max(1, _settings.StemSessionIdleMinutes)));
+            await _stemSessionManager.EvictIdleAsync(
+                TimeSpan.FromMinutes(Math.Max(1, _settings.StemSessionIdleMinutes))
+            );
             await ResetIfDueAsync(ct);
             _storageQuotaService.Invalidate();
         }

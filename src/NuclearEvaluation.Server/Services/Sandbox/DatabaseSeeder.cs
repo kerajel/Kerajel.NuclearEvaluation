@@ -1,7 +1,6 @@
 using System.Data;
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
-using NuclearEvaluation.Kernel.Data.Context;
 using NuclearEvaluation.Kernel.Data.Seed;
 using NuclearEvaluation.Kernel.Models.Sandbox;
 
@@ -30,7 +29,10 @@ public class DatabaseSeeder : IDatabaseSeeder
     readonly NuclearEvaluationServerDbContext _dbContext;
     readonly ILogger<DatabaseSeeder> _logger;
 
-    public DatabaseSeeder(NuclearEvaluationServerDbContext dbContext, ILogger<DatabaseSeeder> logger)
+    public DatabaseSeeder(
+        NuclearEvaluationServerDbContext dbContext,
+        ILogger<DatabaseSeeder> logger
+    )
     {
         _dbContext = dbContext;
         _logger = logger;
@@ -72,9 +74,14 @@ public class DatabaseSeeder : IDatabaseSeeder
         await RunSeedBatchesAsync(ct);
     }
 
-    public async Task<bool> ResetToSeedIfDueAsync(TimeSpan resetInterval, CancellationToken ct = default)
+    public async Task<bool> ResetToSeedIfDueAsync(
+        TimeSpan resetInterval,
+        CancellationToken ct = default
+    )
     {
-        SandboxState? state = await _dbContext.SandboxState.OrderBy(x => x.Id).FirstOrDefaultAsync(ct);
+        SandboxState? state = await _dbContext
+            .SandboxState.OrderBy(x => x.Id)
+            .FirstOrDefaultAsync(ct);
         DateTime now = DateTime.UtcNow;
 
         if (state is not null && now - state.LastResetUtc < resetInterval)

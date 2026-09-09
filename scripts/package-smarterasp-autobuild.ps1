@@ -136,9 +136,9 @@ Add-Property $project "IsTransformWebConfigDisabled" "true"
 Add-Property $project "StaticWebAssetsEnabled" "false"
 Add-Property $project "AllowUnsafeBlocks" "true"
 
-Add-PackageReference $project "ExcelDataReader" "3.8.0"
-Add-PackageReference $project "Microsoft.EntityFrameworkCore.Abstractions" "10.0.9"
-Add-PackageReference $project "Radzen.Blazor" "10.4.9"
+Add-PackageReference $project "ExcelDataReader" "3.9.0"
+Add-PackageReference $project "Microsoft.EntityFrameworkCore.Abstractions" "10.0.11"
+Add-PackageReference $project "Radzen.Blazor" "11.3.2"
 
 $seedItemGroup = $project.CreateElement("ItemGroup")
 $seedResource = $project.CreateElement("EmbeddedResource")

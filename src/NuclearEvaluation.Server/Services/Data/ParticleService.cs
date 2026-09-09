@@ -1,11 +1,6 @@
-﻿using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Enums;
-using NuclearEvaluation.Shared.Enums;
 using NuclearEvaluation.Shared.Models.Views;
-using NuclearEvaluation.Kernel.Data.Context;
-using Microsoft.Extensions.Logging;
-using NuclearEvaluation.Server.Services.DB;
-using NuclearEvaluation.Server.Interfaces.Data;
 
 namespace NuclearEvaluation.Server.Services.Data;
 
@@ -15,12 +10,16 @@ public class ParticleService : DbServiceBase, IParticleService
 
     public ParticleService(
         NuclearEvaluationServerDbContext _dbContext,
-        ILogger<ParticleService> logger) : base(_dbContext)
+        ILogger<ParticleService> logger
+    )
+        : base(_dbContext)
     {
         _logger = logger;
     }
 
-    public async Task<FetchDataResult<ParticleView>> GetParticleViews(FetchDataCommand<ParticleView> command)
+    public async Task<FetchDataResult<ParticleView>> GetParticleViews(
+        FetchDataCommand<ParticleView> command
+    )
     {
         IQueryable<ParticleView> baseQuery;
         int? projectId = command.Query?.ProjectId;
@@ -29,21 +28,26 @@ public class ParticleService : DbServiceBase, IParticleService
         {
             if (command.QueryKind == QueryKind.DecayCorrected)
             {
-                baseQuery = _dbContext.ProjectDecayCorrectedParticleView
-                            .Where(x => x.ProjectId == projectId);
+                baseQuery = _dbContext.ProjectDecayCorrectedParticleView.Where(x =>
+                    x.ProjectId == projectId
+                );
             }
             else
             {
                 baseQuery = _dbContext.ParticleView;
                 if (projectId.HasValue)
                 {
-                    baseQuery = baseQuery.Where(x => x.SubSample.Sample.Series.ProjectSeries.Any(x => x.ProjectId == projectId.Value));
+                    baseQuery = baseQuery.Where(x =>
+                        x.SubSample.Sample.Series.ProjectSeries.Any(x =>
+                            x.ProjectId == projectId.Value
+                        )
+                    );
                 }
             }
 
             return await ExecuteQuery(baseQuery, command);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "");
             return FetchDataResult<ParticleView>.Faulted(ex);

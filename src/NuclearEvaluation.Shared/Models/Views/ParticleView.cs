@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace NuclearEvaluation.Shared.Models.Views;
 
@@ -37,10 +37,7 @@ public abstract class ParticleBase
     public string Comment { get; set; } = string.Empty;
 }
 
-public class ParticleView : ParticleBase
-{
-
-}
+public class ParticleView : ParticleBase { }
 
 public class ProjectDecayCorrectedParticleView : ParticleView
 {

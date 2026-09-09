@@ -1,17 +1,17 @@
-﻿using FluentValidation;
-using Microsoft.AspNetCore.Components;
-using Radzen.Blazor;
 using System.Linq.Expressions;
-using FluentValidation.Results;
-using Microsoft.AspNetCore.Components.Web;
 using System.Reflection;
-using Radzen;
-using NuclearEvaluation.Shared.Extensions;
+using FluentValidation;
+using FluentValidation.Results;
 using Kerajel.Primitives.Helpers;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using NuclearEvaluation.Shared.Extensions;
+using Radzen;
+using Radzen.Blazor;
 
 namespace NuclearEvaluation.Client.Shared.Generics;
 
-public class ValidatedTextControlBase<TModel, K> : ComponentBase
+public class ValidatedTextControlBase<TModel, K> : ComponentBase, IDisposable
 {
     [Parameter]
     public TModel Model { get; set; } = default!;
@@ -72,10 +72,12 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
     public IRadzenFormComponent _inputRef = null!;
 
     protected string? _validationMessage;
+    int _validationSequence;
 
     protected string TooltipOffsetXpx => $"{TooltipOffsetX}px";
     protected string TooltipOffsetYpx => $"{TooltipOffsetY}px";
-    protected string ComputedStyle => $"{Style}; border: 2px solid {(!IsValid ? "orange" : "transparent")};";
+    protected string ComputedStyle =>
+        $"{Style}; border: 2px solid {(!IsValid ? "orange" : "transparent")};";
 
     protected Debouncer<ValidationResult> _validationDebounce = null!;
 
@@ -92,6 +94,8 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
 
     public void ReInitialize()
     {
+        _validationSequence++;
+        _validationDebounce?.Cancel();
         _validationDebounce = new Debouncer<ValidationResult>(DebounceTimeout);
 
         _propertyInfo = PropertyExpression.GetPropertyInfo();
@@ -145,6 +149,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
     {
         object? value = e.Value is null ? default : Convert.ChangeType(e.Value, typeof(K));
 
+        _boundValue = (K?)value;
         SetPropertyValue((K?)value);
         await Validate();
     }
@@ -153,7 +158,7 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
     {
         _boundValue = newValue;
         SetPropertyValue(newValue);
-        _ = Validate();
+        await Validate();
     }
 
     public string PropertyName => _propertyInfo.Name;
@@ -161,14 +166,12 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
     public K? PropertyValue
     {
         get => _getter(Model) ?? default;
-        set
-        {
-            SetPropertyValue(value);
-        }
+        set { SetPropertyValue(value); }
     }
 
     public void CancelValidation()
     {
+        _validationSequence++;
         IsValid = false;
         _validationDebounce.Cancel();
         PropertyValue = _initialValue ?? default;
@@ -185,15 +188,18 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
         StateHasChanged();
     }
 
-    public async Task CancelChanges()
+    public Task CancelChanges()
     {
-        if (_initialValue != null)
-        {
-            SetPropertyValue(_initialValue);
-            _initialValue = default;
-            _boundValue = default;
-            await Task.Yield();
-        }
+        SetPropertyValue(_initialValue);
+        _boundValue = _initialValue;
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        _validationSequence++;
+        _validationDebounce?.Cancel();
+        GC.SuppressFinalize(this);
     }
 
     public async Task HandleOnBlur(FocusEventArgs e)
@@ -212,13 +218,46 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
 
     public async Task<ValidationResult> Validate()
     {
-        return await _validationDebounce.ExecuteAsync(Validate);
+        int sequence = ++_validationSequence;
+        IsValid = false;
+        await OnValidationStateChanged.InvokeAsync(false);
+        try
+        {
+            return await _validationDebounce.ExecuteAsync(async () =>
+            {
+                ValidationResult result = null!;
+                await InvokeAsync(async () => result = await ValidateCurrent());
+                return result;
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            return new ValidationResult();
+        }
 
-        async Task<ValidationResult> Validate()
+        async Task<ValidationResult> ValidateCurrent()
         {
             bool previousIsValid = IsValid;
 
-            ValidationResult validationResult = await Validator.ValidateAsync(Model, options => options.IncludeProperties(PropertyName));
+            ValidationResult validationResult;
+            try
+            {
+                validationResult = await Validator.ValidateAsync(
+                    Model,
+                    options => options.IncludeProperties(PropertyName)
+                );
+            }
+            catch (HttpRequestException)
+            {
+                validationResult = new([
+                    new ValidationFailure(
+                        PropertyName,
+                        "Could not validate this value. Please try again."
+                    ),
+                ]);
+            }
+            if (sequence != _validationSequence)
+                return validationResult;
 
             if (validationResult.IsValid)
             {
@@ -229,7 +268,10 @@ public class ValidatedTextControlBase<TModel, K> : ComponentBase
             {
                 if (validationResult.Errors.Count > 0)
                 {
-                    _validationMessage = string.Join(Environment.NewLine, validationResult.Errors.Select(e => e.ErrorMessage));
+                    _validationMessage = string.Join(
+                        Environment.NewLine,
+                        validationResult.Errors.Select(e => e.ErrorMessage)
+                    );
                     IsValid = false;
                 }
                 else

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Shared.Models.Domain;
@@ -11,14 +11,15 @@ public class SeriesService : DbServiceBase, ISeriesService
 {
     readonly ILogger<SeriesView> _logger;
 
-    public SeriesService(
-        NuclearEvaluationServerDbContext _dbContext,
-        ILogger<SeriesView> logger) : base(_dbContext)
+    public SeriesService(NuclearEvaluationServerDbContext _dbContext, ILogger<SeriesView> logger)
+        : base(_dbContext)
     {
         _logger = logger;
     }
 
-    public async Task<FetchDataResult<SeriesView>> GetSeriesViews(FetchDataCommand<SeriesView> command)
+    public async Task<FetchDataResult<SeriesView>> GetSeriesViews(
+        FetchDataCommand<SeriesView> command
+    )
     {
         try
         {
@@ -26,13 +27,15 @@ public class SeriesService : DbServiceBase, ISeriesService
             int? projectId = command.Query?.ProjectId;
             if (projectId.HasValue)
             {
-                baseQuery = baseQuery.Where(x => x.ProjectSeries.Any(s => s.ProjectId == projectId.Value));
+                baseQuery = baseQuery.Where(x =>
+                    x.ProjectSeries.Any(s => s.ProjectId == projectId.Value)
+                );
             }
             return await ExecuteQuery(baseQuery, command);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogError(ex, "Error occured while fetching series views");
+            _logger.LogError(ex, "Error occurred while fetching series views");
             return FetchDataResult<SeriesView>.Faulted(ex);
         }
     }
@@ -40,35 +43,55 @@ public class SeriesService : DbServiceBase, ISeriesService
     public async Task<SeriesCountsView> GetSeriesCounts(FetchDataCommand<SeriesView> command)
     {
         IQueryable<SeriesView> baseQuery = _dbContext.SeriesView;
+        if (command.Query?.ProjectId is int projectId)
+        {
+            baseQuery = baseQuery.Where(x => x.ProjectSeries.Any(s => s.ProjectId == projectId));
+        }
 
         IQueryable<SeriesView> filteredQuery = GetFilteredQuery(baseQuery, command);
 
         IQueryable<int> seriesIdsQuery = filteredQuery.Select(s => s.Id);
 
-        SeriesCountsView? result = await _dbContext.SeriesView
-            .Select(s => new SeriesCountsView
+        SeriesCountsView? result = await _dbContext
+            .SeriesView.Select(s => new SeriesCountsView
             {
                 SeriesCount = seriesIdsQuery.Count(),
-                SampleCount = (from sa in _dbContext.SampleView
-                               join sId in seriesIdsQuery on sa.SeriesId equals sId
-                               select sa.Id).Distinct().Count(),
-                SubSampleCount = (from ss in _dbContext.SubSampleView
-                                  join sa in _dbContext.SampleView on ss.SampleId equals sa.Id
-                                  join sId in seriesIdsQuery on sa.SeriesId equals sId
-                                  select ss.Id).Distinct().Count(),
-                ParticleCount = (from p in _dbContext.ParticleView
-                                 join ss in _dbContext.SubSampleView on p.SubSampleId equals ss.Id
-                                 join sa in _dbContext.SampleView on ss.SampleId equals sa.Id
-                                 join sId in seriesIdsQuery on sa.SeriesId equals sId
-                                 select p.Id).Distinct().Count(),
-                ApmCount = (from a in _dbContext.ApmView
-                            join ss in _dbContext.SubSample on a.SubSampleId equals ss.Id
-                            join sa in _dbContext.SampleView on ss.SampleId equals sa.Id
-                            join sId in seriesIdsQuery on sa.SeriesId equals sId
-                            select a.Id).Distinct().Count(),
+                SampleCount = (
+                    from sa in _dbContext.SampleView
+                    join sId in seriesIdsQuery on sa.SeriesId equals sId
+                    select sa.Id
+                )
+                    .Distinct()
+                    .Count(),
+                SubSampleCount = (
+                    from ss in _dbContext.SubSampleView
+                    join sa in _dbContext.SampleView on ss.SampleId equals sa.Id
+                    join sId in seriesIdsQuery on sa.SeriesId equals sId
+                    select ss.Id
+                )
+                    .Distinct()
+                    .Count(),
+                ParticleCount = (
+                    from p in _dbContext.ParticleView
+                    join ss in _dbContext.SubSampleView on p.SubSampleId equals ss.Id
+                    join sa in _dbContext.SampleView on ss.SampleId equals sa.Id
+                    join sId in seriesIdsQuery on sa.SeriesId equals sId
+                    select p.Id
+                )
+                    .Distinct()
+                    .Count(),
+                ApmCount = (
+                    from a in _dbContext.ApmView
+                    join ss in _dbContext.SubSample on a.SubSampleId equals ss.Id
+                    join sa in _dbContext.SampleView on ss.SampleId equals sa.Id
+                    join sId in seriesIdsQuery on sa.SeriesId equals sId
+                    select a.Id
+                )
+                    .Distinct()
+                    .Count(),
             })
             .OrderBy(x => 1)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(command.CancellationToken);
 
         return result ?? new();
     }
@@ -93,7 +116,8 @@ public class SeriesService : DbServiceBase, ISeriesService
 
     public async Task UpdateSeriesFromView(SeriesView seriesView)
     {
-        await _dbContext.Series.Where(x => x.Id == seriesView.Id)
+        await _dbContext
+            .Series.Where(x => x.Id == seriesView.Id)
             .UpdateFromQueryAsync(x => new Series
             {
                 SeriesType = seriesView.SeriesType,
@@ -107,8 +131,8 @@ public class SeriesService : DbServiceBase, ISeriesService
 
     public async Task LoadSamples(SeriesView seriesView)
     {
-        seriesView.Samples = await _dbContext.SampleView
-            .Where(x => x.SeriesId == seriesView.Id)
+        seriesView.Samples = await _dbContext
+            .SampleView.Where(x => x.SeriesId == seriesView.Id)
             .OrderBy(x => x.Sequence)
             .ToListAsync();
     }
@@ -116,9 +140,7 @@ public class SeriesService : DbServiceBase, ISeriesService
     public async Task Delete(params SeriesView[] seriesViews)
     {
         IEnumerable<int> seriesIds = seriesViews.Select(x => x.Id);
-        await _dbContext.Series
-            .Where(x => seriesIds.Contains(x.Id))
-            .DeleteFromQueryAsync();
+        await _dbContext.Series.Where(x => seriesIds.Contains(x.Id)).DeleteFromQueryAsync();
     }
 
     public void ResetPendingChanges(params SeriesView[] seriesViews)

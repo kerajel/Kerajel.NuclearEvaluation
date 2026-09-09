@@ -1,4 +1,3 @@
-using NuclearEvaluation.Shared.Models.Domain;
 using NuclearEvaluation.Shared.Models.Filters;
 using NuclearEvaluation.Shared.Models.Plotting;
 using NuclearEvaluation.Shared.Models.Views;
@@ -14,19 +13,38 @@ public interface INuclearEvaluationApi
     // Grid views
     Task<DataResult<SeriesView>> GetSeriesViews(DataQuery query, CancellationToken ct = default);
     Task<DataResult<SampleView>> GetSampleViews(DataQuery query, CancellationToken ct = default);
-    Task<DataResult<SubSampleView>> GetSubSampleViews(DataQuery query, CancellationToken ct = default);
+    Task<DataResult<SubSampleView>> GetSubSampleViews(
+        DataQuery query,
+        CancellationToken ct = default
+    );
     Task<DataResult<ApmView>> GetApmViews(DataQuery query, CancellationToken ct = default);
-    Task<DataResult<ParticleView>> GetParticleViews(DataQuery query, CancellationToken ct = default);
+    Task<DataResult<ParticleView>> GetParticleViews(
+        DataQuery query,
+        CancellationToken ct = default
+    );
     Task<DataResult<ProjectView>> GetProjectViews(DataQuery query, CancellationToken ct = default);
-    Task<DataResult<StemPreviewEntryView>> GetStemPreviewEntryViews(DataQuery query, CancellationToken ct = default);
+    Task<DataResult<StemPreviewEntryView>> GetStemPreviewEntryViews(
+        DataQuery query,
+        CancellationToken ct = default
+    );
 
     // Aggregates / lookups
     Task<SeriesCountsView> GetSeriesCounts(DataQuery query, CancellationToken ct = default);
-    Task<List<int>> GetEnumFilterOptions(string entity, EnumFilterRequest request, CancellationToken ct = default);
+    Task<List<int>> GetEnumFilterOptions(
+        string entity,
+        EnumFilterRequest request,
+        CancellationToken ct = default
+    );
 
     // Charts
-    Task<List<IsotopeBinCounts>> GetProjectApmUraniumBinCounts(DataQuery query, CancellationToken ct = default);
-    Task<List<IsotopeBinCounts>> GetProjectParticleUraniumBinCounts(DataQuery query, CancellationToken ct = default);
+    Task<List<IsotopeBinCounts>> GetProjectApmUraniumBinCounts(
+        DataQuery query,
+        CancellationToken ct = default
+    );
+    Task<List<IsotopeBinCounts>> GetProjectParticleUraniumBinCounts(
+        DataQuery query,
+        CancellationToken ct = default
+    );
 
     // Series CRUD
     Task<int> CreateSeries(SeriesView seriesView, CancellationToken ct = default);
@@ -46,10 +64,20 @@ public interface INuclearEvaluationApi
 
     // Name availability (inline validation)
     Task<bool> IsProjectNameAvailable(string name, int excludeId, CancellationToken ct = default);
-    Task<bool> IsPresetFilterNameAvailable(string name, int excludeId, CancellationToken ct = default);
+    Task<bool> IsPresetFilterNameAvailable(
+        string name,
+        int excludeId,
+        CancellationToken ct = default
+    );
 
     // STEM preview
-    Task<OperationOutcome> UploadStemPreviewFile(Guid sessionId, Guid fileId, string fileName, Stream content, CancellationToken ct = default);
+    Task<OperationOutcome> UploadStemPreviewFile(
+        Guid sessionId,
+        Guid fileId,
+        string fileName,
+        Stream content,
+        CancellationToken ct = default
+    );
     Task DeleteStemPreviewFile(Guid sessionId, Guid fileId, CancellationToken ct = default);
 
     // Proof-of-work captcha

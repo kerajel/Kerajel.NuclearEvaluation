@@ -1,7 +1,6 @@
 ﻿using Kerajel.Primitives.Enums;
 using Kerajel.Primitives.Models;
 using NuclearEvaluation.Kernel.Models.Files;
-using NuclearEvaluation.Server.Interfaces.EFS;
 using NuclearEvaluation.Server.Services.Files;
 
 namespace NuclearEvaluation.Server.Services.EFS;
@@ -14,7 +13,10 @@ public class EfsFileService : IEfsFileService
     private const string _subFolder = "NuclearEvaluationStorage";
     private const int _bufferSize = 81920;
 
-    public async Task<OperationResult<FileInfo>> Write(WriteFileCommand command, CancellationToken ct = default)
+    public async Task<OperationResult<FileInfo>> Write(
+        WriteFileCommand command,
+        CancellationToken ct = default
+    )
     {
         OperationResult<FileInfo> result;
 
@@ -54,12 +56,16 @@ public class EfsFileService : IEfsFileService
             FileAccess.Write,
             FileShare.None,
             _bufferSize,
-            useAsync: true);
+            useAsync: true
+        );
 
         await stream.CopyToAsync(fileStream, _bufferSize, ct);
     }
 
-    public Task<OperationResult<FileInfo>> GetFileInfo(Guid fileGuid, CancellationToken ct = default)
+    public Task<OperationResult<FileInfo>> GetFileInfo(
+        Guid fileGuid,
+        CancellationToken ct = default
+    )
     {
         OperationResult<FileInfo> result;
 
@@ -92,10 +98,13 @@ public class EfsFileService : IEfsFileService
             DirectoryInfo fileDirectory = GetFileDirectory(fileGuid);
             if (fileDirectory.Exists)
             {
-                await Task.Run(() =>
-                {
-                    fileDirectory.Delete(recursive: true);
-                }, ct);
+                await Task.Run(
+                    () =>
+                    {
+                        fileDirectory.Delete(recursive: true);
+                    },
+                    ct
+                );
             }
             result = new(OperationStatus.Succeeded);
         }
@@ -106,12 +115,11 @@ public class EfsFileService : IEfsFileService
 
         return result;
     }
+
     public long GetTotalSizeBytes()
     {
         DirectoryInfo storageDirectory = GetStorageDirectory();
-        return storageDirectory
-            .EnumerateFiles("*", SearchOption.AllDirectories)
-            .Sum(f => f.Length);
+        return storageDirectory.EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length);
     }
 
     public int PurgeOlderThan(DateTime cutoffUtc)
@@ -142,7 +150,9 @@ public class EfsFileService : IEfsFileService
     {
         string currentDirectory = Directory.GetCurrentDirectory();
         DirectoryInfo parentDirectoryInfo = Directory.GetParent(currentDirectory)!;
-        DirectoryInfo storageDirectory = new(Path.Combine(parentDirectoryInfo.FullName, _subFolder));
+        DirectoryInfo storageDirectory = new(
+            Path.Combine(parentDirectoryInfo.FullName, _subFolder)
+        );
         if (!storageDirectory.Exists)
         {
             storageDirectory.Create();
@@ -153,7 +163,9 @@ public class EfsFileService : IEfsFileService
     static DirectoryInfo GetFileDirectory(Guid fileGuid)
     {
         DirectoryInfo storageDirectory = GetStorageDirectory();
-        DirectoryInfo fileDirectory = new(Path.Combine(storageDirectory.FullName, fileGuid.ToString()));
+        DirectoryInfo fileDirectory = new(
+            Path.Combine(storageDirectory.FullName, fileGuid.ToString())
+        );
         return fileDirectory;
     }
 }

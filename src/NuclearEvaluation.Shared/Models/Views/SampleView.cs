@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Shared.Enums;
 
 namespace NuclearEvaluation.Shared.Models.Views;

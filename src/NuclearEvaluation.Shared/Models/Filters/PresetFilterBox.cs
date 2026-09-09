@@ -19,12 +19,12 @@ public class PresetFilterBox
 
     public bool IsEmpty()
     {
-        return Filters.Count == 0;
+        return !HasFilter();
     }
 
     public bool HasFilter()
     {
-        return Filters.Count > 0;
+        return Filters.Values.Any(value => !string.IsNullOrWhiteSpace(value));
     }
 
     public IEnumerable<(PresetFilterEntryType EntryType, string? Value)> AsEnumerable()

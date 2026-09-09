@@ -1,12 +1,12 @@
-﻿using NuclearEvaluation.Shared.Converters;
-using Microsoft.EntityFrameworkCore;
-using Radzen;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using NuclearEvaluation.Shared.Extensions;
+using Microsoft.EntityFrameworkCore;
+using NuclearEvaluation.Shared.Converters;
 using NuclearEvaluation.Shared.Enums;
+using NuclearEvaluation.Shared.Extensions;
+using Radzen;
 
 namespace NuclearEvaluation.Shared.Models.Filters;
 
@@ -17,19 +17,17 @@ public class PresetFilterEntry
     {
         WriteIndented = false,
         PropertyNameCaseInsensitive = true,
-        Converters =
-        {
-            new CompositeFilterDescriptorConverter(),
-        }
+        Converters = { new CompositeFilterDescriptorConverter() },
     };
 
-    string _serializedDescriptors = string.Empty;
+    string _serializedDescriptors = "[]";
     IEnumerable<CompositeFilterDescriptor> _descriptors = [];
 
     public static PresetFilterEntry Create(
         PresetFilterEntryType presetFilterEntryType,
         IEnumerable<CompositeFilterDescriptor> descriptors,
-        bool isEnabled = true)
+        bool isEnabled = true
+    )
     {
         PresetFilterEntry result = new()
         {
@@ -43,10 +41,10 @@ public class PresetFilterEntry
     [Key]
     public int Id { get; set; }
 
-    [Required]
+    [EnumDataType(typeof(PresetFilterEntryType))]
     public PresetFilterEntryType PresetFilterEntryType { get; set; }
 
-    [Required]
+    [EnumDataType(typeof(LogicalFilterOperator))]
     public LogicalFilterOperator LogicalFilterOperator { get; set; } = LogicalFilterOperator.And;
 
     [Required]
@@ -67,10 +65,7 @@ public class PresetFilterEntry
     [JsonIgnore]
     public IEnumerable<CompositeFilterDescriptor> Descriptors
     {
-        get
-        {
-            return _descriptors;
-        }
+        get { return _descriptors; }
         set
         {
             _serializedDescriptors = JsonSerializer.Serialize(value, _serializerOptions);
@@ -80,21 +75,23 @@ public class PresetFilterEntry
 
     public string SerializedDescriptors
     {
-        get
-        {
-            return _serializedDescriptors;
-        }
+        get { return _serializedDescriptors; }
         set
         {
             _serializedDescriptors = value ?? string.Empty;
-            bool deserialized = JsonExtensions.TryDeserialize(_serializedDescriptors, out ICollection<CompositeFilterDescriptor>? descriptors, _serializerOptions);
-            if (deserialized)
+            bool deserialized = JsonExtensions.TryDeserialize(
+                _serializedDescriptors,
+                out ICollection<CompositeFilterDescriptor>? descriptors,
+                _serializerOptions
+            );
+            if (deserialized && descriptors is not null)
             {
                 _descriptors = descriptors!;
                 IsCorrupted = false;
             }
             else
             {
+                _descriptors = [];
                 IsCorrupted = true;
             }
         }

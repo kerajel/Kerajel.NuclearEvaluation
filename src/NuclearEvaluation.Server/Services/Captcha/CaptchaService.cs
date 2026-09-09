@@ -9,7 +9,7 @@ namespace NuclearEvaluation.Server.Services.Captcha;
 public class CaptchaSettings
 {
     /// <summary>HMAC secret for signing challenges and the verification cookie. Override in production.</summary>
-    public string Secret { get; set; } = "change-me-nuclear-evaluation-dev-secret";
+    public string Secret { get; set; } = string.Empty;
 
     /// <summary>Upper bound of the proof-of-work search space (difficulty).</summary>
     public int MaxNumber { get; set; } = 500_000;
@@ -43,7 +43,11 @@ public class CaptchaService : ICaptchaService
     public CaptchaService(IOptions<CaptchaSettings> settings)
     {
         _settings = settings.Value;
-        _secret = Encoding.UTF8.GetBytes(_settings.Secret);
+        // A shared development secret would let anyone mint a valid verification cookie.
+        // Without configuration, use a process-local key; cookies expire on restart.
+        _secret = string.IsNullOrWhiteSpace(_settings.Secret)
+            ? RandomNumberGenerator.GetBytes(32)
+            : Encoding.UTF8.GetBytes(_settings.Secret);
     }
 
     public CaptchaChallenge CreateChallenge()
@@ -67,7 +71,12 @@ public class CaptchaService : ICaptchaService
 
     public bool VerifySolution(CaptchaSolution solution)
     {
-        if (solution.Algorithm != "SHA-256" || string.IsNullOrEmpty(solution.Salt))
+        if (
+            solution.Algorithm != "SHA-256"
+            || string.IsNullOrEmpty(solution.Salt)
+            || solution.Number < 0
+            || solution.Number > _settings.MaxNumber
+        )
         {
             return false;
         }
@@ -77,12 +86,15 @@ public class CaptchaService : ICaptchaService
             return false;
         }
 
-        if (DateTimeOffset.UtcNow - issuedAt > TimeSpan.FromMinutes(_settings.ChallengeTtlMinutes))
+        TimeSpan age = DateTimeOffset.UtcNow - issuedAt;
+        if (age < TimeSpan.Zero || age > TimeSpan.FromMinutes(_settings.ChallengeTtlMinutes))
         {
             return false;
         }
 
-        string expectedChallenge = Sha256Hex(solution.Salt + solution.Number.ToString(CultureInfo.InvariantCulture));
+        string expectedChallenge = Sha256Hex(
+            solution.Salt + solution.Number.ToString(CultureInfo.InvariantCulture)
+        );
         if (!FixedEquals(expectedChallenge, solution.Challenge))
         {
             return false;
@@ -94,7 +106,9 @@ public class CaptchaService : ICaptchaService
 
     public string IssueVerificationToken()
     {
-        long expiry = DateTimeOffset.UtcNow.AddDays(_settings.VerificationTtlDays).ToUnixTimeSeconds();
+        long expiry = DateTimeOffset
+            .UtcNow.AddDays(_settings.VerificationTtlDays)
+            .ToUnixTimeSeconds();
         string payload = expiry.ToString(CultureInfo.InvariantCulture);
         return $"{payload}.{HmacHex("pow." + payload)}";
     }
@@ -107,12 +121,23 @@ public class CaptchaService : ICaptchaService
         }
 
         string[] parts = token.Split('.');
-        if (parts.Length != 2 || !long.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out long expiry))
+        if (
+            parts.Length != 2
+            || !long.TryParse(
+                parts[0],
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out long expiry
+            )
+        )
         {
             return false;
         }
 
-        if (DateTimeOffset.FromUnixTimeSeconds(expiry) < DateTimeOffset.UtcNow)
+        if (
+            expiry <= DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+            || expiry > DateTimeOffset.MaxValue.ToUnixTimeSeconds()
+        )
         {
             return false;
         }
@@ -125,7 +150,22 @@ public class CaptchaService : ICaptchaService
     {
         issuedAt = default;
         string[] parts = salt.Split('.');
-        if (parts.Length != 2 || !long.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out long unix))
+        if (
+            parts.Length != 2
+            || !long.TryParse(
+                parts[1],
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out long unix
+            )
+        )
+        {
+            return false;
+        }
+        if (
+            unix < DateTimeOffset.MinValue.ToUnixTimeSeconds()
+            || unix > DateTimeOffset.MaxValue.ToUnixTimeSeconds()
+        )
         {
             return false;
         }
@@ -133,9 +173,11 @@ public class CaptchaService : ICaptchaService
         return true;
     }
 
-    static string RandomHex(int bytes) => Convert.ToHexString(RandomNumberGenerator.GetBytes(bytes)).ToLowerInvariant();
+    static string RandomHex(int bytes) =>
+        Convert.ToHexString(RandomNumberGenerator.GetBytes(bytes)).ToLowerInvariant();
 
-    static string Sha256Hex(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+    static string Sha256Hex(string value) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
 
     string HmacHex(string value)
     {
@@ -143,6 +185,11 @@ public class CaptchaService : ICaptchaService
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    static bool FixedEquals(string a, string b)
-        => CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(a), Encoding.UTF8.GetBytes(b));
+    static bool FixedEquals(string a, string? b) =>
+        b is not null
+        && a.Length == b.Length
+        && CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(a),
+            Encoding.UTF8.GetBytes(b)
+        );
 }

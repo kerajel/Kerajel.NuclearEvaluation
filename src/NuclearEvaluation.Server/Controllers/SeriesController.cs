@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using NuclearEvaluation.Server.Interfaces.Data;
 using NuclearEvaluation.Shared.Models.Domain;
 using NuclearEvaluation.Shared.Models.Views;
 

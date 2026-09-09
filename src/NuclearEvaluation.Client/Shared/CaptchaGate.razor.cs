@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Components;
@@ -56,7 +57,7 @@ public partial class CaptchaGate : ComponentBase
         try
         {
             CaptchaChallenge challenge = await Api.GetCaptchaChallenge();
-            long? number = await Task.Run(() => SolveProofOfWork(challenge));
+            long? number = await SolveProofOfWork(challenge);
 
             if (number is null)
             {
@@ -92,19 +93,33 @@ public partial class CaptchaGate : ComponentBase
         }
     }
 
-    static long? SolveProofOfWork(CaptchaChallenge challenge)
+    internal static async Task<long?> SolveProofOfWork(
+        CaptchaChallenge challenge,
+        CancellationToken ct = default
+    )
     {
-        for (long n = 0; n <= challenge.MaxNumber; n++)
+        if (challenge.Algorithm != "SHA-256" || challenge.MaxNumber is < 0 or > 1_000_000)
+            return null;
+
+        byte[] expected = Convert.FromHexString(challenge.Challenge);
+        byte[] salt = Encoding.UTF8.GetBytes(challenge.Salt);
+        byte[] input = new byte[salt.Length + 20];
+        salt.CopyTo(input, 0);
+        byte[] hash = new byte[32];
+
+        for (long number = 0; number <= challenge.MaxNumber; number++)
         {
-            string candidate = Convert.ToHexString(
-                SHA256.HashData(Encoding.UTF8.GetBytes(challenge.Salt + n))).ToLowerInvariant();
+            ct.ThrowIfCancellationRequested();
+            Utf8Formatter.TryFormat(number, input.AsSpan(salt.Length), out int digits);
+            SHA256.HashData(input.AsSpan(0, salt.Length + digits), hash);
+            if (hash.AsSpan().SequenceEqual(expected))
+                return number;
 
-            if (candidate == challenge.Challenge)
-            {
-                return n;
-            }
+            // WASM runs on the UI thread. Task.Run does not provide a browser worker;
+            // yield to the event loop between chunks so the progress UI stays responsive.
+            if (number % 1024 == 0)
+                await Task.Delay(1, ct);
         }
-
         return null;
     }
 }

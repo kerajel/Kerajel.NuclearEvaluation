@@ -34,9 +34,11 @@ public partial class ParticleGrid : BaseGridGeneric<ParticleView>
         DataQuery query = loadDataArgs.ToDataQuery(
             presetFilterBox: GetPresetFilterBox?.Invoke(),
             projectId: ProjectId,
-            decayCorrected: EnableDecayCorrection);
+            decayCorrected: EnableDecayCorrection
+        );
 
-        await FetchData(query, () => Api.GetParticleViews(query));
+        if (!await FetchData(query, () => Api.GetParticleViews(query)))
+            return;
 
         isLoading = false;
 

@@ -3,12 +3,12 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Restore the host project and its project references.
-COPY Kerajel.NuclearEvaluation.sln ./
+COPY Kerajel.NuclearEvaluation.sln Directory.Build.props .editorconfig ./
 COPY src/ ./src/
 
 RUN dotnet restore src/NuclearEvaluation.Server/NuclearEvaluation.Server.csproj
 RUN dotnet publish src/NuclearEvaluation.Server/NuclearEvaluation.Server.csproj \
-    -c Release -o /app/publish /p:UseAppHost=false
+    -c Release --no-restore -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app

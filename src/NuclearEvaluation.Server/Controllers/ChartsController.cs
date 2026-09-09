@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using NuclearEvaluation.Server.Interfaces.Evaluation;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Plotting;
 using NuclearEvaluation.Shared.Models.Views;
@@ -18,21 +17,30 @@ public class ChartsController : ControllerBase
     }
 
     [HttpPost("apm-bin-counts")]
-    public async Task<List<IsotopeBinCounts>> ApmBinCounts([FromBody] DataQuery query)
-        => ToList(await _chartService.GetProjectApmUraniumBinCounts(query.ToCommand<ApmView>()));
+    public async Task<List<IsotopeBinCounts>> ApmBinCounts(
+        [FromBody] DataQuery query,
+        CancellationToken ct
+    ) => ToList(await _chartService.GetProjectApmUraniumBinCounts(query.ToCommand<ApmView>(ct)));
 
     [HttpGet("apm-bin-counts/{projectId:int}")]
-    public async Task<List<IsotopeBinCounts>> ApmBinCountsByProject(int projectId)
-        => ToList(await _chartService.GetProjectApmUraniumBinCounts(projectId));
+    public async Task<List<IsotopeBinCounts>> ApmBinCountsByProject(int projectId) =>
+        ToList(await _chartService.GetProjectApmUraniumBinCounts(projectId));
 
     [HttpPost("particle-bin-counts")]
-    public async Task<List<IsotopeBinCounts>> ParticleBinCounts([FromBody] DataQuery query)
-        => ToList(await _chartService.GetProjectParticleUraniumBinCounts(query.ToCommand<ParticleView>()));
+    public async Task<List<IsotopeBinCounts>> ParticleBinCounts(
+        [FromBody] DataQuery query,
+        CancellationToken ct
+    ) =>
+        ToList(
+            await _chartService.GetProjectParticleUraniumBinCounts(
+                query.ToCommand<ParticleView>(ct)
+            )
+        );
 
     [HttpGet("particle-bin-counts/{projectId:int}")]
-    public async Task<List<IsotopeBinCounts>> ParticleBinCountsByProject(int projectId)
-        => ToList(await _chartService.GetProjectParticleUraniumBinCounts(projectId));
+    public async Task<List<IsotopeBinCounts>> ParticleBinCountsByProject(int projectId) =>
+        ToList(await _chartService.GetProjectParticleUraniumBinCounts(projectId));
 
-    static List<IsotopeBinCounts> ToList(ILookup<string, BinCount> lookup)
-        => [.. lookup.Select(g => new IsotopeBinCounts { Isotope = g.Key, Bins = [.. g] })];
+    static List<IsotopeBinCounts> ToList(ILookup<string, BinCount> lookup) =>
+        [.. lookup.Select(g => new IsotopeBinCounts { Isotope = g.Key, Bins = [.. g] })];
 }

@@ -1,3 +1,4 @@
+using System.Reflection;
 using Bunit;
 using NSubstitute;
 using NuclearEvaluation.Client.Shared.Evaluation.QueryBuilder;
@@ -5,8 +6,8 @@ using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Enums;
 using NuclearEvaluation.Shared.Models.Filters;
 using Radzen;
+using Radzen.Blazor;
 using Shouldly;
-using System.Reflection;
 
 namespace NuclearEvaluation.Client.Tests;
 
@@ -15,8 +16,10 @@ public class QueryBuilderFilterTests : TestBase
     [Fact]
     public async Task RestoredPresetFilter_ShouldProduceFilterString()
     {
-        IRenderedComponent<SampleQueryBuilderFilter> component = TestContext.Render<SampleQueryBuilderFilter>(
-            parameters => parameters.Add(p => p.Visible, true));
+        IRenderedComponent<SampleQueryBuilderFilter> component =
+            TestContext.Render<SampleQueryBuilderFilter>(parameters =>
+                parameters.Add(p => p.Visible, true)
+            );
         PresetFilterEntry entry = PresetFilterEntry.Create(
             PresetFilterEntryType.Sample,
             [
@@ -27,7 +30,8 @@ public class QueryBuilderFilterTests : TestBase
                     FilterOperator = FilterOperator.Contains,
                     LogicalFilterOperator = LogicalFilterOperator.And,
                 },
-            ]);
+            ]
+        );
 
         await component.InvokeAsync(() => component.Instance.PresetFilterEntry = entry);
 
@@ -45,7 +49,8 @@ public class QueryBuilderFilterTests : TestBase
         PresetFilter presetFilter = CreateSampleSequencePreset("sobaker-2");
         MethodInfo selectPreset = typeof(QueryBuilderCard).GetMethod(
             "OnPresetFilterSelected",
-            BindingFlags.Instance | BindingFlags.NonPublic)!;
+            BindingFlags.Instance | BindingFlags.NonPublic
+        )!;
 
         await component.InvokeAsync(async () =>
         {
@@ -66,12 +71,14 @@ public class QueryBuilderFilterTests : TestBase
         IRenderedComponent<QueryBuilderCard> component = TestContext.Render<QueryBuilderCard>();
         component.WaitForAssertion(
             () => Api.Received().GetSeriesViews(Arg.Any<DataQuery>(), Arg.Any<CancellationToken>()),
-            DefaultWaitForStateTimeout);
+            DefaultWaitForStateTimeout
+        );
         Api.ClearReceivedCalls();
         PresetFilter presetFilter = CreateSampleSequencePreset("sobaker");
         MethodInfo selectPreset = typeof(QueryBuilderCard).GetMethod(
             "OnPresetFilterSelected",
-            BindingFlags.Instance | BindingFlags.NonPublic)!;
+            BindingFlags.Instance | BindingFlags.NonPublic
+        )!;
 
         await component.InvokeAsync(async () =>
         {
@@ -80,29 +87,33 @@ public class QueryBuilderFilterTests : TestBase
         });
 
         component.WaitForAssertion(
-            () => Api.Received().GetSeriesViews(
-                Arg.Is<DataQuery>(query => HasSampleSequencePresetFilter(query)),
-                Arg.Any<CancellationToken>()),
-            DefaultWaitForStateTimeout);
+            () =>
+                Api.Received()
+                    .GetSeriesViews(
+                        Arg.Is<DataQuery>(query => HasSampleSequencePresetFilter(query)),
+                        Arg.Any<CancellationToken>()
+                    ),
+            DefaultWaitForStateTimeout
+        );
     }
 
     [Fact]
     public async Task PresetFilterDropDown_WhenChanged_ShouldEmitSelectedPreset()
     {
-        PresetFilter selectedPreset = new()
-        {
-            Id = 2,
-            Name = "sobaker-2",
-        };
+        PresetFilter selectedPreset = new() { Id = 2, Name = "sobaker-2" };
         PresetFilter? emittedPreset = null;
         Api.GetPresetFilters(Arg.Any<CancellationToken>()).Returns([selectedPreset]);
-        IRenderedComponent<PresetFilterDropDown> component = TestContext.Render<PresetFilterDropDown>(
-            parameters => parameters.Add(
-                p => p.OnPresetFilterSelected,
-                presetFilter => emittedPreset = presetFilter));
+        IRenderedComponent<PresetFilterDropDown> component =
+            TestContext.Render<PresetFilterDropDown>(parameters =>
+                parameters.Add(
+                    p => p.OnPresetFilterSelected,
+                    presetFilter => emittedPreset = presetFilter
+                )
+            );
         MethodInfo onDropDownChange = typeof(PresetFilterDropDown).GetMethod(
             "OnDropDownChange",
-            BindingFlags.Instance | BindingFlags.NonPublic)!;
+            BindingFlags.Instance | BindingFlags.NonPublic
+        )!;
 
         await component.InvokeAsync(async () =>
         {
@@ -116,27 +127,29 @@ public class QueryBuilderFilterTests : TestBase
     [Fact]
     public async Task PresetFilterDropDown_WhenCleared_ShouldEmitBlankPresetAndClearSelectedId()
     {
-        PresetFilter selectedPreset = new()
-        {
-            Id = 2,
-            Name = "sobaker-2",
-        };
+        PresetFilter selectedPreset = new() { Id = 2, Name = "sobaker-2" };
         PresetFilter emittedPreset = selectedPreset;
         Api.GetPresetFilters(Arg.Any<CancellationToken>()).Returns([selectedPreset]);
-        IRenderedComponent<PresetFilterDropDown> component = TestContext.Render<PresetFilterDropDown>(
-            parameters => parameters.Add(
-                p => p.OnPresetFilterSelected,
-                presetFilter => emittedPreset = presetFilter));
+        IRenderedComponent<PresetFilterDropDown> component =
+            TestContext.Render<PresetFilterDropDown>(parameters =>
+                parameters.Add(
+                    p => p.OnPresetFilterSelected,
+                    presetFilter => emittedPreset = presetFilter
+                )
+            );
         MethodInfo onDropDownChange = typeof(PresetFilterDropDown).GetMethod(
             "OnDropDownChange",
-            BindingFlags.Instance | BindingFlags.NonPublic)!;
+            BindingFlags.Instance | BindingFlags.NonPublic
+        )!;
         PropertyInfo activeFilterId = typeof(PresetFilterDropDown).GetProperty(
             "ActiveFilterId",
-            BindingFlags.Instance | BindingFlags.NonPublic)!;
+            BindingFlags.Instance | BindingFlags.NonPublic
+        )!;
 
         await component.InvokeAsync(async () =>
         {
-            Task selectTask = (Task)onDropDownChange.Invoke(component.Instance, [selectedPreset.Id])!;
+            Task selectTask = (Task)
+                onDropDownChange.Invoke(component.Instance, [selectedPreset.Id])!;
             await selectTask;
             Task clearTask = (Task)onDropDownChange.Invoke(component.Instance, [null])!;
             await clearTask;
@@ -144,6 +157,69 @@ public class QueryBuilderFilterTests : TestBase
 
         emittedPreset.Id.ShouldBe(0);
         activeFilterId.GetValue(component.Instance).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task CheckboxEditsKeepAppliedResultsUntilApplyQuery()
+    {
+        IRenderedComponent<QueryBuilderCard> component = TestContext.Render<QueryBuilderCard>();
+        component.WaitForAssertion(() =>
+            Api.Received().GetSeriesViews(Arg.Any<DataQuery>(), Arg.Any<CancellationToken>())
+        );
+        IRenderedComponent<SampleQueryBuilderFilter> sample =
+            component.FindComponent<SampleQueryBuilderFilter>();
+        await sample.InvokeAsync(() =>
+            sample.Instance.PresetFilterEntry = PresetFilterEntry.Create(
+                PresetFilterEntryType.Sample,
+                [
+                    new CompositeFilterDescriptor
+                    {
+                        Property = "Sample.ExternalCode",
+                        FilterOperator = FilterOperator.Equals,
+                        FilterValue = "001",
+                    },
+                ]
+            )
+        );
+        IRenderedComponent<RadzenCheckBox<bool>> checkbox = component.FindComponents<
+            RadzenCheckBox<bool>
+        >()[1];
+        IRenderedComponent<RadzenButton> apply = component
+            .FindComponents<RadzenButton>()
+            .Single(x => x.Instance.Text == "Apply query");
+
+        Api.ClearReceivedCalls();
+        await checkbox.InvokeAsync(() => checkbox.Instance.ValueChanged.InvokeAsync(true));
+        await Api.DidNotReceive()
+            .GetSeriesViews(Arg.Any<DataQuery>(), Arg.Any<CancellationToken>());
+        Assert.True(component.Instance.GetPresetFilterBox().IsEmpty());
+        await apply.InvokeAsync(() => apply.Instance.Click.InvokeAsync());
+        Assert.Contains(
+            "001",
+            component.Instance.GetPresetFilterBox().GetOrDefault(PresetFilterEntryType.Sample)
+        );
+        await Api.Received()
+            .GetSeriesViews(
+                Arg.Is<DataQuery>(x => x.PresetFilterBox != null && x.PresetFilterBox.HasFilter()),
+                Arg.Any<CancellationToken>()
+            );
+
+        Api.ClearReceivedCalls();
+        await checkbox.InvokeAsync(() => checkbox.Instance.ValueChanged.InvokeAsync(false));
+        await Api.DidNotReceive()
+            .GetSeriesViews(Arg.Any<DataQuery>(), Arg.Any<CancellationToken>());
+        Assert.True(component.Instance.GetPresetFilterBox().HasFilter());
+        PresetFilter draft = component
+            .FindComponent<PresetFilterDropDown>()
+            .Instance.GetAppliedPresetFilter();
+        Assert.False(Assert.Single(draft.Entries).IsEnabled);
+        await apply.InvokeAsync(() => apply.Instance.Click.InvokeAsync());
+        Assert.True(component.Instance.GetPresetFilterBox().IsEmpty());
+        await Api.Received()
+            .GetSeriesViews(
+                Arg.Is<DataQuery>(x => x.PresetFilterBox != null && x.PresetFilterBox.IsEmpty()),
+                Arg.Any<CancellationToken>()
+            );
     }
 
     static PresetFilter CreateSampleSequencePreset(string name)
@@ -164,7 +240,8 @@ public class QueryBuilderFilterTests : TestBase
                             FilterOperator = FilterOperator.Contains,
                             LogicalFilterOperator = LogicalFilterOperator.And,
                         },
-                    ])
+                    ]
+                ),
             ],
         };
     }

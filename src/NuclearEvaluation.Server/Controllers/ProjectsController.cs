@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using NuclearEvaluation.Server.Interfaces.Evaluation;
 using NuclearEvaluation.Shared.Contracts;
 
 namespace NuclearEvaluation.Server.Controllers;
@@ -30,6 +29,6 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet("name-available")]
-    public async Task<bool> NameAvailable([FromQuery] string name, [FromQuery] int excludeId = 0)
-        => await _projectService.IsNameAvailable(name, excludeId);
+    public async Task<bool> NameAvailable([FromQuery] string name, [FromQuery] int excludeId = 0) =>
+        await _projectService.IsNameAvailable(name, excludeId);
 }

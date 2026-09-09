@@ -1,3 +1,8 @@
+@if (_hasError)
+{
+    <p role="alert">Totals could not be loaded. Change a filter or reload the page to retry.</p>
+}
+
 <div class="ne-compact-grid">
 <RadzenDataGrid Data="@_countSummary" AllowFiltering="false" AllowColumnResize="false" AllowSorting="false" AllowPaging="false" ColumnWidth="200px">
     <Columns>

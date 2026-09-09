@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace NuclearEvaluation.Shared.Models.Views;
 
@@ -40,10 +40,7 @@ public class ApmBase
     public string Comment { get; set; } = string.Empty;
 }
 
-public class ApmView : ApmBase
-{
-
-}
+public class ApmView : ApmBase { }
 
 public class ProjectDecayCorrectedApmView : ApmView
 {

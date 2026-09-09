@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
-using NuclearEvaluation.Kernel.Extensions;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Domain;
 using NuclearEvaluation.Shared.Models.Views;
@@ -14,19 +13,23 @@ public class ProjectService : DbServiceBase, IProjectService
 
     public ProjectService(
         NuclearEvaluationServerDbContext dbContext,
-        ILogger<ProjectService> logger) : base(dbContext)
+        ILogger<ProjectService> logger
+    )
+        : base(dbContext)
     {
         _logger = logger;
     }
 
-    public async Task<FetchDataResult<ProjectView>> GetProjectViews(FetchDataCommand<ProjectView> command)
+    public async Task<FetchDataResult<ProjectView>> GetProjectViews(
+        FetchDataCommand<ProjectView> command
+    )
     {
         try
         {
             IQueryable<ProjectView> baseQuery = _dbContext.ProjectView;
             return await ExecuteQuery(baseQuery, command);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Error fetching project views");
             return FetchDataResult<ProjectView>.Faulted(ex);
@@ -37,25 +40,44 @@ public class ProjectService : DbServiceBase, IProjectService
     {
         DateTime updatedAt = DateTime.UtcNow;
 
-        await _dbContext.Project
-            .Where(p => p.Id == update.ProjectId)
+        int affected = await _dbContext
+            .Project.Where(p => p.Id == update.ProjectId)
             .UpdateFromQueryAsync(p => new Project
             {
                 Name = update.Field == ProjectField.Name ? update.StringValue ?? p.Name : p.Name,
-                Conclusions = update.Field == ProjectField.Conclusions ? update.StringValue ?? p.Conclusions : p.Conclusions,
-                FollowUpActionsRecommended = update.Field == ProjectField.FollowUpActionsRecommended ? update.StringValue ?? p.FollowUpActionsRecommended : p.FollowUpActionsRecommended,
-                DecayCorrectionDate = update.Field == ProjectField.DecayCorrectionDate ? update.DateValue : p.DecayCorrectionDate,
+                Conclusions =
+                    update.Field == ProjectField.Conclusions
+                        ? update.StringValue ?? p.Conclusions
+                        : p.Conclusions,
+                FollowUpActionsRecommended =
+                    update.Field == ProjectField.FollowUpActionsRecommended
+                        ? update.StringValue ?? p.FollowUpActionsRecommended
+                        : p.FollowUpActionsRecommended,
+                DecayCorrectionDate =
+                    update.Field == ProjectField.DecayCorrectionDate
+                        ? update.DateValue
+                        : p.DecayCorrectionDate,
                 UpdatedAt = updatedAt,
             });
+        if (affected == 0)
+            throw new KeyNotFoundException();
     }
 
     public async Task UpdateProjectSeries(int projectId, IReadOnlyCollection<int> seriesIds)
     {
-        Project project = await _dbContext.Project
-            .IncludeOptimized(x => x.ProjectSeries)
-            .SingleOrDefaultAsync(x => x.Id == projectId)
-            ?? throw new InvalidOperationException($"Project {projectId} not found");
+        Project project =
+            await _dbContext
+                .Project.IncludeOptimized(x => x.ProjectSeries)
+                .SingleOrDefaultAsync(x => x.Id == projectId)
+            ?? throw new KeyNotFoundException($"Project {projectId} not found");
 
+        if (await _dbContext.Series.CountAsync(x => seriesIds.Contains(x.Id)) != seriesIds.Count)
+        {
+            throw new ArgumentException(
+                "One or more selected series no longer exist.",
+                nameof(seriesIds)
+            );
+        }
         _dbContext.ProjectSeries.RemoveRange(project.ProjectSeries);
         project.UpdatedAt = DateTime.UtcNow;
         project.ProjectSeries = seriesIds

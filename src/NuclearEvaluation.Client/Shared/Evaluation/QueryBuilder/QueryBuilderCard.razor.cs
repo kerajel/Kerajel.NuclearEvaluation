@@ -1,16 +1,15 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using NuclearEvaluation.Shared.Enums;
-using NuclearEvaluation.Shared.Models.Filters;
 using NuclearEvaluation.Client.Services;
 using NuclearEvaluation.Client.Shared.Grids;
+using NuclearEvaluation.Shared.Enums;
+using NuclearEvaluation.Shared.Models.Filters;
 using Radzen;
 
 namespace NuclearEvaluation.Client.Shared.Evaluation.QueryBuilder;
 
 public partial class QueryBuilderCard : ComponentBase
 {
-
     [Inject]
     protected IJSRuntime JSRuntime { get; set; } = null!;
 
@@ -28,17 +27,11 @@ public partial class QueryBuilderCard : ComponentBase
     ApmGrid _apmGrid = null!;
     ParticleGrid _particleGrid = null!;
 
-    PresetFilterBox _presetFilterBox = new();
+    PresetFilterBox _appliedFilterBox = new();
     PresetFilter _activeFilter = new();
 
     IDataGridComponent[] _dataGrids =>
-    [
-        _seriesGrid,
-        _sampleGrid,
-        _subSampleGrid,
-        _apmGrid,
-        _particleGrid,
-    ];
+        [_seriesGrid, _sampleGrid, _subSampleGrid, _apmGrid, _particleGrid];
 
     IPresetFilterComponent[] PresetFilterComponents
     {
@@ -60,9 +53,12 @@ public partial class QueryBuilderCard : ComponentBase
     string CheckBoxWithHeadingStyle { get; } = "display: flex; align-items: center;";
     string CheckBoxStyle { get; } = "margin-right: 10px;";
     string HeadingSize { get; } = "H4";
-    string ToolbarStyle { get; } = "display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap;";
-    string ToolbarGroupStyle { get; } = "display: flex; flex-direction: column; gap: 4px; min-width: 220px;";
-    string PresetToolbarGroupStyle { get; } = "display: flex; flex-direction: column; gap: 4px; min-width: 420px; flex: 1 1 420px;";
+    string ToolbarStyle { get; } =
+        "display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap;";
+    string ToolbarGroupStyle { get; } =
+        "display: flex; flex-direction: column; gap: 4px; min-width: 220px;";
+    string PresetToolbarGroupStyle { get; } =
+        "display: flex; flex-direction: column; gap: 4px; min-width: 420px; flex: 1 1 420px;";
     string ToolbarLabelStyle { get; } = "font-size: 0.875rem; margin-bottom: 0;";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -79,20 +75,29 @@ public partial class QueryBuilderCard : ComponentBase
 
     PresetFilter GetActivePresetFilter()
     {
-        _activeFilter.Entries = PresetFilterComponents
-            .Select(x => x.PresetFilterEntry)
-            .Where(x => x.Descriptors.Any())
-            .ToList();
+        List<PresetFilterEntry> entries = [];
+        foreach (IPresetFilterComponent component in PresetFilterComponents)
+        {
+            PresetFilterEntry entry = component.PresetFilterEntry;
+            entry.IsEnabled = _activeFilter.EnsurePresetFilterEntry(component.EntryType).IsEnabled;
+            if (entry.Descriptors.Any())
+                entries.Add(entry);
+        }
+        _activeFilter.Entries = entries;
 
         return _activeFilter;
     }
 
-    public PresetFilterBox GetPresetFilterBox()
+    public PresetFilterBox GetPresetFilterBox() => _appliedFilterBox;
+
+    PresetFilterBox BuildPresetFilterBox()
     {
         PresetFilterBox presetFilterBox = new PresetFilterBox();
         foreach (IPresetFilterComponent filterComponent in PresetFilterComponents)
         {
-            PresetFilterEntry filterEntry = _activeFilter.EnsurePresetFilterEntry(filterComponent.EntryType);
+            PresetFilterEntry filterEntry = _activeFilter.EnsurePresetFilterEntry(
+                filterComponent.EntryType
+            );
             string? filterString = filterComponent.FilterString;
             if (filterEntry.IsEnabled && !string.IsNullOrWhiteSpace(filterString))
             {
@@ -102,14 +107,10 @@ public partial class QueryBuilderCard : ComponentBase
         return presetFilterBox;
     }
 
-
-    async Task OnPresetFilterCheckBoxChanged(bool value, PresetFilterEntryType entryType)
+    void OnPresetFilterCheckBoxChanged(bool value, PresetFilterEntryType entryType)
     {
         PresetFilterEntry filterEntry = _activeFilter.EnsurePresetFilterEntry(entryType);
         filterEntry.IsEnabled = value;
-
-        StateHasChanged();
-        await ReloadActiveGrid();
     }
 
     bool GetFilterCheckBoxVisibility(PresetFilterEntryType entryType)
@@ -136,8 +137,8 @@ public partial class QueryBuilderCard : ComponentBase
 
     void ReRenderPresetFilters(PresetFilter presetFilter)
     {
-        Dictionary<PresetFilterEntryType, PresetFilterEntry> entryDict = presetFilter.Entries
-            .ToDictionary(x => x.PresetFilterEntryType);
+        Dictionary<PresetFilterEntryType, PresetFilterEntry> entryDict =
+            presetFilter.Entries.ToDictionary(x => x.PresetFilterEntryType);
 
         foreach (IPresetFilterComponent filterComponent in PresetFilterComponents)
         {
@@ -167,6 +168,7 @@ public partial class QueryBuilderCard : ComponentBase
         }
 
         await JSRuntime.InvokeVoidAsync("forceUpdateNumericInputs");
+        _appliedFilterBox = BuildPresetFilterBox();
         await _activeGrid.Reset(false, false);
     }
 

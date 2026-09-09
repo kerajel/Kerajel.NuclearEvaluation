@@ -23,7 +23,9 @@ BEGIN
     IF @DecayCorrectionDate IS NULL OR @RawValue IS NULL
         RETURN @RawValue;
 
-    DECLARE @t FLOAT = DATEDIFF(DAY, @AnalysisDate, @DecayCorrectionDate) / 365.25;
+    -- Values are treated as amounts/activities at the reference date. A later target
+    -- date decreases them; an earlier target date back-corrects them upward.
+    DECLARE @t FLOAT = DATEDIFF_BIG(SECOND, @AnalysisDate, @DecayCorrectionDate) / (365.25 * 86400.0);
 
     DECLARE @lambda FLOAT;
 
@@ -38,7 +40,7 @@ BEGIN
     ELSE
         RETURN @RawValue;
 
-    DECLARE @DecayFactor FLOAT = EXP(@lambda * @t);
+    DECLARE @DecayFactor FLOAT = EXP(-@lambda * @t);
 
     DECLARE @CorrectedValue DECIMAL(38,15) = CAST(@RawValue * @DecayFactor AS DECIMAL(38,15));
 
@@ -53,7 +55,7 @@ WITH sampleData AS (
     SELECT
          [SeriesId]
         ,COUNT(*) AS [SampleCount]
-        ,STRING_AGG([ExternalCode], ',') WITHIN GROUP (ORDER BY [ExternalCode] ASC) AS [SampleExternalCodes]
+        ,STRING_AGG(CONVERT(NVARCHAR(MAX), [ExternalCode]), ',') WITHIN GROUP (ORDER BY [ExternalCode] ASC) AS [SampleExternalCodes]
     FROM [DATA].[Sample]
     GROUP BY [SeriesId]
 )
@@ -80,7 +82,7 @@ WITH subSampleData AS (
 	SELECT
 		SampleId,
 		COUNT(*) AS SubSampleCount
-		FROM [DATA].SubSample ss 
+		FROM [DATA].SubSample ss
 		GROUP BY SampleId
 )
 SELECT    [x].Id
@@ -154,7 +156,7 @@ AS
 WITH seriesData AS (
     SELECT
          [ProjectId] AS [Id]
-        ,STRING_AGG([SeriesId], ',') WITHIN GROUP (ORDER BY [SeriesId] ASC) AS [SeriesIds]
+        ,STRING_AGG(CONVERT(NVARCHAR(MAX), [SeriesId]), ',') WITHIN GROUP (ORDER BY [SeriesId] ASC) AS [SeriesIds]
 		,SUM([sv].[SampleCount]) AS [SampleCount]
     FROM [EVALUATION].[ProjectSeries] AS [ps]
 	INNER JOIN [DATA].[SeriesView] AS [sv] ON [ps].[SeriesId] = [sv].[Id]
@@ -196,24 +198,24 @@ SELECT
     , [x].[IsNu]
     , [x].[LaboratoryCode]
     , [DATA].[CalculateDecayCorrection](
-          CAST([x].[U234] AS DECIMAL(38,15)), 
-          [pr].[DecayCorrectionDate], 
-          [s].[SamplingDate],
+          CAST([x].[U234] AS DECIMAL(38,15)),
+          [pr].[DecayCorrectionDate],
+          [x].[AnalysisDate],
           'U234') AS [U234]
     , [DATA].[CalculateDecayCorrection](
-          CAST([x].[ErU234] AS DECIMAL(38,15)), 
-          [pr].[DecayCorrectionDate], 
-          [s].[SamplingDate], 
+          CAST([x].[ErU234] AS DECIMAL(38,15)),
+          [pr].[DecayCorrectionDate],
+          [x].[AnalysisDate],
           'U234') AS [ErU234]
     , [DATA].[CalculateDecayCorrection](
-          CAST([x].[U235] AS DECIMAL(38,15)), 
-          [pr].[DecayCorrectionDate], 
-          [s].[SamplingDate],
+          CAST([x].[U235] AS DECIMAL(38,15)),
+          [pr].[DecayCorrectionDate],
+          [x].[AnalysisDate],
           'U235') AS [U235]
     , [DATA].[CalculateDecayCorrection](
-          CAST([x].[ErU235] AS DECIMAL(38,15)), 
-          [pr].[DecayCorrectionDate], 
-          [s].[SamplingDate],
+          CAST([x].[ErU235] AS DECIMAL(38,15)),
+          [pr].[DecayCorrectionDate],
+          [x].[AnalysisDate],
           'U235') AS [ErU235]
     , [x].[Comment]
 FROM [DATA].[Particle] AS [x]
@@ -231,23 +233,23 @@ SELECT
     , [x].[Id]
     , [x].[SubSampleId]
     , [DATA].[CalculateDecayCorrection](
-          CAST([x].[U234] AS DECIMAL(38,15)), 
-          [pr].[DecayCorrectionDate], 
+          CAST([x].[U234] AS DECIMAL(38,15)),
+          [pr].[DecayCorrectionDate],
           [s].[SamplingDate],
           'U234') AS [U234]
     , [DATA].[CalculateDecayCorrection](
-          CAST([x].[ErU234] AS DECIMAL(38,15)), 
-          [pr].[DecayCorrectionDate], 
+          CAST([x].[ErU234] AS DECIMAL(38,15)),
+          [pr].[DecayCorrectionDate],
           [s].[SamplingDate],
           'U234') AS [ErU234]
     , [DATA].[CalculateDecayCorrection](
-          CAST([x].[U235] AS DECIMAL(38,15)), 
-          [pr].[DecayCorrectionDate], 
+          CAST([x].[U235] AS DECIMAL(38,15)),
+          [pr].[DecayCorrectionDate],
           [s].[SamplingDate],
           'U235') AS [U235]
     , [DATA].[CalculateDecayCorrection](
-          CAST([x].[ErU235] AS DECIMAL(38,15)), 
-          [pr].[DecayCorrectionDate], 
+          CAST([x].[ErU235] AS DECIMAL(38,15)),
+          [pr].[DecayCorrectionDate],
           [s].[SamplingDate],
           'U235') AS [ErU235]
     , [DATA].[CalculateDecayCorrection](
@@ -272,24 +274,24 @@ SELECT
           'U238') AS [ErU238]
     , [x].[Comment]
 FROM [DATA].[Apm] AS [x]
-INNER JOIN [DATA].[SubSample] AS [ss] 
+INNER JOIN [DATA].[SubSample] AS [ss]
     ON [x].[SubSampleId] = [ss].[Id]
-INNER JOIN [DATA].[Sample] AS [s] 
+INNER JOIN [DATA].[Sample] AS [s]
     ON [ss].[SampleId] = [s].[Id]
-INNER JOIN [EVALUATION].[ProjectSeries] AS [ps] 
+INNER JOIN [EVALUATION].[ProjectSeries] AS [ps]
     ON [s].[SeriesId] = [ps].[SeriesId]
-INNER JOIN [EVALUATION].[Project] AS [pr] 
+INNER JOIN [EVALUATION].[Project] AS [pr]
     ON [ps].[ProjectId] = [pr].[Id];
 GO
 
-CREATE TABLE #tempComments 
+CREATE TABLE #tempComments
 (
 	ID INT IDENTITY,
     Comment NVARCHAR(200)
 );
 
 CREATE TABLE #tempURLs
-(	
+(
 	ID INT IDENTITY,
     URL NVARCHAR(200)
 );
@@ -340,7 +342,7 @@ CROSS JOIN digits AS tens
 CROSS JOIN digits AS ones;
 
 INSERT INTO #tempComments (Comment)
-VALUES 
+VALUES
     ('Corrective action needed'), ('Sample approved'), ('Recheck results'),
     ('Valid range exceeded'), ('Test sample again'), ('Precision is key'),
     ('Error in calculation'), ('Reagent issue'), ('Calibration required'),
@@ -356,11 +358,11 @@ VALUES
     ('Review procedure'), ('Hold for further analysis'), ('Reagents replaced'),
     ('Sample condition good'), ('Awaiting confirmation'), ('Final approval pending'),
     ('Validation complete'), ('Testing phase complete'), ('Reformulation required'),
-    ('Stability test needed'), ('Preparation phase'), ('Assay development'), 
+    ('Stability test needed'), ('Preparation phase'), ('Assay development'),
     ('Quality checks in place'), ('Ready for next stage');
 
 INSERT INTO #tempURLs (URL)
-VALUES 
+VALUES
     ('/resources/Q1D2C3'), ('/validate/R4T5Y6'), ('/results/S7G8H9'),
     ('/batch/B2N3M4'), ('/analysis/A1S2D3'), ('/info/I4F5G6'),
     ('/data/D7H8J9'), ('/report/R1K2L3'), ('/summary/S4F5G6'),
@@ -370,7 +372,7 @@ VALUES
     ('/logs/L7O8G9'), ('/support/S1P2O3');
 
 INSERT INTO #activityNotes (Note)
-VALUES 
+VALUES
     ('Analysis completed'), ('Awaiting review'), ('Data entered'), ('Samples received'),
     ('Quality check done'), ('Processing stage'), ('Sent for testing'),
     ('Results pending'), ('Batch processing'), ('Error in sample handling'),
@@ -390,7 +392,7 @@ VALUES
     ('Calibration completed');
 
 INSERT INTO #trackingNumbers (TrackingNumber)
-VALUES 
+VALUES
     ('TN0001'), ('TN0002'), ('TN0003'), ('TN0004'),
     ('TN0005'), ('TN0006'), ('TN0007'), ('TN0008'),
     ('TN0009'), ('TN0010'), ('TN0011'), ('TN0012'),
@@ -406,7 +408,7 @@ VALUES
     ('TN0049'), ('TN0050');
 
 INSERT INTO #followUpActionsRecommended (Action)
-VALUES 
+VALUES
     ('Increase sampling frequency'), ('Update SOPs'), ('Review all related batches'),
     ('Conduct staff retraining'), ('Review equipment settings'), ('Increase QA checks'),
     ('Audit recent batches'), ('Implement new software tools'), ('Review supplier contracts'),
@@ -423,7 +425,7 @@ VALUES
     ('Upgrade hardware components'), ('Expand research and development efforts');
 
 INSERT INTO #conclusions (Conclusion)
-VALUES 
+VALUES
     ('All parameters met'), ('Process within specifications'), ('No deviations found'),
     ('Minor issues detected'), ('Major errors identified'), ('Compliance fully achieved'),
     ('Partial compliance observed'), ('Reevaluation recommended'), ('Process stable and reliable'),
@@ -533,11 +535,18 @@ BEGIN
     IF @@ROWCOUNT = 0 BREAK;
 END;
 
-DBCC CHECKIDENT ('[DATA].[Series]', RESEED, 9999);
-DBCC CHECKIDENT ('[DATA].[Sample]', RESEED, 0);
-DBCC CHECKIDENT ('[DATA].[SubSample]', RESEED, 0);
-DBCC CHECKIDENT ('[DATA].[Particle]', RESEED, 0);
-DBCC CHECKIDENT ('[DATA].[Apm]', RESEED, 0);
+-- Fresh tables use the identity seed from the schema. After DELETE, reset the
+-- current value to one below that seed so the next INSERT starts at the same ID.
+IF EXISTS (SELECT 1 FROM sys.identity_columns WHERE object_id = OBJECT_ID('[DATA].[Series]') AND last_value IS NOT NULL)
+    DBCC CHECKIDENT ('[DATA].[Series]', RESEED, 9999);
+IF EXISTS (SELECT 1 FROM sys.identity_columns WHERE object_id = OBJECT_ID('[DATA].[Sample]') AND last_value IS NOT NULL)
+    DBCC CHECKIDENT ('[DATA].[Sample]', RESEED, 0);
+IF EXISTS (SELECT 1 FROM sys.identity_columns WHERE object_id = OBJECT_ID('[DATA].[SubSample]') AND last_value IS NOT NULL)
+    DBCC CHECKIDENT ('[DATA].[SubSample]', RESEED, 0);
+IF EXISTS (SELECT 1 FROM sys.identity_columns WHERE object_id = OBJECT_ID('[DATA].[Particle]') AND last_value IS NOT NULL)
+    DBCC CHECKIDENT ('[DATA].[Particle]', RESEED, 0);
+IF EXISTS (SELECT 1 FROM sys.identity_columns WHERE object_id = OBJECT_ID('[DATA].[Apm]') AND last_value IS NOT NULL)
+    DBCC CHECKIDENT ('[DATA].[Apm]', RESEED, 0);
 GO
 
 -- Seed Series
@@ -556,13 +565,13 @@ BEGIN
         ,[IsNu]
         ,[AnalysisCompleteDate])
     SELECT
-         CAST(ABS(CHECKSUM(NEWID())) % 4 + 1 AS TINYINT)
-        ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE())
+         CAST(ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 4 + 1 AS TINYINT)
+        ,DATEADD(day, -(numbers.n % 365 + 30), SYSUTCDATETIME())
         ,(SELECT Comment FROM #tempComments WHERE ID = (numbers.n % (SELECT MAX(ID) FROM #tempComments)) + 1)
         ,CAST(numbers.n % 2 AS BIT)
         ,(SELECT URL FROM #tempURLs WHERE ID = (numbers.n % (SELECT MAX(ID) FROM #tempURLs)) + 1)
         ,CAST((numbers.n + 1) % 2 AS BIT)
-        ,CASE WHEN numbers.n % 3 = 0 THEN DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 365 - 182 AS INT), GETDATE()) ELSE NULL END
+        ,CASE WHEN numbers.n % 3 = 0 THEN DATEADD(day, -(numbers.n % 365 + 10), SYSUTCDATETIME()) ELSE NULL END
     FROM (
         SELECT @SeriesOffset + n AS n
         FROM #seedNumbers1000
@@ -596,7 +605,7 @@ BEGIN
     seriesSamples AS (
         SELECT
              [s].[Id] AS SeriesId
-            ,CAST(ABS(CHECKSUM(NEWID())) % 5 + 1 AS INT) AS SampleCount
+            ,([s].[Id] % 5) + 1 AS SampleCount
         FROM [DATA].[Series] s
         WHERE [s].[Id] >= @SeriesStartId
           AND [s].[Id] < @SeriesStartId + @ParentBatchSize
@@ -618,15 +627,15 @@ BEGIN
     )
     SELECT
          [ess].SeriesId
-        ,RIGHT('EX' + CAST(NEWID() AS NVARCHAR(MAX)), 3)
-        ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE())
+        ,RIGHT('000' + CAST(ess.SampleIndex AS VARCHAR(3)), 3)
+        ,DATEADD(day, ess.SampleIndex, (SELECT CreatedAt FROM [DATA].[Series] WHERE Id = ess.SeriesId))
         ,CASE
-            WHEN ABS(CHECKSUM(NEWID())) % 100 < 30 THEN 'pic' + LEFT(CONVERT(VARCHAR(36), NEWID()), 2)
-            WHEN ABS(CHECKSUM(NEWID())) % 100 < 70 THEN LEFT(CONVERT(VARCHAR(36), NEWID()), 3) + 'qc'
+            WHEN ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 100 < 30 THEN 'pic' + LEFT(CONVERT(VARCHAR(36), NEWID()), 2)
+            WHEN ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 100 < 70 THEN LEFT(CONVERT(VARCHAR(36), NEWID()), 3) + 'qc'
             ELSE LEFT(CONVERT(VARCHAR(36), NEWID()), 5)
          END
-        ,CASE WHEN ABS(CHECKSUM(NEWID())) % 10 = 0 THEN NULL ELSE CAST(-90 + (180 * RAND(CHECKSUM(NEWID()))) AS DECIMAL(11,8)) END
-        ,CASE WHEN ABS(CHECKSUM(NEWID())) % 10 = 0 THEN NULL ELSE CAST(-180 + (360 * RAND(CHECKSUM(NEWID()))) AS DECIMAL(11,8)) END
+        ,CASE WHEN ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 10 = 0 THEN NULL ELSE CAST(-90 + (180 * RAND(CHECKSUM(NEWID()))) AS DECIMAL(11,8)) END
+        ,CASE WHEN ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 10 = 0 THEN NULL ELSE CAST(-180 + (360 * RAND(CHECKSUM(NEWID()))) AS DECIMAL(11,8)) END
     FROM
         expandedSeriesSamples ess;
 
@@ -654,7 +663,7 @@ BEGIN
     sampleSubSamples AS (
         SELECT
              [s].[Id] AS SampleId
-            ,CAST(ABS(CHECKSUM(NEWID())) % 3 + 1 AS INT) AS SubSampleCount
+            ,([s].[Id] % 3) + 1 AS SubSampleCount
         FROM [DATA].[Sample] s
         WHERE [s].[Id] >= @SampleStartId
           AND [s].[Id] < @SampleStartId + @ParentBatchSize
@@ -676,10 +685,10 @@ BEGIN
         ,[TrackingNumber])
     SELECT
          [ess].SampleId
-        ,RIGHT('SX' + CAST(NEWID() AS NVARCHAR(MAX)), 3)
-        ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE())
-        ,CAST(CAST(ABS(CHECKSUM(NEWID())) % 2 AS INT) AS BIT)
-        ,CASE WHEN CAST(ABS(CHECKSUM(NEWID())) % 10 AS INT) > 1 THEN DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 30 - 15 AS INT), GETDATE()) ELSE NULL END
+        ,RIGHT('000' + CAST(ess.SubSampleIndex AS VARCHAR(3)), 3)
+        ,DATEADD(day, ess.SubSampleIndex, (SELECT SamplingDate FROM [DATA].[Sample] WHERE Id = ess.SampleId))
+        ,CAST(CAST(ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 2 AS INT) AS BIT)
+        ,CASE WHEN CAST(ABS(CONVERT(BIGINT, CHECKSUM(NEWID()))) % 10 AS INT) > 1 THEN DATEADD(day, 7, (SELECT SamplingDate FROM [DATA].[Sample] WHERE Id = ess.SampleId)) ELSE NULL END
         ,(SELECT Note FROM #activityNotes WHERE ID = (CAST(ess.SampleId AS INT) % (SELECT COUNT(*) FROM #activityNotes)) + 1)
         ,(SELECT TrackingNumber FROM #trackingNumbers WHERE ID = (CAST(ess.SampleId AS INT) % (SELECT COUNT(*) FROM #trackingNumbers)) + 1)
     FROM
@@ -709,7 +718,7 @@ BEGIN
     sampleSubSamples AS (
         SELECT
              [s].[Id] AS SubSampleId
-            ,CAST(ABS(CHECKSUM(NEWID())) % 3 + 1 AS INT) AS ParticleCount
+            ,([s].[Id] % 3) + 1 AS ParticleCount
         FROM [DATA].[SubSample] s
         WHERE [s].[Id] >= @SubSampleStartId
           AND [s].[Id] < @SubSampleStartId + @ParentBatchSize
@@ -736,7 +745,7 @@ BEGIN
     SELECT
          essp.SubSampleId,
          CAST((RAND(CHECKSUM(NEWID())) * 3200.23) AS DECIMAL(10,2)),
-         DATEADD(day, CAST(RAND(CHECKSUM(NEWID())) * 30 - 15 AS INT), GETDATE()),
+         DATEADD(day, essp.ParticleIndex + 7, (SELECT ScreeningDate FROM [DATA].[SubSample] WHERE Id = essp.SubSampleId)),
 	     CAST((essp.SubSampleId + 1) % 2 AS BIT),
          LEFT(NEWID(), 10),
          CASE WHEN RAND(CHECKSUM(NEWID())) < 0.8 THEN CAST(RAND(CHECKSUM(NEWID())) * 10 AS DECIMAL(38,15)) ELSE NULL END,
@@ -771,7 +780,7 @@ BEGIN
     sampleSubSamples AS (
         SELECT
              [s].[Id] AS SubSampleId
-            ,CAST(ABS(CHECKSUM(NEWID())) % 5 + 1 AS INT) AS ParticleCount
+            ,([s].[Id] % 5) + 1 AS ParticleCount
         FROM [DATA].[SubSample] s
         WHERE [s].[Id] >= @SubSampleStartId
           AND [s].[Id] < @SubSampleStartId + @ParentBatchSize
@@ -835,8 +844,8 @@ BEGIN
         ,((SELECT ProjectName FROM #projectNames WHERE ID = (numbers.n % (SELECT MAX(ID) FROM #projectNames)) + 1) + ' ' + LEFT(CONVERT(NVARCHAR(36), NEWID()), 7))
         ,(SELECT Conclusion FROM #conclusions WHERE ID = (numbers.n % (SELECT MAX(ID) FROM #conclusions)) + 1)
         ,(SELECT [Action] FROM #followUpActionsRecommended WHERE ID = (numbers.n % (SELECT MAX(ID) FROM #followUpActionsRecommended)) + 1)
-        ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE()) AS [CreatedAt]
-        ,DATEADD(day, CAST(ABS(CHECKSUM(NEWID())) % 20 - 10 AS INT), GETDATE()) AS [UpdatedAt]
+        ,DATEADD(day, -(numbers.n % 365 + 30), SYSUTCDATETIME()) AS [CreatedAt]
+        ,DATEADD(day, -(numbers.n % 365), SYSUTCDATETIME()) AS [UpdatedAt]
     FROM (
         SELECT @ProjectOffset + n AS n
         FROM #seedNumbers1000

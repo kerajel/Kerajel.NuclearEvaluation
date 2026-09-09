@@ -1,16 +1,17 @@
+using LinqToDB.EntityFrameworkCore;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
-using NuclearEvaluation.Server.Interfaces.STEM;
+using NuclearEvaluation.Server.Controllers;
 using NuclearEvaluation.Server.Services.Captcha;
 using NuclearEvaluation.Server.Services.Sandbox;
 using NuclearEvaluation.Shared;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
-using LinqToDB.EntityFrameworkCore;
 
 internal class Program
 {
-    const string logTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
+    const string logTemplate =
+        "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
 
     private static async Task Main(string[] args)
     {
@@ -18,18 +19,33 @@ internal class Program
 
         builder.Services.Configure<KestrelServerOptions>(options =>
         {
-            options.Limits.MaxRequestBodySize = UploadLimits.MaxStemPreviewFileSizeBytes + (1 * 1024 * 1024);
+            options.Limits.MaxRequestBodySize =
+                UploadLimits.MaxStemPreviewFileSizeBytes + (1 * 1024 * 1024);
         });
 
-        builder.Services.AddControllers()
+        builder.Services.AddProblemDetails();
+        builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+
+        builder
+            .Services.AddControllers()
             .AddJsonOptions(o =>
                 // View models carry navigation back-references (e.g. ProjectView <-> ProjectViewSeriesView).
-                o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
+                o.JsonSerializerOptions.ReferenceHandler = System
+                    .Text
+                    .Json
+                    .Serialization
+                    .ReferenceHandler
+                    .IgnoreCycles
+            );
 
         builder.Services.Configure<SandboxSettings>(builder.Configuration.GetSection("Sandbox"));
-        SandboxSettings sandboxSettings = builder.Configuration.GetSection("Sandbox").Get<SandboxSettings>() ?? new SandboxSettings();
+        SandboxSettings sandboxSettings =
+            builder.Configuration.GetSection("Sandbox").Get<SandboxSettings>()
+            ?? new SandboxSettings();
 
-        builder.Services.AddRateLimiter(options => RateLimitPolicies.Configure(options, sandboxSettings));
+        builder.Services.AddRateLimiter(options =>
+            RateLimitPolicies.Configure(options, sandboxSettings)
+        );
 
         builder.Services.AddSerilog();
 
@@ -40,7 +56,8 @@ internal class Program
                 path: "logs/log-.txt",
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 3,
-                outputTemplate: logTemplate)
+                outputTemplate: logTemplate
+            )
             .CreateLogger();
 
         builder.Services.AddTransient<IProjectService, ProjectService>();
@@ -66,17 +83,41 @@ internal class Program
         builder.Services.AddHostedService<StartupSeedService>();
         builder.Services.AddHostedService<SandboxMaintenanceService>();
 
-        builder.Services.Configure<CaptchaSettings>(builder.Configuration.GetSection("Captcha"));
+        builder
+            .Services.AddOptions<CaptchaSettings>()
+            .Bind(builder.Configuration.GetSection("Captcha"))
+            .Validate(
+                s => s.MaxNumber is >= 1 and <= 1_000_000,
+                "Captcha difficulty must be between 1 and 1,000,000."
+            )
+            .Validate(
+                s =>
+                    s.ChallengeTtlMinutes is >= 1 and <= 60
+                    && s.VerificationTtlDays is >= 1 and <= 365,
+                "Captcha lifetimes are outside the supported range."
+            )
+            .ValidateOnStart();
         builder.Services.AddSingleton<ICaptchaService, CaptchaService>();
 
-        string connectionString = builder.Configuration.GetConnectionString("NuclearEvaluationServerDbConnection")
-            ?? throw new InvalidOperationException("Connection string 'NuclearEvaluationServerDbConnection' is not configured.");
+        string? connectionString = builder.Configuration.GetConnectionString(
+            "NuclearEvaluationServerDbConnection"
+        );
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                "Connection string 'NuclearEvaluationServerDbConnection' is not configured."
+            );
+        }
 
         // Transient DbContext: services are short-lived per API request.
         builder.Services.AddDbContext<NuclearEvaluationServerDbContext>(
-            options => options.UseSqlServer(connectionString), ServiceLifetime.Transient);
+            options => options.UseSqlServer(connectionString),
+            ServiceLifetime.Transient
+        );
         builder.Services.AddDbContextFactory<NuclearEvaluationServerDbContext>(
-            options => options.UseSqlServer(connectionString), ServiceLifetime.Transient);
+            options => options.UseSqlServer(connectionString),
+            ServiceLifetime.Transient
+        );
 
         LinqToDBForEFTools.Initialize();
 
@@ -87,9 +128,10 @@ internal class Program
             await ApplyMigrationsWithRetryAsync(app);
         }
 
+        app.UseExceptionHandler();
+
         if (!app.Environment.IsDevelopment())
         {
-            app.UseExceptionHandler("/Error");
             app.UseHsts();
         }
 
@@ -120,13 +162,19 @@ internal class Program
             try
             {
                 using IServiceScope scope = app.Services.CreateScope();
-                IDatabaseSeeder seeder = scope.ServiceProvider.GetRequiredService<IDatabaseSeeder>();
+                IDatabaseSeeder seeder =
+                    scope.ServiceProvider.GetRequiredService<IDatabaseSeeder>();
                 await seeder.ApplyMigrationsAsync();
                 return;
             }
             catch (Exception ex) when (attempt < maxAttempts)
             {
-                Log.Warning(ex, "Database not ready (attempt {Attempt}/{Max}); retrying in 5s.", attempt, maxAttempts);
+                Log.Warning(
+                    ex,
+                    "Database not ready (attempt {Attempt}/{Max}); retrying in 5s.",
+                    attempt,
+                    maxAttempts
+                );
                 await Task.Delay(TimeSpan.FromSeconds(5));
             }
         }

@@ -1,14 +1,15 @@
 ﻿using Microsoft.AspNetCore.Components;
+using NuclearEvaluation.Client.Services;
+using NuclearEvaluation.Shared.Enums;
+using NuclearEvaluation.Shared.Extensions;
+using NuclearEvaluation.Shared.Models.Filters;
 using Radzen;
 using Radzen.Blazor;
-using NuclearEvaluation.Shared.Models.Filters;
-using NuclearEvaluation.Shared.Extensions;
-using NuclearEvaluation.Shared.Enums;
-using NuclearEvaluation.Client.Services;
 
 namespace NuclearEvaluation.Client.Shared.Evaluation.QueryBuilder;
 
-public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilterComponent where TItem : class, new()
+public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilterComponent
+    where TItem : class, new()
 {
     [Parameter]
     public bool Visible { get; set; }
@@ -46,7 +47,8 @@ public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilt
                 ? null
                 : filters.ToFilterString<TItem>(
                     logicalFilterOperator,
-                    filter?.FilterCaseSensitivity ?? FilterCaseSensitivity.Default);
+                    filter?.FilterCaseSensitivity ?? FilterCaseSensitivity.Default
+                );
         }
     }
 

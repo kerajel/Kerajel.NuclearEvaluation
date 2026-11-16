@@ -65,7 +65,7 @@ SQL Server data and uploaded files persist in named Docker volumes (`mssql-data`
 
 ## Running locally without Docker
 
-Requirements: .NET SDK 10.0 and a reachable SQL Server instance.
+Requirements: .NET SDK 11.0 and a reachable SQL Server instance.
 
 1. Put your connection string in `src/NuclearEvaluation.Server/appsettings.Development.json`
    (git-ignored):
@@ -178,10 +178,10 @@ and `Captcha:Secret` via the host's configuration.
 Publish the server and its bundled WASM client together. EF Core migrations manage the database
 schema; sandbox initialization and scheduled resets manage the example data.
 
-For SmarterASP.NET Auto Build, do not upload a normal repository zip and do not point Auto Build at
-the repository root. SmarterASP.NET's Railpack flow restores before nested project folders are
-copied into the build context, so ordinary `ProjectReference` dependencies fail later at
-`dotnet publish --no-restore`.
+SmarterASP.NET Auto Build requires the .NET 11 SDK on the provider's build system. Use the direct
+publish above if that SDK is unavailable. SmarterASP.NET's Railpack flow restores before nested
+project folders are copied into the build context, so ordinary `ProjectReference` dependencies
+fail later at `dotnet publish --no-restore`.
 
 Create the upload archive with the repository script instead:
 

@@ -12,6 +12,7 @@
                       Rows="Rows"
                       @onblur="HandleOnBlur"
                       Inline="true"
+                      NavigationMode="DatePickerNavigationMode.DropDown"
                       Name="@Name" />
 
     @if (Visible && !IsValid && !string.IsNullOrEmpty(_validationMessage))

@@ -194,7 +194,9 @@
                                   FormatString="@DateOnlyFormat"
                                   Title="Analysis Complete Date">
                 <EditTemplate Context="series">
-                    <RadzenDatePicker @bind-Value="series.AnalysisCompleteDate" DateFormat="MM/dd/yyyy" />
+                    <RadzenDatePicker @bind-Value="series.AnalysisCompleteDate"
+                                      DateFormat="MM/dd/yyyy"
+                                      NavigationMode="DatePickerNavigationMode.DropDown" />
                 </EditTemplate>
             </RadzenDataGridColumn>
 

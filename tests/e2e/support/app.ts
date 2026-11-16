@@ -15,11 +15,7 @@ export type ApiResult<T = unknown> = {
 
 export async function waitForApp(page: Page) {
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForFunction(
-    () => !document.body.innerText.includes('Loading Nuclear Evaluation'),
-    null,
-    { timeout: 30_000 }
-  ).catch(() => undefined);
+  await expect(page.locator('#site-content, .captcha-panel').first()).toBeVisible({ timeout: 30_000 });
 }
 
 export async function completeCaptchaGate(page: Page) {
@@ -128,8 +124,10 @@ export async function openStemPreview(page: Page) {
 
 export async function openQueryBuilder(page: Page) {
   await gotoApp(page, '/evaluation');
-  await page.getByText('Query Builder', { exact: true }).click();
-  await expect(page.getByText('Preset Filters')).toBeVisible();
+  const tab = page.getByRole('tab', { name: 'Query Builder', exact: true });
+  await tab.click();
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByText('Preset Filters', { exact: true })).toBeVisible();
 }
 
 export async function confirmDialogYes(page: Page) {

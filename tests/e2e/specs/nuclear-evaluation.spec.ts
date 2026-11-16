@@ -99,12 +99,11 @@ test('CAP-01 captcha status remains verified in a fresh browser session', async 
 
 test('NAV-01 home page and sidebar navigation render', async ({ page }) => {
   await gotoApp(page, '/');
-  const text = await bodyText(page);
-
   await expect(page.getByText('Nuclear Evaluation').first()).toBeVisible();
-  expect(text).toContain('Home');
-  expect(text).toContain('Data Management');
-  expect(text).toContain('Evaluation');
+  const navigation = page.getByRole('navigation', { name: 'Primary' });
+  for (const name of ['Home', 'Data Management', 'Evaluation']) {
+    await expect(navigation.getByRole('link', { name, exact: true })).toBeVisible();
+  }
   await expectNoVisibleAppError(page);
 });
 

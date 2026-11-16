@@ -802,14 +802,21 @@ async function addCondition(
   const existingProperties = await filter.locator('.rz-datafilter-property').count();
   await filter.getByRole('button', { name: 'Button', exact: true }).click();
   const propertySelect = filter.locator('.rz-datafilter-property').nth(existingProperties);
-  await propertySelect.click();
-  await page.getByRole('option', { name: property, exact: true }).click();
+  await selectFilterOption(page, propertySelect, property);
   const row = propertySelect.locator('xpath=ancestor::li[contains(@class,"rz-datafilter-item")][1]');
 
-  await row.locator('.rz-datafilter-operator').click();
-  await page.getByRole('option', { name: operator, exact: true }).click();
+  await selectFilterOption(page, row.locator('.rz-datafilter-operator'), operator);
   await setEditorValue(page, row, value);
   return row;
+}
+
+async function selectFilterOption(page: Page, dropdown: Locator, name: string) {
+  await dropdown.click();
+  const listId = await dropdown.getAttribute('aria-controls');
+  if (!listId) {
+    throw new Error('The filter dropdown does not identify its option list.');
+  }
+  await page.locator('[id=' + JSON.stringify(listId) + ']').getByRole('option', { name, exact: true }).click();
 }
 
 async function setEditorValue(page: Page, row: Locator, value: EditorValue) {
@@ -817,8 +824,7 @@ async function setEditorValue(page: Page, row: Locator, value: EditorValue) {
     return;
   }
   if (value.kind === 'enum') {
-    await row.locator('.rz-datafilter-editor[role="combobox"]').click();
-    await page.getByRole('option', { name: value.value, exact: true }).click();
+    await selectFilterOption(page, row.locator('.rz-datafilter-editor[role="combobox"]'), value.value);
     return;
   }
   if (value.kind === 'boolean') {
@@ -862,7 +868,7 @@ function waitForViewResponse(page: Page, endpoint: string) {
 }
 
 async function parseViewResponse(response: Response) {
-  expect(response.ok()).toBe(true);
+  expect(response.ok(), `Query returned HTTP ${response.status()}`).toBe(true);
   const result = await response.json() as FetchDataResult;
   expect(result.isSuccessful, result.errorMessage ?? undefined).toBe(true);
   return result;

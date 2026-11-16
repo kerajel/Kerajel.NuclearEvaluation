@@ -17,6 +17,8 @@ export E2E_UID="$(id -u)"
 export E2E_GID="$(id -g)"
 export NUCLEAR_APP_PORT="${E2E_HOST_APP_PORT:-0}"
 export NUCLEAR_DB_PORT="${E2E_HOST_DB_PORT:-0}"
+# The browser workers send all of their requests from the same loopback IP.
+export NUCLEAR_RATE_LIMIT_PER_MINUTE=10000
 
 docker compose \
   --project-name "$compose_project" \

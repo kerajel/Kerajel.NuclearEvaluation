@@ -1,5 +1,6 @@
 .fleet-map {
     --fleet-water: color-mix(in srgb, var(--rz-base-background-color, var(--rz-body-background-color)) 92%, var(--rz-info));
+    --fleet-column-height: var(--fleet-capacity-column-height, clamp(2.15rem, 8vw, 5.5rem));
     position: relative;
     width: 100%;
     aspect-ratio: 900 / 535;
@@ -19,6 +20,12 @@
     stroke: color-mix(in srgb, var(--fleet-water) 64%, var(--rz-text-color));
     stroke-linejoin: round;
     stroke-width: .85;
+}
+
+.fleet-map-state-active {
+    fill: color-mix(in srgb, var(--fleet-water) 66%, var(--fleet-primary, var(--rz-info)));
+    stroke: var(--fleet-primary, var(--rz-info));
+    stroke-width: 1.15;
 }
 
 .fleet-map-marker {
@@ -50,8 +57,8 @@ button.fleet-map-marker { cursor: pointer; }
 }
 
 .fleet-map-selected, .fleet-map-compared { z-index: 600; }
-.fleet-map-selected { --fleet-dot: color-mix(in srgb, var(--rz-success) 78%, var(--rz-text-color)); }
-.fleet-map-compared { --fleet-dot: color-mix(in srgb, var(--rz-warning) 78%, var(--rz-text-color)); }
+.fleet-map-selected { --fleet-dot: var(--fleet-primary, color-mix(in srgb, var(--rz-success) 78%, var(--rz-text-color))); }
+.fleet-map-compared { --fleet-dot: var(--fleet-secondary, color-mix(in srgb, var(--rz-warning) 78%, var(--rz-text-color))); }
 
 .fleet-map-selected .fleet-map-dot, .fleet-map-compared .fleet-map-dot {
     box-shadow: 0 0 0 .13rem color-mix(in srgb, var(--fleet-dot) 42%, transparent);
@@ -67,7 +74,7 @@ button.fleet-map-marker:hover .fleet-map-dot, button.fleet-map-marker:focus-visi
 
 .fleet-map-capacity button.fleet-map-marker:has(.fleet-map-column) {
     width: .92rem;
-    height: max(1.3rem, calc(var(--fleet-fraction) * clamp(2.15rem, 8vw, 5.5rem)));
+    height: max(1.3rem, calc(var(--fleet-fraction) * var(--fleet-column-height)));
     transform: translate(-50%, -100%);
     border-radius: .1rem;
     place-items: end center;
@@ -82,7 +89,7 @@ button.fleet-map-marker:hover .fleet-map-dot, button.fleet-map-marker:focus-visi
     display: flex;
     flex-direction: column-reverse;
     width: .48rem;
-    height: calc(var(--fleet-fraction) * clamp(2.15rem, 8vw, 5.5rem));
+    height: calc(var(--fleet-fraction) * var(--fleet-column-height));
     background-color: var(--fleet-dot);
     pointer-events: none;
 }

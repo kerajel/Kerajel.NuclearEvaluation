@@ -1,4 +1,7 @@
-<RadzenTheme @ref="_theme" Theme="software-dark" />
+@* Activate the configured appearance cookie writer for theme changes. *@
+@inject CookieThemeService ThemeCookie
+
+<RadzenTheme Theme="software-dark" />
 
 <CaptchaGate>
     <Router AppAssembly="@typeof(Program).Assembly">
@@ -8,17 +11,13 @@
         <NotFound>
             <PageTitle>Not found</PageTitle>
             <LayoutView Layout="@typeof(MainLayout)">
-                <RadzenRow>
-                    <RadzenColumn Size="12" style="margin-top: 5rem; margin-bottom: 5rem">
-                        <RadzenText Text="Page not found" TextStyle="TextStyle.DisplayH1" style="margin: 0; margin-bottom: 2rem" TextAlign="TextAlign.Center" />
-                        <RadzenText Text="Sorry, but there's nothing here!" TextStyle="TextStyle.H6" style="margin: 0" TextAlign="TextAlign.Center" TagName="TagName.P" />
-                    </RadzenColumn>
-                </RadzenRow>
+                <section class="ne-not-found" aria-labelledby="not-found-title">
+                    <RadzenIcon Icon="explore_off" aria-hidden="true" />
+                    <h1 id="not-found-title">Page not found</h1>
+                    <p>Check the address or choose a section from the navigation.</p>
+                    <a href="">Return to home <span aria-hidden="true">→</span></a>
+                </section>
             </LayoutView>
         </NotFound>
     </Router>
 </CaptchaGate>
-
-@code {
-    RadzenTheme _theme = null!;
-}

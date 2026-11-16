@@ -1,0 +1,22 @@
+<section class="workspace-page" aria-labelledby="@_titleId">
+    <header class="workspace-page__header">
+        <h1 id="@_titleId">@Title</h1>
+        <p>@Description</p>
+    </header>
+    <div class="workspace-page__content">
+        @ChildContent
+    </div>
+</section>
+
+@code {
+    readonly string _titleId = $"workspace-title-{Guid.NewGuid():N}";
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Description { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public RenderFragment? ChildContent { get; set; }
+}

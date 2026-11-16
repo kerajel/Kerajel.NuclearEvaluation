@@ -1,0 +1,38 @@
+.workspace-page {
+    min-width: 0;
+}
+
+.workspace-page__header {
+    padding: 0 0 clamp(1rem, 3vw, 1.75rem);
+}
+
+.workspace-page__header h1 {
+    margin: 0;
+    font-size: clamp(1.9rem, 3.9vw, 3rem);
+    font-weight: 720;
+    line-height: 1.13;
+    letter-spacing: -0.035em;
+}
+
+.workspace-page__header p {
+    max-width: 60ch;
+    margin: .6rem 0 0;
+    color: var(--rz-text-secondary-color);
+    line-height: 1.55;
+}
+
+.workspace-page__content {
+    min-width: 0;
+}
+
+.workspace-page__content ::deep .rz-tabview-panels {
+    min-width: 0;
+}
+
+.workspace-page__content ::deep .rz-tabview-nav {
+    gap: .15rem .3rem;
+}
+
+.workspace-page__content ::deep .rz-tabview-panel {
+    padding-inline: clamp(.65rem, 2.1vw, 1.4rem);
+}

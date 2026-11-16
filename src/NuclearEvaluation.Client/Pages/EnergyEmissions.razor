@@ -1,5 +1,6 @@
 @page "/energy-emissions"
 @using System.Globalization
+@inject NavigationManager Navigation
 
 <PageTitle>Energy &amp; Emissions | Nuclear Evaluation</PageTitle>
 
@@ -56,6 +57,7 @@
             {
                 <p class="energy-scope">@scope</p>
             }
+            <p class="energy-selected-total"><strong>@FormatNumber(_selectedSource.Total)</strong> g CO₂e/kWh</p>
 
             <h3>Lifecycle phases</h3>
             <p class="energy-phase-units">Median g CO₂e/kWh</p>
@@ -68,9 +70,105 @@
         </section>
     </div>
 
+    <section id="@EstimateId" class="energy-scenario" aria-labelledby="energy-scenario-title"
+             @ref="_estimateSection" tabindex="-1">
+        <header class="energy-scenario-header">
+            <h2 id="energy-scenario-title">Compare total emissions</h2>
+            <p>Estimate the lifecycle emissions of generating the same amount of electricity from two sources.</p>
+        </header>
+
+        @{ bool hasGeneration = TryGetGenerationMwh(out decimal generationMwh); }
+        <div class="energy-scenario-controls">
+            <div class="energy-scenario-field">
+                <label for="energy-source-a">First source</label>
+                <select id="energy-source-a" @bind="_firstSourceIndex">
+                    @for (int index = 0; index < Sources.Length; index++)
+                    {
+                        <option value="@index">@Sources[index].Name</option>
+                    }
+                </select>
+            </div>
+            <div class="energy-scenario-field">
+                <label for="energy-source-b">Second source</label>
+                <select id="energy-source-b" @bind="_secondSourceIndex">
+                    @for (int index = 0; index < Sources.Length; index++)
+                    {
+                        <option value="@index">@Sources[index].Name</option>
+                    }
+                </select>
+            </div>
+            <div class="energy-scenario-field">
+                <label for="energy-generation">Electricity generated</label>
+                <div class="energy-generation-control">
+                    <input id="energy-generation" type="number" inputmode="decimal" step="any"
+                           min="@MinGeneration.ToString(CultureInfo.InvariantCulture)"
+                           max="@MaxGeneration.ToString(CultureInfo.InvariantCulture)"
+                           aria-invalid="@(hasGeneration ? null : "true")"
+                           aria-describedby="@(hasGeneration ? null : "energy-generation-error")"
+                           @bind="_generation" @bind:event="oninput" />
+                    <select id="energy-generation-unit" aria-label="Generation unit" @bind="_generationUnit">
+                        <option value="@GenerationUnit.GigawattHours">GWh</option>
+                        <option value="@GenerationUnit.MegawattHours">MWh</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        @if (hasGeneration)
+        {
+            EmissionSource first = Sources[_firstSourceIndex];
+            EmissionSource second = Sources[_secondSourceIndex];
+            decimal firstKg = generationMwh * first.Total;
+            decimal secondKg = generationMwh * second.Total;
+            decimal higherKg = Math.Max(firstKg, secondKg);
+            EmissionSource higher = firstKg > secondKg ? first : second;
+
+            <div class="energy-scenario-results">
+                <dl class="energy-estimates" aria-label="Estimated lifecycle emissions">
+                    <div class="energy-estimate">
+                        <dt>@first.Name</dt>
+                        <dd>@FormatMass(firstKg)</dd>
+                        <dd class="energy-estimate-track" aria-hidden="true">
+                            <span style="@EstimateBarStyle(firstKg, higherKg)"></span>
+                        </dd>
+                    </div>
+                    <div class="energy-estimate">
+                        <dt>@second.Name</dt>
+                        <dd>@FormatMass(secondKg)</dd>
+                        <dd class="energy-estimate-track" aria-hidden="true">
+                            <span style="@EstimateBarStyle(secondKg, higherKg)"></span>
+                        </dd>
+                    </div>
+                </dl>
+                <div class="energy-scenario-summary" role="status" aria-atomic="true">
+                    @if (firstKg == secondKg)
+                    {
+                        <p><strong>Same estimate</strong></p>
+                        <p>Both choices have the same published median.</p>
+                    }
+                    else
+                    {
+                        decimal difference = Math.Abs(firstKg - secondKg);
+                        EmissionSource lower = firstKg < secondKg ? first : second;
+                        <p><strong>@FormatMass(difference)</strong> difference</p>
+                        <p>@lower.Name has an estimate @((difference / higherKg).ToString("P1", CultureInfo.CurrentCulture)) lower than @higher.Name.</p>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <p id="energy-generation-error" class="energy-scenario-empty" role="status">
+                Enter a generation amount from @MinGeneration.ToString("#,0.###", CultureInfo.CurrentCulture)
+                to @MaxGeneration.ToString("N0", CultureInfo.CurrentCulture).
+            </p>
+        }
+        <p class="energy-scenario-note">These hypothetical estimates use published lifecycle medians. Actual emissions vary by plant and technology.</p>
+    </section>
+
     <footer class="energy-source-note">
         <p>The phase and lifecycle medians are calculated independently. Adding the phase values may give a different total.</p>
-        <a href="https://www.nlr.gov/docs/fy21osti/80580.pdf#page=3" target="_blank" rel="noopener noreferrer">
+        <a href="https://docs.nlr.gov/docs/fy21osti/80580.pdf#page=3" target="_blank" rel="noopener noreferrer">
             NREL lifecycle assessment, 2021, Table 1
         </a>
     </footer>
@@ -78,6 +176,9 @@
 
 @code {
     const int AxisMaximum = 1200;
+    const string EstimateId = "emissions-estimate";
+    const decimal MinGeneration = 0.001m;
+    const decimal MaxGeneration = 1_000_000_000m;
 
     static readonly int[] LinearTicks = [0, 300, 600, 900, AxisMaximum];
     static readonly int[] LogTicks = [1, 10, 100, 1000];
@@ -93,8 +194,67 @@
         new("Coal", 1001, null, "<5", "1,010", "10", "<5")
     ];
 
+    [SupplyParameterFromQuery(Name = "generationGwh")]
+    public string? PrefilledGenerationGwh { get; set; }
+
     EmissionSource _selectedSource = Sources[0];
+    int _firstSourceIndex;
+    int _secondSourceIndex = Array.FindIndex(Sources, source => source.Name == "Natural gas");
+    ElementReference _estimateSection;
+    string? _lastPrefilledGeneration;
+    string _generation = "1";
+    GenerationUnit _generationUnit = GenerationUnit.GigawattHours;
+    bool _prefillChanged;
     bool _logarithmic;
+
+    protected override void OnParametersSet()
+    {
+        if (PrefilledGenerationGwh == _lastPrefilledGeneration)
+            return;
+
+        _lastPrefilledGeneration = PrefilledGenerationGwh;
+        _prefillChanged = true;
+        if (TryParseGeneration(PrefilledGenerationGwh, out decimal amount))
+        {
+            _generation = amount.ToString(CultureInfo.InvariantCulture);
+            _generationUnit = GenerationUnit.GigawattHours;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender && !_prefillChanged)
+            return;
+
+        _prefillChanged = false;
+        if (new Uri(Navigation.Uri).Fragment == "#" + EstimateId)
+            await _estimateSection.FocusAsync();
+    }
+
+    bool TryGetGenerationMwh(out decimal megawattHours)
+    {
+        megawattHours = 0;
+        if (!TryParseGeneration(_generation, out decimal amount))
+            return false;
+
+        // A factor in g/kWh is numerically the same as kg/MWh.
+        megawattHours = _generationUnit == GenerationUnit.GigawattHours ? amount * 1000 : amount;
+        return true;
+    }
+
+    static bool TryParseGeneration(string? value, out decimal amount) =>
+        decimal.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out amount)
+        && amount is >= MinGeneration and <= MaxGeneration;
+
+    static string EstimateBarStyle(decimal kilograms, decimal maximum) =>
+        FormattableString.Invariant($"--energy-estimate-width: {100 * kilograms / maximum:F4}%");
+
+    static string FormatMass(decimal kilograms) => kilograms switch
+    {
+        >= 1000 => $"{kilograms / 1000:#,0.###} t CO₂e",
+        >= 1 => $"{kilograms:#,0.###} kg CO₂e",
+        _ => $"{kilograms * 1000:#,0.###} g CO₂e",
+    };
 
     string PositionStyle(int value)
     {
@@ -105,6 +265,12 @@
     }
 
     static string FormatNumber(int value) => value.ToString("N0", CultureInfo.CurrentCulture);
+
+    enum GenerationUnit
+    {
+        GigawattHours,
+        MegawattHours,
+    }
 
     sealed record EmissionSource(
         string Name, int Total, string? Scope, string Upstream, string? Combustion, string Noncombustion, string Downstream);

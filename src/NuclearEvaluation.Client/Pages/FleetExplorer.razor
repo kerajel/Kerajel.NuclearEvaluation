@@ -6,7 +6,7 @@
 <section class="fleet-page" aria-labelledby="fleet-title">
     <header class="fleet-header">
         <h1 id="fleet-title">Fleet Explorer</h1>
-        <p>Explore the U.S. nuclear power fleet and compare how much electricity its plants generate.</p>
+        <p>Find U.S. nuclear power plants on the map and compare their monthly electricity generation.</p>
     </header>
 
     @if (_loading)
@@ -22,6 +22,16 @@
     {
         FleetPlant[] visible = FilterPlants();
         FleetPlant? comparison = Comparison;
+        FleetState[] rankedStates = RankStates();
+        string stateValueUnits = _stateMetric == StateMetric.Capacity ? "GW" : "TWh";
+        decimal? stateMaximum = rankedStates.Length > 0 ? StateValue(rankedStates[0]) : null;
+
+        <dl class="fleet-snapshot" aria-label="Fleet snapshot at year-end @_snapshot.Year">
+            <div><dt>Operating plants</dt><dd>@_snapshot.Plants.Length</dd></div>
+            <div><dt>Reactor units</dt><dd>@_snapshot.UnitCount</dd></div>
+            <div><dt>Net summer capacity</dt><dd>@FormatMetric(_snapshot.NetSummerCapacityMw / 1_000, "GW")</dd></div>
+            <div><dt>Annual net generation</dt><dd>@FormatMetric(_snapshot.AnnualNetGenerationMwh / 1_000_000, "TWh")</dd></div>
+        </dl>
 
         <div class="fleet-overview">
             <section class="fleet-panel fleet-map-panel" aria-labelledby="fleet-map-title">
@@ -37,6 +47,17 @@
                                 @onclick="() => _showCapacity = true">3D capacity</button>
                     </div>
                 </header>
+
+                <label class="fleet-state-filter">
+                    State
+                    <select class="fleet-control" @bind="_stateFilter">
+                        <option value="">All states</option>
+                        @foreach (FleetState state in _states)
+                        {
+                            <option value="@state.Code">@state.Name</option>
+                        }
+                    </select>
+                </label>
 
                 <div class="fleet-plant-picks" role="group" aria-label="Plant to select on the map">
                     <button type="button" class="fleet-pick"
@@ -54,19 +75,63 @@
                     @if (comparison is not null)
                     {
                         <button type="button" class="fleet-plant-link" @onclick="ClearComparison">Clear comparison</button>
+                        <button type="button" class="fleet-plant-link fleet-copy-link"
+                                aria-label="Copy comparison link"
+                                @onclick="() => CopyComparisonLink(selected.Id, comparison.Id)">Copy link</button>
                     }
                 </div>
+                @if (comparison is not null && _shareFeedback == ShareFeedback.Copied)
+                {
+                    <p class="fleet-share-status" role="status">Comparison link copied.</p>
+                }
+                else if (comparison is not null && _shareFeedback == ShareFeedback.ManualLink)
+                {
+                    <div class="fleet-share-manual">
+                        <label for="fleet-share-link">Comparison link</label>
+                        <input id="fleet-share-link" class="fleet-control" type="url" readonly
+                               value="@ComparisonLink(selected.Id, comparison.Id)" aria-describedby="fleet-share-help"
+                               @ref="_manualShareLink" />
+                        <p class="fleet-share-status" id="fleet-share-help" role="status">Automatic copy was unavailable. Select and copy the link above.</p>
+                    </div>
+                }
                 <p class="fleet-map-instructions" aria-live="polite">
-                    @(_choosingComparison ? "Choose a different plant on the map to compare." : "Choose the first plant on the map.")
+                    @if (visible.Length == 0)
+                    {
+                        <span>No plants match the current filters.</span>
+                    }
+                    else if (_choosingComparison && visible.All(plant => plant.Id == selected.Id))
+                    {
+                        <span>Change the filters to find another plant to compare.</span>
+                    }
+                    else
+                    {
+                        @(_choosingComparison ? "Choose a different plant on the map to compare." : "Choose the first plant on the map.")
+                    }
                 </p>
 
                 <FleetMap Plants="visible" SelectedId="selected.Id" ComparedId="comparison?.Id"
-                          PlantSelected="SelectPlant" ShowCapacity="_showCapacity" CapacityScaleMw="_capacityScaleMw" />
+                          PlantSelected="SelectPlant" ShowCapacity="_showCapacity" CapacityScaleMw="_capacityScaleMw"
+                          HighlightedStateName="@(_stateFilter.Length == 0 ? null : FleetState.DisplayName(_stateFilter))" />
 
                 <div class="fleet-map-caption">
                     @if (_showCapacity)
                     {
-                        <span>Column height shows plant capacity in MW. Segments show reactor units.</span>
+                        <div class="fleet-capacity-legend">
+                            <div>
+                                <strong>Net summer capacity</strong>
+                                <p>Segments show reactor units.</p>
+                            </div>
+                            <ul aria-label="Whole-fleet capacity scale">
+                                @foreach (decimal fraction in CapacityLegendFractions)
+                                {
+                                    <li>
+                                        <span class="fleet-capacity-sample" aria-hidden="true"
+                                              style="@FormattableString.Invariant($"--fleet-capacity-fraction:{fraction}")"></span>
+                                        <span>@((_capacityScaleMw * fraction).ToString("#,##0.#")) MW</span>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
                     }
                     <a href="https://github.com/topojson/us-atlas" target="_blank" rel="noopener">Map boundaries</a>
                 </div>
@@ -89,6 +154,12 @@
                         @if (selected.ReportedMonths < 12)
                         {
                             <dd class="fleet-metric-note">@selected.ReportedMonths of 12 months reported</dd>
+                        }
+                        else if (selected.AnnualNetGenerationMwh is decimal generationMwh and > 0)
+                        {
+                            <dd class="fleet-metric-note">
+                                <a href="@EmissionsEstimateUrl(generationMwh)">Estimate lifecycle emissions at this output</a>
+                            </dd>
                         }
                     </div>
                 </dl>
@@ -143,7 +214,7 @@
                                                 Fill="var(--fleet-secondary)" Title="@comparison.Name" />
                         }
                         <RadzenCategoryAxis Min="@(new DateTime(_snapshot.Year, 1, 1))"
-                                            Max="@(new DateTime(_snapshot.Year, 12, 1))" FormatString="{0:MMM}" />
+                                            Max="@(new DateTime(_snapshot.Year, 12, 1))" Formatter="FormatChartMonth" />
                         <RadzenValueAxis FormatString="{0:N0}"><RadzenGridLines Visible="true" /></RadzenValueAxis>
                         <RadzenLegend Visible="false" />
                         <RadzenChartRangeNavigator Height="34" />
@@ -173,7 +244,7 @@
                         @for (int month = 0; month < 12; month++)
                         {
                             <tr>
-                                <th scope="row">@(new DateTime(_snapshot.Year, month + 1, 1).ToString("MMM"))</th>
+                                <th scope="row">@FormatMonth(month + 1)</th>
                                 <td>@FormatGeneration(selected, month)</td>
                                 @if (comparison is not null)
                                 {
@@ -186,50 +257,101 @@
             </details>
         </section>
 
-        <section class="fleet-panel fleet-directory" aria-labelledby="fleet-directory-title">
-            <header class="fleet-section-header">
-                <div>
-                    <h2 id="fleet-directory-title">Plant list</h2>
-                    <p aria-live="polite">@visible.Length of @_snapshot.Plants.Length plants</p>
+        <div class="fleet-browser">
+            <section class="fleet-panel fleet-rank" aria-labelledby="fleet-rank-title">
+                <header class="fleet-section-header">
+                    <div>
+                        <h2 id="fleet-rank-title">State rankings</h2>
+                        <p>@_snapshot.Year · @rankedStates.Length states with operating plants</p>
+                    </div>
+                    <div class="fleet-map-modes" role="group" aria-label="Rank states by">
+                        <button type="button" aria-pressed="@(_stateMetric == StateMetric.Capacity ? "true" : "false")"
+                                @onclick="() => _stateMetric = StateMetric.Capacity">Capacity</button>
+                        <button type="button" aria-pressed="@(_stateMetric == StateMetric.Generation ? "true" : "false")"
+                                @onclick="() => _stateMetric = StateMetric.Generation">Generation</button>
+                    </div>
+                </header>
+                <p class="fleet-rank-caption" id="fleet-rank-caption" aria-live="polite">
+                    @(_stateMetric == StateMetric.Capacity ? $"Net summer capacity ({stateValueUnits})." : $"Annual net generation ({stateValueUnits}).")
+                    Select a state to filter the map and plant list.
+                </p>
+                <div class="fleet-rank-list" role="region" aria-label="Ranked states" tabindex="0">
+                    <ol aria-describedby="fleet-rank-caption" role="list">
+                        @foreach (FleetState state in rankedStates)
+                        {
+                            decimal? value = StateValue(state);
+                            <li @key="state.Code">
+                                <button type="button" class="fleet-rank-state" aria-pressed="@(state.Code == _stateFilter ? "true" : "false")"
+                                        @onclick="() => ToggleState(state.Code)">
+                                    <span class="fleet-rank-name">
+                                        <strong>@state.Name</strong>
+                                        <small>@state.PlantCount @(state.PlantCount == 1 ? "plant" : "plants")</small>
+                                    </span>
+                                    <span class="fleet-rank-track" aria-hidden="true">
+                                        <span style="@StateBarStyle(value, stateMaximum)"></span>
+                                    </span>
+                                    <span class="fleet-rank-value">@FormatMetric(value, stateValueUnits)</span>
+                                </button>
+                            </li>
+                        }
+                    </ol>
                 </div>
-                <label class="fleet-search">
-                    Filter by plant or state code
-                    <input class="fleet-control" type="search" @bind="_search" @bind:event="oninput" />
-                </label>
-            </header>
-            @if (visible.Length == 0)
-            {
-                <p>No matching plants.</p>
-            }
-            else
-            {
-                <div class="fleet-list" role="region" aria-label="Plant list results" tabindex="0">
-                    <table class="fleet-table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Plant</th>
-                                <th scope="col">State</th>
-                                <th scope="col">Net summer MW</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (FleetPlant plant in visible)
+                <a class="fleet-calendar-link" href="@(_stateFilter.Length == 0 ? "fleet-generation" : $"fleet-generation?state={_stateFilter}")">
+                    View the generation calendar <span aria-hidden="true">→</span>
+                </a>
+            </section>
+
+            <section class="fleet-panel fleet-directory" aria-labelledby="fleet-directory-title">
+                <header class="fleet-section-header">
+                    <div>
+                        <h2 id="fleet-directory-title">Plant list</h2>
+                        <p aria-live="polite">
+                            @visible.Length of @_snapshot.Plants.Length plants
+                            @if (_stateFilter.Length > 0)
                             {
-                                <tr @key="plant.Id" class="@(selected.Id == plant.Id ? "fleet-row-selected" : comparison?.Id == plant.Id ? "fleet-row-compared" : "")">
-                                    <th scope="row">
-                                        <button type="button" class="fleet-plant-link"
-                                                aria-pressed="@(selected.Id == plant.Id || comparison?.Id == plant.Id ? "true" : "false")"
-                                                @onclick="() => SelectPlant(plant)">@plant.Name</button>
-                                    </th>
-                                    <td>@plant.State</td>
-                                    <td>@(plant.NetSummerCapacityMw?.ToString("N1") ?? "—")</td>
-                                </tr>
+                                <span> · @FleetState.DisplayName(_stateFilter)</span>
                             }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </section>
+                        </p>
+                    </div>
+                    <label class="fleet-search">
+                        Search plants or states
+                        <input class="fleet-control" type="search" @bind="_search" @bind:event="oninput" />
+                    </label>
+                </header>
+                @if (visible.Length == 0)
+                {
+                    <p>No matching plants.</p>
+                }
+                else
+                {
+                    <div class="fleet-list" role="region" aria-label="Plant list results" tabindex="0">
+                        <table class="fleet-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Plant</th>
+                                    <th scope="col">State</th>
+                                    <th scope="col">Net summer MW</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (FleetPlant plant in visible)
+                                {
+                                    <tr @key="plant.Id" class="@(selected.Id == plant.Id ? "fleet-row-selected" : comparison?.Id == plant.Id ? "fleet-row-compared" : "")">
+                                        <th scope="row">
+                                            <button type="button" class="fleet-plant-link"
+                                                    aria-pressed="@(selected.Id == plant.Id || comparison?.Id == plant.Id ? "true" : "false")"
+                                                    @onclick="() => SelectPlant(plant)">@plant.Name</button>
+                                        </th>
+                                        <td>@plant.State</td>
+                                        <td>@(plant.NetSummerCapacityMw?.ToString("N1") ?? "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+        </div>
 
         <footer class="fleet-sources">
             <a href="https://www.eia.gov/electricity/data/eia860/" target="_blank" rel="noopener">EIA-860 plant inventory and capacity</a>

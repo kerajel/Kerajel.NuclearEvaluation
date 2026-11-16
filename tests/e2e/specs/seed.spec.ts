@@ -7,8 +7,9 @@ test.describe('Agent environment', () => {
     await gotoApp(page, '/');
 
     await expect(page.getByText('Nuclear Evaluation').first()).toBeVisible();
-    await expect(page.getByText('Data Management', { exact: true })).toBeVisible();
-    await expect(page.getByText('Evaluation', { exact: true })).toBeVisible();
+    const navigation = page.getByRole('navigation', { name: 'Primary' });
+    await expect(navigation.getByRole('link', { name: 'Data Management' })).toBeVisible();
+    await expect(navigation.getByRole('link', { name: 'Evaluation', exact: true })).toBeVisible();
     await expectNoVisibleAppError(page);
   });
 });

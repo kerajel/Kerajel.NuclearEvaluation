@@ -1,0 +1,164 @@
+@page "/fleet-generation"
+@using NuclearEvaluation.Client.Shared.Fleet
+
+<PageTitle>Generation Calendar | Nuclear Evaluation</PageTitle>
+
+<div class="generation-page">
+    <header class="generation-header">
+        <h1>Generation Calendar</h1>
+        <p>Compare reported monthly net generation across states for U.S. nuclear units operating at year-end @(_year == 0 ? 2024 : _year).</p>
+    </header>
+
+    @if (_loading)
+    {
+        <p role="status">Loading generation data…</p>
+    }
+    else if (_states.Length == 0)
+    {
+        <p role="alert">The generation snapshot could not be loaded.</p>
+        <button type="button" class="generation-control" @onclick="LoadSnapshotAsync">Retry</button>
+    }
+    else
+    {
+        StateMonths selected = _states[_stateIndex];
+        string selectedMonth = MonthName(_monthIndex);
+        decimal? selectedTotal = selected.GenerationMwh[_monthIndex];
+        string metricLabel = _averagePerDay ? "Average daily net generation" : "Monthly net generation";
+
+        <section class="generation-panel" aria-labelledby="generation-chart-title">
+            <div class="generation-toolbar">
+                <div>
+                    <h2 id="generation-chart-title">State by month</h2>
+                    <p>@metricLabel (@Units)</p>
+                </div>
+                <div class="generation-mode" role="group" aria-label="Generation measure">
+                    <button type="button" aria-pressed="@(!_averagePerDay ? "true" : "false")"
+                            @onclick="() => SelectDailyAverage(false)">Monthly total</button>
+                    <button type="button" aria-pressed="@(_averagePerDay ? "true" : "false")"
+                            @onclick="() => SelectDailyAverage(true)">Daily average</button>
+                </div>
+            </div>
+
+            <div class="generation-selectors">
+                <label>State
+                    <select class="generation-control" @bind:get="_stateIndex" @bind:set="SelectState">
+                        @for (int stateIndex = 0; stateIndex < _states.Length; stateIndex++)
+                        {
+                            <option value="@stateIndex">@_states[stateIndex].Name</option>
+                        }
+                    </select>
+                </label>
+                <label>Month
+                    <select class="generation-control" @bind:get="_monthIndex" @bind:set="SelectMonth">
+                        @for (int monthIndex = 0; monthIndex < MonthCount; monthIndex++)
+                        {
+                            <option value="@monthIndex">@MonthName(monthIndex)</option>
+                        }
+                    </select>
+                </label>
+                <output class="generation-selection" aria-live="polite">
+                    <span>@selected.Name · @selectedMonth</span>
+                    <strong>@(selectedTotal is null ? "No state total" : $"{FormatExact(DisplayedGeneration(selectedTotal, _monthIndex))} {Units}")</strong>
+                </output>
+            </div>
+
+            <div class="generation-viewport" role="region" aria-label="Monthly generation heatmap" @ref="_viewport">
+                <table class="generation-heatmap">
+                    <caption class="generation-hidden">@metricLabel by state and month in @_year, in @Units. Use arrow keys within the table to change selection.</caption>
+                    <colgroup><col class="generation-state-column" /><col span="12" /></colgroup>
+                    <thead>
+                        <tr>
+                            <th scope="col">State</th>
+                            @for (int month = 0; month < MonthCount; month++)
+                            {
+                                <th scope="col" abbr="@MonthName(month)">@MonthName(month, abbreviated: true)</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int stateIndex = 0; stateIndex < _states.Length; stateIndex++)
+                        {
+                            int row = stateIndex;
+                            StateMonths state = _states[row];
+                            <tr @key="state.Code">
+                                <th scope="row" class="@(row == _stateIndex ? "generation-current-state" : null)">@state.Name</th>
+                                @for (int monthIndex = 0; monthIndex < MonthCount; monthIndex++)
+                                {
+                                    int month = monthIndex;
+                                    decimal? value = DisplayedGeneration(state.GenerationMwh[month], month);
+                                    bool current = row == _stateIndex && month == _monthIndex;
+                                    string label = CellLabel(state.Name, month, value);
+                                    <td>
+                                        <button type="button" class="generation-cell @HeatClass(value)"
+                                                data-row="@row" data-month="@month"
+                                                title="@label" aria-label="@label" aria-pressed="@(current ? "true" : "false")"
+                                                tabindex="@(current ? 0 : -1)" @onclick="() => SelectCell(row, month)">@FormatCell(value)</button>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="generation-legend" aria-label="Heatmap key">
+                @if (ScaleMaximum > 0)
+                {
+                    <span class="generation-ramp">
+                        <span>0</span>
+                        @for (int level = 1; level <= HeatLevels; level++)
+                        {
+                            <span class="generation-key generation-level-@level" aria-hidden="true"></span>
+                        }
+                        <span>@FormatCell(ScaleMaximum) @Units</span>
+                    </span>
+                }
+                <span><span class="generation-key generation-zero" aria-hidden="true">0</span> Reported zero</span>
+                <span><span class="generation-key generation-negative" aria-hidden="true">−</span> Negative</span>
+                <span><span class="generation-key generation-missing" aria-hidden="true">—</span> Missing</span>
+                <a class="generation-download" href="@CsvDownloadUrl" download="@CsvFileName"
+                   aria-label="Download @metricLabel as CSV">Download CSV</a>
+            </div>
+        </section>
+
+        <section class="generation-panel generation-detail" aria-labelledby="generation-detail-title">
+            <div class="generation-toolbar">
+                <div>
+                    <h2 id="generation-detail-title">@selected.Name · @selectedMonth @_year</h2>
+                    <p>@selected.Plants.Length @(selected.Plants.Length == 1 ? "plant" : "plants") · @_daysInMonth[_monthIndex] days</p>
+                </div>
+                @if (selectedTotal is decimal total and >= 1)
+                {
+                    <a href="@EmissionsEstimateUrl(total)">Estimate lifecycle emissions for this month’s output</a>
+                }
+            </div>
+
+            @if (selectedTotal is null)
+            {
+                <p class="generation-detail-note">The state total is blank because at least one plant has no reported result this month.</p>
+            }
+
+            <table class="generation-plant-table">
+                <caption class="generation-hidden">Reported generation by plant in @selected.Name for @selectedMonth @_year</caption>
+                <thead><tr><th scope="col">Plant</th><th scope="col">@metricLabel (@Units)</th></tr></thead>
+                <tbody>
+                    @foreach (FleetPlant plant in selected.Plants.OrderByDescending(plant => PlantGeneration(plant, _monthIndex)))
+                    {
+                        decimal? value = DisplayedGeneration(PlantGeneration(plant, _monthIndex), _monthIndex);
+                        <tr @key="plant.Id">
+                            <th scope="row"><a href="@($"fleet?plant={plant.Id}")">@plant.Name</a></th>
+                            <td class="@(value < 0 ? "generation-plant-negative" : null)">@FormatExact(value)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+
+        <footer class="generation-sources">
+            <p>Daily averages divide reported monthly generation by the number of calendar days. A state total requires a reported value for each plant in the snapshot.</p>
+            <a href="https://www.eia.gov/nuclear/generation/index.php" target="_blank" rel="noopener">EIA @_year net generation from EIA-923</a>
+            <span aria-hidden="true"> · </span>
+            <a href="https://www.eia.gov/electricity/data/eia860/" target="_blank" rel="noopener">EIA-860 operating inventory</a>
+        </footer>
+    }
+</div>

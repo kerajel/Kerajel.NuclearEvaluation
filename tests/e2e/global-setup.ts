@@ -81,6 +81,9 @@ async function waitForSeedData(page: Page) {
       lastState = { error: error instanceof Error ? error.message : String(error) };
     }
 
+    if ('status' in lastState && lastState.status === 403) {
+      throw new Error('The sandbox seed probe was forbidden after browser verification.');
+    }
     await page.waitForTimeout(2_000);
   }
 

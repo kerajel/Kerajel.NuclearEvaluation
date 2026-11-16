@@ -44,7 +44,10 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
     readonly List<SeriesView> _seriesToInsert = [];
     readonly List<SeriesView> _seriesToUpdate = [];
     readonly HashSet<int> _expandingSeries = [];
+    SeriesGridQuery? _assistantQuery;
     string? _rowEditError;
+
+    public bool HasAssistantQuery => _assistantQuery is not null;
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
@@ -55,6 +58,7 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
             projectId: ProjectId,
             priorityIds: SelectedEntryIds.Count > 0 ? SelectedEntryIds : null
         );
+        query.SeriesQuery = _assistantQuery;
 
         if (!await FetchData(query, () => Api.GetSeriesViews(query)))
             return;
@@ -68,12 +72,25 @@ public partial class SeriesGrid : BaseGridGeneric<SeriesView>
 
     public override async Task Reset(bool resetColumnState = true, bool resetRowState = false)
     {
+        bool clearAssistantQuery = resetColumnState && HasAssistantQuery;
+        if (clearAssistantQuery)
+        {
+            _assistantQuery = null;
+        }
+
         foreach (RadzenDataGridColumn<SeriesView> column in grid.ColumnsCollection)
         {
             column.SetCustomFilterExpression(null);
         }
         grid.Reset(resetColumnState, resetRowState);
-        await grid.Reload();
+        await (clearAssistantQuery ? grid.FirstPage(forceReload: true) : grid.Reload());
+    }
+
+    public async Task SetAssistantQuery(SeriesGridQuery? query)
+    {
+        _assistantQuery = query;
+        await InvokeAsync(StateHasChanged);
+        await grid.FirstPage(forceReload: true);
     }
 
     public async Task Refresh()

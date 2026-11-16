@@ -25,6 +25,7 @@ public partial class ParticleGrid : BaseGridGeneric<ParticleView>
     public override string EntityDisplayName => nameof(Particle);
 
     protected RadzenDataGrid<ParticleView> grid = null!;
+    protected override RadzenDataGrid<ParticleView>? AssistantGrid => grid;
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
@@ -36,6 +37,7 @@ public partial class ParticleGrid : BaseGridGeneric<ParticleView>
             projectId: ProjectId,
             decayCorrected: EnableDecayCorrection
         );
+        query.AssistantQuery = AssistantQuery;
 
         if (!await FetchData(query, () => Api.GetParticleViews(query)))
             return;
@@ -45,11 +47,8 @@ public partial class ParticleGrid : BaseGridGeneric<ParticleView>
         await OnQueryChanged.InvokeAsync(query);
     }
 
-    public override async Task Reset(bool resetColumnState = true, bool resetRowState = false)
-    {
-        grid.Reset(resetColumnState, resetRowState);
-        await grid.Reload();
-    }
+    public override Task Reset(bool resetColumnState = true, bool resetRowState = false) =>
+        ResetGrid(grid, resetColumnState, resetRowState);
 
     public async Task Refresh()
     {

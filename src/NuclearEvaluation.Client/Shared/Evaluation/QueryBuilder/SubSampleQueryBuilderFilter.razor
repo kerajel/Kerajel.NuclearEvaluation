@@ -1,7 +1,7 @@
 ﻿@implements IPresetFilterComponent
 @inherits BaseQueryBuilderFilter<SubSampleViewPresetFilter>
 
-<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="false" Style="width: 65%;" TItem="SubSampleViewPresetFilter">
+<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="true" ViewChanged="NotifyDraftEdited" TItem="SubSampleViewPresetFilter">
     <Properties>
         <RadzenDataFilterProperty Property="SubSample.Sequence" Title="Sequence" />
         <RadzenDataFilterProperty Property="SubSample.ExternalCode" Title="External Code" />

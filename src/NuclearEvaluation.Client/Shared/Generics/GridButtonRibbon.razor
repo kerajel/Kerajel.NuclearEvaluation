@@ -1,3 +1,22 @@
-﻿<RadzenCard Visible="@Visible" Style="@Style">
-    @ChildContent
+﻿<RadzenCard Visible="@Visible" Style="@CardStyle">
+    @if (ShowOnlyActions)
+    {
+        @ChildContent
+    }
+    else
+    {
+        <div class="grid-ribbon">
+            <div class="grid-ribbon-leading">
+                @StartContent
+                @if (HasAssistantQuery)
+                {
+                    <div class="grid-ribbon-assistant">
+                        <span><RadzenIcon Icon="auto_awesome" aria-hidden="true" /> Assistant query applied</span>
+                        <button type="button" @onclick="ClearAssistantQuery" aria-label="Clear assistant query">Clear</button>
+                    </div>
+                }
+            </div>
+            <div class="grid-ribbon-actions">@ChildContent</div>
+        </div>
+    }
 </RadzenCard>

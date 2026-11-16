@@ -1,0 +1,60 @@
+.series-totals {
+    padding: 0.85rem clamp(0.75rem, 2vw, 1.25rem);
+    border: 1px solid var(--ne-line);
+    border-radius: 0.7rem;
+    background: var(--ne-surface);
+}
+
+.series-totals header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.1rem 0.6rem;
+    margin-bottom: 0.58rem;
+}
+
+.series-totals h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 680;
+}
+
+.series-totals :is(header span, p, dt) {
+    color: var(--ne-muted);
+    font-size: 0.88rem;
+}
+
+.series-totals p {
+    margin: 0 0 0.65rem;
+}
+
+.series-totals dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.5rem), 1fr));
+    gap: 0.5rem 0.75rem;
+    margin: 0;
+}
+
+.series-totals dl > div {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+    min-width: 0;
+    padding: 0.45rem 0.3rem 0.2rem;
+    border-top: 1px solid var(--ne-line);
+}
+
+.series-totals dt { line-height: 1.2; }
+
+.series-totals dd {
+    margin: 0 0 0.24rem;
+    color: var(--ne-ink);
+    font-size: clamp(1.2rem, 2.6vw, 1.85rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.series-totals[aria-busy="true"] dd { color: var(--ne-muted); }

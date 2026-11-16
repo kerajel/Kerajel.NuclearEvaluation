@@ -1,7 +1,10 @@
 using AngleSharp.Dom;
 using Bunit;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NuclearEvaluation.Client.Pages;
+using NuclearEvaluation.Client.Services;
 using NuclearEvaluation.Client.Shared.Generics;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Views;
@@ -37,6 +40,72 @@ public class ProjectCardTests : TestBase
         component.WaitForState(() => !component.Instance._isLoading, DefaultWaitForStateTimeout);
 
         component.Find("#projectNameHeading").TextContent.ShouldBe(project.Name);
+    }
+
+    [Fact]
+    public void RecordPathOpensSamplesForTheCurrentProject()
+    {
+        ProjectView project = Project(12, "Project data");
+        project.SampleCount = 42;
+        SetupProject(project);
+        SiteAssistantWorkspace workspace =
+            TestContext.Services.GetRequiredService<SiteAssistantWorkspace>();
+        IRenderedComponent<ProjectCard> component = RenderProjectCard(project);
+
+        IElement samples = component
+            .FindAll(".project-records__path button")
+            .Single(button => button.QuerySelector("span")?.TextContent == "Samples");
+        samples.QuerySelector("strong")!.TextContent.ShouldBe("42");
+        samples.Click();
+
+        component.WaitForAssertion(() =>
+        {
+            component.Find("[role=tab][aria-selected=true]").TextContent.Trim().ShouldBe("Samples");
+            workspace.Current!.Context.Surface.ShouldBe(AssistantSurface.Samples);
+            _ = Api.Received()
+                .GetSampleViews(
+                    Arg.Is<DataQuery>(query => query.ProjectId == project.Id),
+                    Arg.Any<CancellationToken>()
+                );
+        });
+    }
+
+    [Fact]
+    public async Task AssistantActionUsesTheSelectedProjectGridAndRejectsAnOldTab()
+    {
+        ProjectView project = Project(12, "Project data");
+        SetupProject(project);
+        SiteAssistantWorkspace workspace =
+            TestContext.Services.GetRequiredService<SiteAssistantWorkspace>();
+        IRenderedComponent<ProjectCard> component = RenderProjectCard(project);
+
+        component.FindAll("[role=tab]").Single(tab => tab.TextContent.Trim() == "Samples").Click();
+        component.WaitForAssertion(() =>
+            workspace.Current!.Context.Surface.ShouldBe(AssistantSurface.Samples)
+        );
+        SiteAssistantTarget target = workspace.Current!;
+        AssistantGridQuery query = new(
+            AssistantSurface.Samples,
+            [],
+            nameof(SampleView.Id),
+            true,
+            5
+        );
+        AssistantAction action = new(AssistantActionKind.FilterGrid) { GridQuery = query };
+        await component.InvokeAsync(async () => (await target.ApplyAsync(action)).ShouldBeTrue());
+        await Api.Received()
+            .GetSampleViews(
+                Arg.Is<DataQuery>(data =>
+                    data.ProjectId == project.Id && data.AssistantQuery == query
+                ),
+                Arg.Any<CancellationToken>()
+            );
+
+        component.FindAll("[role=tab]").Single(tab => tab.TextContent.Trim() == "Overview").Click();
+        component.WaitForAssertion(() =>
+            workspace.Current!.Context.Surface.ShouldBe(AssistantSurface.None)
+        );
+        await component.InvokeAsync(async () => (await target.ApplyAsync(action)).ShouldBeFalse());
     }
 
     [Fact]
@@ -135,6 +204,84 @@ public class ProjectNavigationTests : TestBase
         component.Render(p => p.Add(x => x.Id, 2));
         component.WaitForAssertion(() => Assert.Contains("Project number 2", component.Markup));
         Assert.DoesNotContain("Project number 1", component.Markup);
+    }
+
+    [Fact]
+    public async Task OlderVisitToSameProjectDoesNotClearLoadingForTheCurrentVisit()
+    {
+        TaskCompletionSource<DataResult<ProjectView>> firstVisitResult = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        TaskCompletionSource<DataResult<ProjectView>> latestVisitResult = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        TaskCompletionSource firstVisitStarted = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        TaskCompletionSource latestVisitStarted = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        int visits = 0;
+        Api.GetProjectViews(Arg.Any<DataQuery>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+                call.Arg<DataQuery>().Filter == "Id == 3"
+                    ? ProjectResult(3, "Intervening project")
+                    : ProjectResult(1, "Starting project")
+            );
+        Api.GetProjectViews(
+                Arg.Is<DataQuery>(query => query.Filter == "Id == 2"),
+                Arg.Any<CancellationToken>()
+            )
+            .Returns(_ =>
+            {
+                if (++visits == 1)
+                {
+                    firstVisitStarted.SetResult();
+                    return firstVisitResult.Task;
+                }
+
+                latestVisitStarted.SetResult();
+                return latestVisitResult.Task;
+            });
+        IRenderedComponent<ProjectCard> component = TestContext.Render<ProjectCard>(p =>
+            p.Add(x => x.Id, 1)
+        );
+
+        Task EnterProject(int id) =>
+            component.InvokeAsync(() =>
+                component.Instance.SetParametersAsync(
+                    ParameterView.FromDictionary(
+                        new Dictionary<string, object?> { [nameof(ProjectCard.Id)] = id }
+                    )
+                )
+            );
+
+        Task firstVisit = EnterProject(2);
+        await firstVisitStarted.Task.WaitAsync(DefaultWaitForStateTimeout);
+        await EnterProject(3);
+        Assert.Equal("Intervening project", component.Find("#projectNameHeading").TextContent);
+        Task latestVisit = EnterProject(2);
+        await latestVisitStarted.Task.WaitAsync(DefaultWaitForStateTimeout);
+
+        firstVisitResult.SetResult(ProjectResult(2, "Superseded response"));
+        await firstVisit;
+
+        Assert.True(component.Instance._isLoading);
+        Assert.Contains(
+            "Loading project",
+            component.Find("[role=status]").TextContent,
+            StringComparison.Ordinal
+        );
+        Assert.Empty(component.FindAll("#projectNameHeading"));
+
+        latestVisitResult.SetResult(ProjectResult(2, "Current project"));
+        await latestVisit;
+
+        Assert.False(component.Instance._isLoading);
+        Assert.Equal("Current project", component.Find("#projectNameHeading").TextContent);
+
+        static DataResult<ProjectView> ProjectResult(int id, string name) =>
+            DataResult<ProjectView>.Succeeded([new() { Id = id, Name = name }], 1);
     }
 
     [Fact]

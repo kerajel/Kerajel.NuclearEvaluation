@@ -10,6 +10,7 @@
                             <RadzenColumnSeries TItem="QualityMetric" Data="@metrics"
                                                 CategoryProperty="@nameof(QualityMetric.Category)"
                                                 ValueProperty="@nameof(QualityMetric.Count)"
+                                                Fills="@ChartFills"
                                                 Title="Matching rows" />
                             <RadzenLegend Visible="false" />
                             <RadzenValueAxis Min="0" Max="@ChartMaximum" />
@@ -17,13 +18,13 @@
                     }
                 </div>
                 <div class="stem-quality-checks" aria-label="Checks">
-                    <button type="button" aria-pressed="@(selectedCheck is null ? "true" : "false")" @onclick="() => selectedCheck = null">
+                    <button type="button" aria-pressed="@(SelectedCheck is null ? "true" : "false")" @onclick="() => SelectedCheckChanged.InvokeAsync(null)">
                         <span>All parsed rows</span><strong>@Profile.RowCount.ToString("N0")</strong>
                     </button>
                     @foreach (QualityMetric metric in metrics)
                     {
-                        <button type="button" aria-pressed="@(selectedCheck == metric.Check ? "true" : "false")"
-                                @onclick="() => selectedCheck = metric.Check">
+                        <button type="button" aria-pressed="@(SelectedCheck == metric.Check ? "true" : "false")"
+                                @onclick="() => SelectedCheckChanged.InvokeAsync(metric.Check)">
                             <span>@metric.Label</span><strong>@metric.Count.ToString("N0")</strong>
                         </button>
                     }
@@ -33,9 +34,9 @@
         </RadzenSplitterPane>
         <RadzenSplitterPane Min="170px">
             <div class="stem-quality-rows">
-                <StemPreviewEntryGrid @key="(FileId, selectedCheck)"
+                <StemPreviewEntryGrid @key="(FileId, SelectedCheck)" @ref="rowsGrid"
                                       StemSessionId="@StemSessionId" StemFileId="@FileId"
-                                      StemCheck="@selectedCheck" Caption="@RowsCaption" />
+                                      StemCheck="@SelectedCheck" Caption="@RowsCaption" />
             </div>
         </RadzenSplitterPane>
     </RadzenSplitter>
@@ -45,15 +46,21 @@
     [Parameter, EditorRequired] public Guid StemSessionId { get; set; }
     [Parameter, EditorRequired] public Guid FileId { get; set; }
     [Parameter, EditorRequired] public StemFileProfile Profile { get; set; } = null!;
+    [Parameter] public StemQualityCheck? SelectedCheck { get; set; }
+    [Parameter] public EventCallback<StemQualityCheck?> SelectedCheckChanged { get; set; }
 
     QualityMetric[] metrics = [];
-    StemQualityCheck? selectedCheck;
+    StemPreviewEntryGrid? rowsGrid;
 
     int ChartMaximum => Math.Max(1, metrics.Max(metric => metric.Count));
 
-    string RowsCaption => selectedCheck is null
+    IEnumerable<string> ChartFills => metrics.Select(metric => metric.Check == SelectedCheck
+        ? "var(--stem-quality-selected-bar)"
+        : "var(--stem-quality-bar)");
+
+    string RowsCaption => SelectedCheck is null
         ? "All parsed rows in this file"
-        : metrics.Single(metric => metric.Check == selectedCheck).Label;
+        : metrics.Single(metric => metric.Check == SelectedCheck).Label;
 
     protected override void OnParametersSet()
     {
@@ -63,17 +70,22 @@
             new(StemQualityCheck.MissingErU234, "ErU234", "Missing ErU234", Profile.MissingErU234),
             new(StemQualityCheck.MissingU235, "U235", "Missing U235", Profile.MissingU235),
             new(StemQualityCheck.MissingErU235, "ErU235", "Missing ErU235", Profile.MissingErU235),
-            new(StemQualityCheck.BlankLabCode, "Lab code", "Blank lab code", Profile.BlankLabCode),
+            new(StemQualityCheck.BlankLabCode, "Lab", "Blank lab code", Profile.BlankLabCode),
             new(StemQualityCheck.RepeatedIdentifier, "ID", "Repeated identifier", Profile.RepeatedIdentifierRows),
         ];
     }
 
-    void OnChartClick(SeriesClickEventArgs args)
+    Task OnChartClick(SeriesClickEventArgs args) => args.Data is QualityMetric metric
+        ? SelectedCheckChanged.InvokeAsync(metric.Check)
+        : Task.CompletedTask;
+
+    internal async Task<bool> ApplyAssistantGridQuery(AssistantGridQuery? query)
     {
-        if (args.Data is QualityMetric metric)
-        {
-            selectedCheck = metric.Check;
-        }
+        if (rowsGrid is not { } grid)
+            return false;
+
+        await grid.SetAssistantGridQuery(query);
+        return true;
     }
 
     sealed record QualityMetric(StemQualityCheck Check, string Category, string Label, int Count);

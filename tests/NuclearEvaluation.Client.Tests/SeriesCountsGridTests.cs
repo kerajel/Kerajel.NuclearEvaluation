@@ -5,7 +5,6 @@ using NuclearEvaluation.Client.Services;
 using NuclearEvaluation.Client.Shared.Grids;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Views;
-using Radzen.Blazor;
 
 namespace NuclearEvaluation.Client.Tests;
 
@@ -16,13 +15,9 @@ public class SeriesCountsGridTests : TestBase
     {
         IRenderedComponent<SeriesCountsGrid> component = TestContext.Render<SeriesCountsGrid>();
 
-        RadzenDataGrid<SeriesCountsView> grid = component
-            .FindComponent<RadzenDataGrid<SeriesCountsView>>()
-            .Instance;
-
-        Assert.True(grid.IsLoading);
         Assert.Equal("true", component.Find(".ne-series-counts-grid").GetAttribute("aria-busy"));
-        Assert.DoesNotContain("No records to display", component.Markup);
+        Assert.Contains("Updating totals", component.Find("[role=status]").TextContent);
+        Assert.All(component.FindAll("dd"), total => Assert.Equal("—", total.TextContent));
     }
 
     [Fact]
@@ -64,11 +59,7 @@ public class SeriesCountsGridTests : TestBase
 
         component.WaitForAssertion(() =>
         {
-            RadzenDataGrid<SeriesCountsView> grid = component
-                .FindComponent<RadzenDataGrid<SeriesCountsView>>()
-                .Instance;
-            Assert.True(grid.IsLoading);
-            Assert.Equal(10, Assert.Single(grid.Data ?? []).SeriesCount);
+            Assert.Equal("10", component.FindAll("dd")[0].TextContent);
             Assert.Equal(
                 "true",
                 component.Find(".ne-series-counts-grid").GetAttribute("aria-busy")
@@ -80,15 +71,45 @@ public class SeriesCountsGridTests : TestBase
 
         component.WaitForAssertion(() =>
         {
-            RadzenDataGrid<SeriesCountsView> grid = component
-                .FindComponent<RadzenDataGrid<SeriesCountsView>>()
-                .Instance;
-            Assert.False(grid.IsLoading);
-            Assert.Equal(11, Assert.Single(grid.Data ?? []).SeriesCount);
+            Assert.Equal("11", component.FindAll("dd")[0].TextContent);
             Assert.Equal(
                 "false",
                 component.Find(".ne-series-counts-grid").GetAttribute("aria-busy")
             );
         });
+    }
+
+    [Fact]
+    public async Task FailedRefreshDoesNotShowTotalsFromAnotherFilter()
+    {
+        DataQuery first = new() { Filter = "Id == 1" };
+        DataQuery nextPage = new()
+        {
+            Filter = first.Filter,
+            Skip = 25,
+            Top = 25,
+        };
+        DataQuery second = new() { Filter = "Id == 2" };
+        Api.GetSeriesCounts(first)
+            .Returns(Task.FromResult(new SeriesCountsView { SeriesCount = 1 }));
+        Api.GetSeriesCounts(nextPage)
+            .Returns(Task.FromException<SeriesCountsView>(new HttpRequestException()));
+        Api.GetSeriesCounts(second)
+            .Returns(Task.FromException<SeriesCountsView>(new HttpRequestException()));
+        IRenderedComponent<SeriesCountsGrid> component = TestContext.Render<SeriesCountsGrid>();
+
+        await component.InvokeAsync(() => component.Instance.RefreshSummaryData(first));
+        Assert.Equal("1", component.FindAll("dd")[0].TextContent);
+
+        await component.InvokeAsync(() => component.Instance.RefreshSummaryData(nextPage));
+        Assert.Equal("1", component.FindAll("dd")[0].TextContent);
+
+        await component.InvokeAsync(() => component.Instance.RefreshSummaryData(second));
+
+        Assert.Contains(
+            "Totals could not be refreshed",
+            component.Find("[role=alert]").TextContent
+        );
+        Assert.All(component.FindAll("dd"), total => Assert.Equal("—", total.TextContent));
     }
 }

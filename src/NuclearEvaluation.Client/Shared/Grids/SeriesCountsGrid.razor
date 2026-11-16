@@ -1,29 +1,23 @@
-@if (_hasError)
-{
-    <p role="alert">Totals could not be loaded. Change a filter or reload the page to retry.</p>
-}
-
-<div class="ne-compact-grid ne-series-counts-grid"
-     aria-busy="@(_isLoading ? "true" : "false")">
-<RadzenDataGrid Data="@_countSummary"
-                IsLoading="@_isLoading"
-                AllowFiltering="false"
-                AllowColumnResize="false"
-                AllowSorting="false"
-                AllowPaging="false"
-                ColumnWidth="200px">
-    <EmptyTemplate>
-        @if (!_isLoading)
+<section class="ne-series-counts-grid series-totals" aria-labelledby="series-totals-title"
+         aria-busy="@(_isLoading ? "true" : "false")">
+    <header>
+        <h2 id="series-totals-title">Matching records</h2>
+        @if (_isLoading)
         {
-            <span>No records to display</span>
+            <span role="status">Updating totals…</span>
         }
-    </EmptyTemplate>
-    <Columns>
-        <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.SeriesCount)" Title="Total Series" TextAlign="TextAlign.Center" FormatString="{0:N0}" />
-        <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.SampleCount)" Title="Total Samples" TextAlign="TextAlign.Center" FormatString="{0:N0}" />
-        <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.SubSampleCount)" Title="Total SubSamples" TextAlign="TextAlign.Center" FormatString="{0:N0}" />
-        <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.ApmCount)" Title="Total Apm" TextAlign="TextAlign.Center" FormatString="{0:N0}" />
-        <RadzenDataGridColumn TItem="SeriesCountsView" Property="@nameof(SeriesCountsView.ParticleCount)" Title="Total Particles" TextAlign="TextAlign.Center" FormatString="{0:N0}" />
-    </Columns>
-</RadzenDataGrid>
-</div>
+    </header>
+
+    @if (_hasError)
+    {
+        <p role="alert">Totals could not be refreshed. Change a filter or reload the page to retry.</p>
+    }
+
+    <dl>
+        <div><dt>Series</dt><dd>@FormatTotal(_summary?.SeriesCount)</dd></div>
+        <div><dt>Samples</dt><dd>@FormatTotal(_summary?.SampleCount)</dd></div>
+        <div><dt>Subsamples</dt><dd>@FormatTotal(_summary?.SubSampleCount)</dd></div>
+        <div><dt>APM measurements</dt><dd>@FormatTotal(_summary?.ApmCount)</dd></div>
+        <div><dt>Particles</dt><dd>@FormatTotal(_summary?.ParticleCount)</dd></div>
+    </dl>
+</section>

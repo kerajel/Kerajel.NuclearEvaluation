@@ -19,6 +19,7 @@ public partial class SampleGrid : BaseGridGeneric<SampleView>
     public override string EntityDisplayName => nameof(Sample);
 
     protected RadzenDataGrid<SampleView> grid = null!;
+    protected override RadzenDataGrid<SampleView>? AssistantGrid => grid;
     protected DataQuery? currentQuery;
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
@@ -29,6 +30,7 @@ public partial class SampleGrid : BaseGridGeneric<SampleView>
             presetFilterBox: GetPresetFilterBox?.Invoke(),
             projectId: ProjectId
         );
+        query.AssistantQuery = AssistantQuery;
         currentQuery = query;
 
         if (!await FetchData(query, () => Api.GetSampleViews(query)))
@@ -37,11 +39,8 @@ public partial class SampleGrid : BaseGridGeneric<SampleView>
         isLoading = false;
     }
 
-    public override async Task Reset(bool resetColumnState = true, bool resetRowState = false)
-    {
-        grid.Reset(resetColumnState, resetRowState);
-        await grid.Reload();
-    }
+    public override Task Reset(bool resetColumnState = true, bool resetRowState = false) =>
+        ResetGrid(grid, resetColumnState, resetRowState);
 
     public async Task Refresh()
     {

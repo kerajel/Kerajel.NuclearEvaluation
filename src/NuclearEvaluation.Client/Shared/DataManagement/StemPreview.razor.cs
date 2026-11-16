@@ -32,6 +32,9 @@ public partial class StemPreview : IDisposable
     [Parameter]
     public bool StartInQuality { get; set; }
 
+    [Parameter]
+    public EventCallback OnAssistantContextChanged { get; set; }
+
     [Inject]
     protected INuclearEvaluationApi Api { get; set; } = null!;
 
@@ -43,14 +46,18 @@ public partial class StemPreview : IDisposable
 
     protected readonly Guid sessionId = Guid.NewGuid();
     StemPreviewEntryGrid? stemPreviewEntryGrid;
+    StemQualityWorkbench? qualityWorkbench;
 
     List<UploadedFile> files = [];
     UploadedFile? exampleFile;
     bool showQuality;
     Guid? qualityFileId;
+    StemQualityCheck? qualityCheck;
     StemFileProfile? qualityProfile;
     string? qualityError;
     CancellationTokenSource? profileCancellation;
+    int assistantUploadRevision;
+    object? publishedAssistantScope;
 
     static readonly HashSet<FileStatus> inProgressStatuses =
     [
@@ -64,6 +71,86 @@ public partial class StemPreview : IDisposable
     static readonly long maxPreviewFileSize = UploadLimits.MaxStemPreviewFileSizeBytes;
 
     protected override void OnInitialized() => showQuality = StartInQuality;
+
+    internal SiteAssistantContext AssistantContext =>
+        new(
+            AssistantPage.DataManagement,
+            showQuality ? AssistantSurface.StemQuality : AssistantSurface.StemPreview,
+            HasUploads: FirstUploadedFileId() is not null
+        );
+
+    internal object AssistantScope =>
+        (
+            sessionId,
+            showQuality,
+            qualityFileId,
+            qualityCheck,
+            qualityProfile is not null,
+            assistantUploadRevision,
+            ShowStemPreviewEntryGrid()
+        );
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!OnAssistantContextChanged.HasDelegate)
+            return Task.CompletedTask;
+
+        object scope = AssistantScope;
+        if (Equals(scope, publishedAssistantScope))
+            return Task.CompletedTask;
+
+        publishedAssistantScope = scope;
+        return OnAssistantContextChanged.InvokeAsync();
+    }
+
+    internal async Task<bool> ApplyAssistantAction(AssistantAction action)
+    {
+        switch (action.Kind)
+        {
+            case AssistantActionKind.ShowStemPreview:
+                await SetQualityView(false);
+                return true;
+            case AssistantActionKind.ShowStemQuality:
+                await SetQualityView(true);
+                return true;
+            case AssistantActionKind.CheckStemQuality:
+                return await ApplyQualityCheck(action.QualityCheck);
+            case AssistantActionKind.FilterGrid
+                when action.GridQuery is { } query && query.Grid == AssistantContext.Surface:
+                return await ApplyGridQuery(query);
+            case AssistantActionKind.ClearGrid:
+                return await ApplyGridQuery(null);
+            default:
+                return false;
+        }
+    }
+
+    async Task<bool> ApplyGridQuery(AssistantGridQuery? query)
+    {
+        if (showQuality && qualityProfile is not null && qualityWorkbench is { } workbench)
+            return await workbench.ApplyAssistantGridQuery(query);
+        if (!showQuality && ShowStemPreviewEntryGrid() && stemPreviewEntryGrid is { } preview)
+        {
+            await preview.SetAssistantGridQuery(query);
+            return true;
+        }
+        return false;
+    }
+
+    async Task<bool> ApplyQualityCheck(StemQualityCheck? check)
+    {
+        Guid? fileId = showQuality ? qualityFileId : FirstUploadedFileId();
+        if (fileId is null || (check is { } value && !Enum.IsDefined(value)))
+            return false;
+
+        await SetQualityView(true);
+        if (!showQuality || qualityFileId != fileId || qualityProfile is null)
+            return false;
+
+        qualityCheck = check;
+        await InvokeAsync(StateHasChanged);
+        return true;
+    }
 
     private async Task HandleBeforeInternalNavigation(LocationChangingContext context)
     {
@@ -199,6 +286,8 @@ public partial class StemPreview : IDisposable
             {
                 file.Status = result.IsSuccessful ? FileStatus.Uploaded : FileStatus.UploadError;
                 file.ErrorMessage = result.ErrorMessage;
+                if (result.IsSuccessful)
+                    assistantUploadRevision++;
             }
         }
         catch (Exception ex)
@@ -219,10 +308,18 @@ public partial class StemPreview : IDisposable
     Guid? FirstUploadedFileId() =>
         files.FirstOrDefault(file => file.Status == FileStatus.Uploaded)?.Id;
 
-    Task ToggleQuality()
+    Task ToggleQuality() => SetQualityView(!showQuality);
+
+    async Task SetQualityView(bool enabled)
     {
-        showQuality = !showQuality;
-        return SelectQualityFile(showQuality ? FirstUploadedFileId() : null);
+        if (showQuality == enabled)
+            return;
+
+        showQuality = enabled;
+        Task selection = SelectQualityFile(enabled ? FirstUploadedFileId() : null);
+        await InvokeAsync(StateHasChanged);
+        await selection;
+        await InvokeAsync(StateHasChanged);
     }
 
     Task OnQualityFileChange(ChangeEventArgs args) =>
@@ -233,6 +330,7 @@ public partial class StemPreview : IDisposable
         profileCancellation?.Cancel();
         profileCancellation = null;
         qualityFileId = fileId;
+        qualityCheck = null;
         qualityProfile = null;
         qualityError = null;
         if (fileId is null)
@@ -302,6 +400,8 @@ public partial class StemPreview : IDisposable
         file.Status = FileStatus.Removed;
         files.Remove(file);
         files = new(files);
+        if (previousStatus == FileStatus.Uploaded)
+            assistantUploadRevision++;
         await InvokeAsync(StateHasChanged);
         await Task.Yield();
 

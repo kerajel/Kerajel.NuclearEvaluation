@@ -1,0 +1,22 @@
+.preset-filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    min-width: 0;
+    gap: .35rem;
+}
+
+.preset-filter-controls ::deep > .validated-textarea-container:not(:has(> input)) {
+    display: none;
+}
+
+.preset-filter-controls ::deep > .validated-textarea-container,
+.preset-filter-controls ::deep > .rz-dropdown {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.preset-filter-controls ::deep .rz-button {
+    padding-inline: .5rem;
+    white-space: nowrap;
+}

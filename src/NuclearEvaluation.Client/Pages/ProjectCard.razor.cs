@@ -11,10 +11,17 @@ using Radzen;
 
 namespace NuclearEvaluation.Client.Pages;
 
-public partial class ProjectCard : ComponentBase
+public partial class ProjectCard : ComponentBase, IDisposable
 {
+    const int SeriesTabIndex = 1;
+    const int SamplesTabIndex = 2;
+    const int SubSamplesTabIndex = 3;
     const int ApmTabIndex = 4;
     const int ParticleTabIndex = 5;
+    const string ApmTabName = "apm";
+    const string ParticleTabName = "particles";
+    const string ApmDistributionId = "apm-isotope-distribution";
+    const string ParticleDistributionId = "particle-isotope-distribution";
 
     [Parameter]
     public int Id { get; set; }
@@ -34,12 +41,16 @@ public partial class ProjectCard : ComponentBase
     [Inject]
     INuclearEvaluationApi Api { get; set; } = null!;
 
+    [Inject]
+    SiteAssistantWorkspace AssistantWorkspace { get; set; } = null!;
+
     internal bool _isLoading = true;
 
     ProjectView _projectView = null!;
     string? _loadError;
     int? _loadedProjectId;
     int _projectLoadSequence;
+    bool _disposed;
 
     ValidatedTextBox<ProjectView> _projectNameInputRef = null!;
     SeriesGrid _seriesGridRef = null!;
@@ -64,76 +75,73 @@ public partial class ProjectCard : ComponentBase
 
     DataQuery? _apmChartQuery;
     DataQuery? _particleChartQuery;
+    MeasurementGridScope _apmGridScope = null!;
+    MeasurementGridScope _particleGridScope = null!;
+    int _apmChartQueryVersion;
+    int _particleChartQueryVersion;
     bool _apmGridLoaded;
     bool _particleGridLoaded;
 
     protected TabManager tabManager = null!;
-
-    DataQuery ApmChartQuery => _apmChartQuery ?? CreateProjectChartQuery();
-
-    DataQuery ParticleChartQuery => _particleChartQuery ?? CreateProjectChartQuery();
+    ElementReference _projectTabs;
+    ElementReference _apmDistribution;
+    ElementReference _particleDistribution;
 
     protected override void OnInitialized()
     {
         tabManager = new TabManager(NavigationManager, JSRuntime, "overview")
             .AddTab("overview", 0)
-            .AddTab("series", 1)
-            .AddTab("samples", 2)
-            .AddTab("subsamples", 3)
-            .AddTab("apm", ApmTabIndex)
-            .AddTab("particles", ParticleTabIndex)
+            .AddTab("series", SeriesTabIndex)
+            .AddTab("samples", SamplesTabIndex)
+            .AddTab("subsamples", SubSamplesTabIndex)
+            .AddTab(ApmTabName, ApmTabIndex)
+            .AddTab(ParticleTabName, ParticleTabIndex)
             .Initialize();
     }
 
-    protected override async Task OnParametersSetAsync()
+    protected override Task OnParametersSetAsync()
     {
         if (_loadedProjectId == Id)
-            return;
+            return Task.CompletedTask;
         _loadedProjectId = Id;
         _isEditingProjectName = false;
         _isEditingSeries = false;
-        _apmChartQuery = null;
-        _particleChartQuery = null;
-        _apmGridLoaded = false;
-        _particleGridLoaded = false;
-        _isLoading = true;
-        int requestedId = Id;
-        await LoadProjectView();
-        if (requestedId == Id)
-            _isLoading = false;
+        return LoadCurrentProject();
     }
 
-    async Task<bool> LoadProjectView()
+    Task LoadCurrentProject()
     {
+        _isLoading = true;
+        ResetMeasurementGrid(ApmTabIndex);
+        ResetMeasurementGrid(ParticleTabIndex);
+        AssistantWorkspace.Remove(this);
+        return LoadProjectView();
+    }
+
+    async Task LoadProjectView()
+    {
+        int requestedId = Id;
         int sequence = ++_projectLoadSequence;
-        DataQuery query = new() { Filter = $"Id == {Id}", Top = 1 };
+        DataQuery query = new() { Filter = $"Id == {requestedId}", Top = 1 };
         DataResult<ProjectView> result = await Api.GetProjectViews(query);
-        if (sequence != _projectLoadSequence)
-            return false;
+        if (_disposed || sequence != _projectLoadSequence || requestedId != Id)
+            return;
+
+        _isLoading = false;
         _loadError = null;
         if (!result.IsSuccessful)
         {
             _loadError = "Could not load this project. Please try again.";
-            return false;
+            return;
         }
         ProjectView? projectView = result.Entries.SingleOrDefault();
         if (projectView is null)
         {
             NavigationManager.NavigateTo("/not-found");
-            return false;
+            return;
         }
         _projectView = projectView;
         _decayCorrectionDateInput = projectView.DecayCorrectionDate;
-        return true;
-    }
-
-    async Task RetryLoad()
-    {
-        _isLoading = true;
-        int requestedId = Id;
-        await LoadProjectView();
-        if (requestedId == Id)
-            _isLoading = false;
     }
 
     #region EditProjectName
@@ -297,39 +305,50 @@ public partial class ProjectCard : ComponentBase
 
     #endregion
 
-    async Task OnApmGridLoadStarted()
+    bool IsCurrentMeasurementGrid(MeasurementGridScope scope) =>
+        !_disposed
+        && !_isLoading
+        && _loadError is null
+        && Id == scope.ProjectId
+        && _projectView?.Id == scope.ProjectId
+        && tabManager.SelectedTabIndex == scope.TabIndex
+        && ReferenceEquals(
+            scope,
+            scope.TabIndex == ApmTabIndex ? _apmGridScope : _particleGridScope
+        );
+
+    Task OnMeasurementLoadStarted(MeasurementGridScope scope)
     {
-        _apmGridLoaded = false;
-        await InvokeAsync(StateHasChanged);
+        if (!IsCurrentMeasurementGrid(scope))
+            return Task.CompletedTask;
+
+        if (scope.TabIndex == ApmTabIndex)
+            _apmGridLoaded = false;
+        else
+            _particleGridLoaded = false;
+
+        return InvokeAsync(StateHasChanged);
     }
 
-    async Task OnApmQueryChanged(DataQuery query)
+    Task OnMeasurementQueryChanged(MeasurementGridScope scope, DataQuery query)
     {
-        _apmChartQuery = ToChartQuery(query);
-        _apmGridLoaded = true;
-        await InvokeAsync(StateHasChanged);
-    }
+        if (query.ProjectId != scope.ProjectId || !IsCurrentMeasurementGrid(scope))
+            return Task.CompletedTask;
 
-    async Task OnParticleGridLoadStarted()
-    {
-        _particleGridLoaded = false;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    async Task OnParticleQueryChanged(DataQuery query)
-    {
-        _particleChartQuery = ToChartQuery(query);
-        _particleGridLoaded = true;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    DataQuery CreateProjectChartQuery()
-    {
-        return new DataQuery
+        if (scope.TabIndex == ApmTabIndex)
         {
-            ProjectId = _projectView.Id,
-            DecayCorrected = _projectView.DecayCorrectionDate.HasValue,
-        };
+            _apmChartQuery = ToChartQuery(query);
+            _apmChartQueryVersion++;
+            _apmGridLoaded = true;
+        }
+        else
+        {
+            _particleChartQuery = ToChartQuery(query);
+            _particleChartQueryVersion++;
+            _particleGridLoaded = true;
+        }
+
+        return InvokeAsync(StateHasChanged);
     }
 
     static DataQuery ToChartQuery(DataQuery query)
@@ -337,6 +356,8 @@ public partial class ProjectCard : ComponentBase
         return new DataQuery
         {
             Filter = query.Filter,
+            AssistantQuery = query.AssistantQuery,
+            OrderBy = query.AssistantQuery?.Limit is not null ? query.OrderBy : null,
             PresetFilterBox = query.PresetFilterBox,
             ProjectId = query.ProjectId,
             DecayCorrected = query.DecayCorrected,
@@ -369,22 +390,125 @@ public partial class ProjectCard : ComponentBase
         }
     }
 
-    async Task OnTabChanged(int index)
+    Task OnTabChanged(int index)
+    {
+        ResetMeasurementGrid(index);
+        return tabManager.OnTabChanged(index);
+    }
+
+    void ResetMeasurementGrid(int index)
     {
         if (index == ApmTabIndex)
         {
+            _apmGridScope = new(Id, index);
+            _apmChartQuery = null;
             _apmGridLoaded = false;
         }
-        if (index == ParticleTabIndex)
+        else if (index == ParticleTabIndex)
         {
+            _particleGridScope = new(Id, index);
+            _particleChartQuery = null;
             _particleGridLoaded = false;
         }
+    }
 
-        await tabManager.OnTabChanged(index);
+    async Task OpenRelatedRecords(int index)
+    {
+        await OnTabChanged(index);
+        await _projectTabs.FocusAsync();
+    }
+
+    string DistributionHref(string tab, string id) =>
+        NavigationManager.ToAbsoluteUri($"projects/{Id}?tab={tab}#{id}").AbsoluteUri;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (_isLoading || _loadError is not null || _projectView?.Id != Id)
+        {
+            AssistantWorkspace.Remove(this);
+            return;
+        }
+
+        int projectId = Id;
+        (AssistantSurface surface, IDataGridComponent? grid) = GetAssistantGrid();
+        AssistantWorkspace.Set(
+            this,
+            new(AssistantPage.Project, surface),
+            action => ApplyAssistantAction(action, projectId, surface, grid),
+            scope: (projectId, grid)
+        );
+    }
+
+    (AssistantSurface Surface, IDataGridComponent? Grid) GetAssistantGrid() =>
+        tabManager.SelectedTabIndex switch
+        {
+            SeriesTabIndex when projectSeriesGrid is not null => (
+                AssistantSurface.Series,
+                projectSeriesGrid
+            ),
+            SamplesTabIndex when sampleGrid is not null => (AssistantSurface.Samples, sampleGrid),
+            SubSamplesTabIndex when subSampleGrid is not null => (
+                AssistantSurface.SubSamples,
+                subSampleGrid
+            ),
+            ApmTabIndex when apmGrid is not null => (AssistantSurface.Apms, apmGrid),
+            ParticleTabIndex when particleGrid is not null => (
+                AssistantSurface.Particles,
+                particleGrid
+            ),
+            _ => (AssistantSurface.None, null),
+        };
+
+    async Task<bool> ApplyAssistantAction(
+        AssistantAction action,
+        int projectId,
+        AssistantSurface surface,
+        IDataGridComponent? grid
+    )
+    {
+        if (
+            Id != projectId
+            || _isLoading
+            || _loadError is not null
+            || grid is null
+            || GetAssistantGrid() != (surface, grid)
+        )
+            return false;
+
+        bool clear = action.Kind == AssistantActionKind.ClearGrid;
+        if (!clear && action.Kind != AssistantActionKind.FilterGrid)
+            return false;
+
+        if (grid is SeriesGrid series)
+        {
+            if (!clear && action.SeriesQuery is null)
+                return false;
+            await series.SetAssistantQuery(clear ? null : action.SeriesQuery);
+        }
+        else
+        {
+            if (!clear && action.GridQuery?.Grid != surface)
+                return false;
+            await grid.SetAssistantGridQuery(clear ? null : action.GridQuery);
+        }
+        return true;
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        AssistantWorkspace.Remove(this);
+        GC.SuppressFinalize(this);
     }
 
     void GoBack()
     {
         NavigationManager.NavigateTo("/evaluation");
+    }
+
+    sealed class MeasurementGridScope(int projectId, int tabIndex)
+    {
+        public int ProjectId { get; } = projectId;
+        public int TabIndex { get; } = tabIndex;
     }
 }

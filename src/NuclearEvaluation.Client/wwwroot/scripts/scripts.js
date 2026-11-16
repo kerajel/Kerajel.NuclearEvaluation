@@ -59,3 +59,14 @@ function cacheGridResult(key, json) {
     while (keys.length >= 64) localStorage.removeItem(keys.shift());
     localStorage.setItem(key, json);
 }
+
+function scrollSiteAssistantLog(element) {
+    if (element) element.scrollTop = element.scrollHeight;
+}
+
+document.addEventListener("keydown", event => {
+    if (event.key !== "Enter" || !event.ctrlKey || event.isComposing || event.target.id !== "site-assistant-question") return;
+
+    event.preventDefault();
+    if (!event.repeat) event.target.form.requestSubmit();
+});

@@ -1,100 +1,114 @@
 <CascadingValue Value="GetActivePresetFilter">
-    <RadzenLabel Text="Preset Filters" Style="margin-bottom: 10px; display: block;" />
-
-    <div style="@CheckBoxWithHeadingStyle">
-        <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Series))"
-                        Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Series)"
-                        TValue="bool"
-                        AriaLabel="Series filter"
-                        Style="@CheckBoxStyle" />
-        <RadzenHeading Size="@HeadingSize"
-                       Text="Series"
-                       Style="@(GetFilterCheckBoxVisibility(PresetFilterEntryType.Series) ? "" : HiddenStyle)" />
-    </div>
-    <SeriesQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Series)"
-                              @ref="_seriesFilter" />
-
-    <div style="@CheckBoxWithHeadingStyle">
-        <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Sample))"
-                        Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Sample)"
-                        TValue="bool"
-                        AriaLabel="Sample filter"
-                        Style="@CheckBoxStyle" />
-        <RadzenHeading Size="@HeadingSize"
-                       Text="Sample"
-                       Style="@(GetFilterCheckBoxVisibility(PresetFilterEntryType.Sample) ? "" : HiddenStyle)" />
-    </div>
-    <SampleQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Sample)"
-                              @ref="_sampleFilter" />
-
-    <div style="@CheckBoxWithHeadingStyle">
-        <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.SubSample))"
-                        Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.SubSample)"
-                        TValue="bool"
-                        AriaLabel="SubSample filter"
-                        Style="@CheckBoxStyle" />
-        <RadzenHeading Size="@HeadingSize"
-                       Text="SubSample"
-                       Style="@(GetFilterCheckBoxVisibility(PresetFilterEntryType.SubSample) ? "" : HiddenStyle)" />
-    </div>
-    <SubSampleQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.SubSample)"
-                                 @ref="_subSampleFilter" />
-
-    <div style="@CheckBoxWithHeadingStyle">
-        <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Apm))"
-                        Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Apm)"
-                        TValue="bool"
-                        AriaLabel="Apm filter"
-                        Style="@CheckBoxStyle" />
-        <RadzenHeading Size="@HeadingSize"
-                       Text="Apm"
-                       Style="@(GetFilterCheckBoxVisibility(PresetFilterEntryType.Apm) ? "" : HiddenStyle)" />
-    </div>
-    <ApmQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Apm)"
-                           @ref="_apmFilter" />
-
-    <div style="@CheckBoxWithHeadingStyle">
-        <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Particle))"
-                        Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Particle)"
-                        TValue="bool"
-                        AriaLabel="Particle filter"
-                        Style="@CheckBoxStyle" />
-        <RadzenHeading Size="@HeadingSize"
-                       Text="Particle"
-                       Style="@(GetFilterCheckBoxVisibility(PresetFilterEntryType.Particle) ? "" : HiddenStyle)" />
-    </div>
-    <ParticleQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Particle)"
-                                @ref="_particleFilter" />
-
-    <RadzenRow Style="margin: 12px 0;">
-        <RadzenColumn Size="12">
-            <div style="@ToolbarStyle">
-                <div style="@ToolbarGroupStyle">
-                    <RadzenLabel Text="Results"
-                                 Style="@ToolbarLabelStyle" />
-                    <RadzenDropDown Data="@_dataGrids"
-                                    TextProperty="@nameof(IDataGridComponent.EntityDisplayName)"
-                                    Value="@_activeGrid"
-                                    ValueChanged="OnDataGridSelected"
-                                    TValue="IDataGridComponent"
-                                    aria-label="Result entity"
-                                    Style="width: 220px;" />
-                </div>
-
-                <div style="@PresetToolbarGroupStyle">
-                    <RadzenLabel Text="Saved filter"
-                                 Style="@ToolbarLabelStyle" />
-                    <PresetFilterDropDown OnPresetFilterSelected="OnPresetFilterSelected" />
-                </div>
-
-                <RadzenButton Text="Apply query"
-                              Icon="search"
-                              Click="ApplyPresetFilter"
-                              title="Refresh results using the current query builder filters."
-                              Style="white-space: nowrap;" />
+    <section class="query-builder-editor" aria-labelledby="query-builder-filter-title">
+        <header>
+            <h2 id="query-builder-filter-title">Preset Filters</h2>
+            <p>Enable the record types you want to filter, then choose which records to return.</p>
+        </header>
+        <details class="query-builder-examples">
+            <summary>Example queries</summary>
+            <p>Each example replaces the current draft and refreshes its results.</p>
+            <div class="query-builder-examples__options">
+                @foreach (QueryBuilderExample example in Examples)
+                {
+                    <button type="button" @onclick="() => LoadExampleAsync(example)">@example.Title</button>
+                }
             </div>
-        </RadzenColumn>
-    </RadzenRow>
+        </details>
+        @if (_activeFilter.Id == 0 && !string.IsNullOrWhiteSpace(_activeFilter.Name))
+        {
+            <p class="ne-grid-caption" role="status"><strong>@_activeFilter.Name</strong> · Unsaved draft</p>
+        }
+        <div class="query-builder-entities" @oninput="NotifyDraftEdited">
+            <div class="query-builder-entity @(GetFilterCheckBoxVisibility(PresetFilterEntryType.Series) ? "is-enabled" : "")">
+                <div class="query-builder-entity__heading">
+                    <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Series))"
+                                    Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Series)"
+                                    TValue="bool"
+                                    AriaLabel="Series filter" />
+                    <h3>Series</h3>
+                </div>
+                <SeriesQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Series)"
+                                         OnDraftEdited="NotifyDraftEdited"
+                                         @ref="_seriesFilter" />
+            </div>
+
+            <div class="query-builder-entity @(GetFilterCheckBoxVisibility(PresetFilterEntryType.Sample) ? "is-enabled" : "")">
+                <div class="query-builder-entity__heading">
+                    <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Sample))"
+                                    Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Sample)"
+                                    TValue="bool"
+                                    AriaLabel="Sample filter" />
+                    <h3>Sample</h3>
+                </div>
+                <SampleQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Sample)"
+                                         OnDraftEdited="NotifyDraftEdited"
+                                         @ref="_sampleFilter" />
+            </div>
+
+            <div class="query-builder-entity @(GetFilterCheckBoxVisibility(PresetFilterEntryType.SubSample) ? "is-enabled" : "")">
+                <div class="query-builder-entity__heading">
+                    <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.SubSample))"
+                                    Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.SubSample)"
+                                    TValue="bool"
+                                    AriaLabel="SubSample filter" />
+                    <h3>SubSample</h3>
+                </div>
+                <SubSampleQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.SubSample)"
+                                         OnDraftEdited="NotifyDraftEdited"
+                                         @ref="_subSampleFilter" />
+            </div>
+
+            <div class="query-builder-entity @(GetFilterCheckBoxVisibility(PresetFilterEntryType.Apm) ? "is-enabled" : "")">
+                <div class="query-builder-entity__heading">
+                    <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Apm))"
+                                    Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Apm)"
+                                    TValue="bool"
+                                    AriaLabel="Apm filter" />
+                    <h3>Apm</h3>
+                </div>
+                <ApmQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Apm)"
+                                         OnDraftEdited="NotifyDraftEdited"
+                                         @ref="_apmFilter" />
+            </div>
+
+            <div class="query-builder-entity @(GetFilterCheckBoxVisibility(PresetFilterEntryType.Particle) ? "is-enabled" : "")">
+                <div class="query-builder-entity__heading">
+                    <RadzenCheckBox ValueChanged="@(value => OnPresetFilterCheckBoxChanged(value, PresetFilterEntryType.Particle))"
+                                    Value="@GetFilterCheckBoxVisibility(PresetFilterEntryType.Particle)"
+                                    TValue="bool"
+                                    AriaLabel="Particle filter" />
+                    <h3>Particle</h3>
+                </div>
+                <ParticleQueryBuilderFilter Visible="GetFilterCheckBoxVisibility(PresetFilterEntryType.Particle)"
+                                         OnDraftEdited="NotifyDraftEdited"
+                                         @ref="_particleFilter" />
+            </div>
+        </div>
+    </section>
+
+    <div class="query-builder-toolbar">
+        <div class="query-builder-toolbar__group">
+            <span>Results</span>
+            <RadzenDropDown Data="@_dataGrids"
+                            TextProperty="@nameof(IDataGridComponent.EntityDisplayName)"
+                            Value="@_activeGrid"
+                            ValueChanged="OnDataGridSelected"
+                            TValue="IDataGridComponent"
+                            aria-label="Result entity" />
+        </div>
+
+        <div class="query-builder-toolbar__group query-builder-toolbar__presets">
+            <span>Saved filter</span>
+            <PresetFilterDropDown @ref="_presetDropDown" OnPresetFilterSelected="OnPresetFilterSelected"
+                                  OnDraftEdited="NotifyDraftEdited" />
+        </div>
+
+        <div class="query-builder-toolbar__apply">
+            <RadzenButton Text="Apply query"
+                          Icon="search"
+                          Click="ApplyPresetFilter" />
+        </div>
+    </div>
 
     <SeriesGrid @ref="_seriesGrid"
                 ComponentId="query-builder-series"

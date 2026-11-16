@@ -27,10 +27,14 @@ public partial class PresetFilterDropDown : ComponentBase
     [Parameter]
     public EventCallback<PresetFilter> OnPresetFilterSelected { get; set; }
 
+    [Parameter]
+    public EventCallback OnDraftEdited { get; set; }
+
     OperationMode _operationMode = OperationMode.Browsing;
     List<PresetFilter> _filters = [];
     ValidatedTextBox<PresetFilter> _validatedTextBoxRef = null!;
     PresetFilter _activeFilter = new();
+    bool _savePending;
 
     int? ActiveFilterId => _activeFilter.Id == 0 ? null : _activeFilter.Id;
 
@@ -58,8 +62,6 @@ public partial class PresetFilterDropDown : ComponentBase
             ? "Cancel editing this saved filter."
             : "Clear the selected saved filter and reload the results.";
 
-    string ToolbarButtonStyle { get; } = "padding: 5px 10px; white-space: nowrap;";
-
     // Mirror PresetFilterValidator's length rule so the save button can be gated synchronously.
     const int MinNameLength = 5;
     const int MaxNameLength = 25;
@@ -70,7 +72,8 @@ public partial class PresetFilterDropDown : ComponentBase
     bool CanSubmitFilter()
     {
         string name = _activeFilter.Name ?? string.Empty;
-        return name.Length >= MinNameLength
+        return !_savePending
+            && name.Length >= MinNameLength
             && name.Length <= MaxNameLength
             && (_validatedTextBoxRef?.IsValid ?? false);
     }
@@ -87,6 +90,9 @@ public partial class PresetFilterDropDown : ComponentBase
 
     async Task SubmitAction()
     {
+        if (_savePending)
+            return;
+
         if (_operationMode == OperationMode.Editing)
         {
             await ProcessNewOrEditedFilter();
@@ -99,51 +105,71 @@ public partial class PresetFilterDropDown : ComponentBase
 
     async Task ProcessNewOrEditedFilter()
     {
-        if (!_validatedTextBoxRef.IsValid)
-        {
+        if (!CanSubmitFilter())
             return;
-        }
 
-        ValidationResult validationResult = await PresetFilterValidator.ValidateAsync(
-            _activeFilter,
-            options => options.IncludeProperties(nameof(PresetFilter.Name))
-        );
+        PresetFilter editor = _activeFilter;
+        PresetFilter snapshot = CapturePreset(editor);
 
-        if (!validationResult.IsValid)
+        bool IsCurrentEditor() =>
+            ReferenceEquals(_activeFilter, editor)
+            && _operationMode == OperationMode.Editing
+            && editor.Name == snapshot.Name;
+
+        _savePending = true;
+        try
         {
-            return;
-        }
+            await NotifyDraftEdited();
+            ValidationResult validationResult = await PresetFilterValidator.ValidateAsync(
+                snapshot,
+                options => options.IncludeProperties(nameof(PresetFilter.Name))
+            );
+            if (!validationResult.IsValid || !IsCurrentEditor())
+                return;
 
-        if (_activeFilter.Id == 0)
-        {
-            await AddFilter();
-        }
-        else
-        {
-            await UpdateFilter();
-        }
+            if (snapshot.Id == 0)
+            {
+                snapshot.Id = await Api.CreatePresetFilter(snapshot);
+                _filters = [.. _filters, snapshot];
+            }
+            else
+            {
+                await Api.UpdatePresetFilter(snapshot);
+                _filters = _filters
+                    .Select(filter => filter.Id == snapshot.Id ? snapshot : filter)
+                    .ToList();
+            }
 
-        _validatedTextBoxRef.Commit();
-        await ToggleOperationMode(OperationMode.Browsing);
+            if (IsCurrentEditor())
+            {
+                editor.Id = snapshot.Id;
+                _validatedTextBoxRef.Commit();
+                await ToggleOperationMode(OperationMode.Browsing);
+            }
+        }
+        finally
+        {
+            _savePending = false;
+        }
     }
 
-    async Task AddFilter()
-    {
-        PresetFilter applied = GetAppliedPresetFilter();
-        _activeFilter.Entries = applied.Entries;
-
-        int id = await Api.CreatePresetFilter(_activeFilter);
-        _activeFilter.Id = id;
-        _filters.Add(_activeFilter);
-    }
-
-    async Task UpdateFilter()
-    {
-        PresetFilter applied = GetAppliedPresetFilter();
-        _activeFilter.Entries = applied.Entries;
-
-        await Api.UpdatePresetFilter(_activeFilter);
-    }
+    PresetFilter CapturePreset(PresetFilter editor) =>
+        new()
+        {
+            Id = editor.Id,
+            Name = editor.Name,
+            Entries = GetAppliedPresetFilter()
+                .Entries.Select(entry => new PresetFilterEntry
+                {
+                    Id = entry.Id,
+                    PresetFilterId = entry.PresetFilterId,
+                    PresetFilterEntryType = entry.PresetFilterEntryType,
+                    LogicalFilterOperator = entry.LogicalFilterOperator,
+                    IsEnabled = entry.IsEnabled,
+                    SerializedDescriptors = entry.SerializedDescriptors,
+                })
+                .ToList(),
+        };
 
     async Task CancelAction()
     {
@@ -158,36 +184,46 @@ public partial class PresetFilterDropDown : ComponentBase
 
     async Task ConfirmDelete()
     {
+        int id = _activeFilter.Id;
+        if (id == 0)
+            return;
+
         bool? result = await DialogService.Confirm(
             "Are you sure you want to delete this filter?",
             "Confirm Delete",
             new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" }
         );
-        if (result.HasValue && result.Value)
-        {
-            await DeleteFilter();
-            await NotifyActiveFilterChanged();
-        }
+        if (result == true)
+            await DeleteFilter(id);
     }
 
-    async Task DeleteFilter()
+    async Task DeleteFilter(int id)
     {
-        if (_activeFilter.Id != 0)
+        await NotifyDraftEdited();
+        await Api.DeletePresetFilter(id);
+        _filters = _filters.Where(filter => filter.Id != id).ToList();
+        if (_activeFilter.Id == id)
         {
-            await Api.DeletePresetFilter(_activeFilter.Id);
-            _filters.Remove(_activeFilter);
             _activeFilter = new();
+            await NotifyActiveFilterChanged();
         }
     }
 
     async Task ToggleOperationMode(OperationMode operationMode)
     {
         _operationMode = operationMode;
+        await NotifyDraftEdited();
 
         if (operationMode == OperationMode.Editing)
         {
             _validatedTextBoxRef.ReInitialize();
             await _validatedTextBoxRef.FocusAsync();
+            if (
+                _operationMode == OperationMode.Editing
+                && _activeFilter.Id == 0
+                && !string.IsNullOrWhiteSpace(_activeFilter.Name)
+            )
+                await _validatedTextBoxRef.Validate();
         }
         else
         {
@@ -195,10 +231,21 @@ public partial class PresetFilterDropDown : ComponentBase
         }
     }
 
+    Task NotifyDraftEdited() => OnDraftEdited.InvokeAsync();
+
     async Task ClearSelectedFilter()
     {
         _activeFilter = new();
         await NotifyActiveFilterChanged();
+    }
+
+    internal void SetUnsavedDraft(PresetFilter draft)
+    {
+        if (_operationMode == OperationMode.Editing)
+            _validatedTextBoxRef.CancelValidation();
+        _operationMode = OperationMode.Browsing;
+        _activeFilter = draft;
+        StateHasChanged();
     }
 
     async Task OnDropDownChange(int? value)

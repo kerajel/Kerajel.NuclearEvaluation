@@ -14,6 +14,11 @@ public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilt
     [Parameter]
     public bool Visible { get; set; }
 
+    [Parameter]
+    public EventCallback OnDraftEdited { get; set; }
+
+    protected Task NotifyDraftEdited() => OnDraftEdited.InvokeAsync();
+
     protected virtual string DecimalFormat => "{0:0.##}";
     protected virtual string DateOnlyFormat => "{0:yyyy-MM-dd}";
 
@@ -84,6 +89,8 @@ public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilt
         }
 
         filter.Filters = currentFilters;
-        filter.Filter();
+#pragma warning disable BL0005 // A restored filter must use its logical operator before the next render.
+        filter.LogicalFilterOperator = logicalFilterOperator;
+#pragma warning restore BL0005
     }
 }

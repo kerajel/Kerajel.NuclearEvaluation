@@ -1,61 +1,44 @@
-﻿@using Radzen
-@using System.Linq
-@using Microsoft.AspNetCore.Components
-
-<RadzenDataGrid Data="@Data"
+﻿<RadzenDataGrid Data="@Data"
                 TItem="UploadedFile"
-                Style="width: 100%; margin-top: 10px;"
+                Style="width: 100%;"
                 AllowAlternatingRows="false"
                 ColumnWidth="auto">
     <Columns>
-        <RadzenDataGridColumn TItem="UploadedFile"
-                              Property="@nameof(UploadedFile.Name)"
-                              Title="File Name"
-                              Width="50%" />
-        <RadzenDataGridColumn TItem="UploadedFile"
-                              Title="File Size"
-                              Width="100px"
-                              TextAlign="TextAlign.Center">
+        <RadzenDataGridColumn TItem="UploadedFile" Title="File">
             <Template Context="file">
-                <span>@(file.Size < 1024 ? $"{file.Size:N0} B" : $"{file.Size.AsMegabytes():F2} MB")</span>
+                <div class="upload-file">
+                    <strong>@file.Name</strong>
+                    <div class="upload-file__status">
+                        <span>@(file.Size < 1024 ? $"{file.Size:N0} B" : $"{file.Size.AsMegabytes():F2} MB")</span>
+                        <span aria-hidden="true">·</span>
+                        @if (file.Status == FileStatus.Uploaded)
+                        {
+                            <span>Uploaded</span>
+                        }
+                        else if (file.Status is FileStatus.Uploading or FileStatus.Deleting)
+                        {
+                            <span role="status">@(file.Status == FileStatus.Uploading ? "Uploading…" : "Removing…")</span>
+                        }
+                        else if (file.Status == FileStatus.UploadError)
+                        {
+                            <span class="upload-file__error">@file.ErrorMessage</span>
+                        }
+                        else
+                        {
+                            <span>Not uploaded</span>
+                        }
+                    </div>
+                </div>
             </Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="UploadedFile"
-                              Width="150px"
-                              TextAlign="TextAlign.Center"
-                              Title="Upload Status">
-            <Template Context="file">
-                @if (file.Status == FileStatus.Uploaded)
-                {
-                    <RadzenIcon Icon="check" Color="green" />
-                    <span>Uploaded</span>
-                }
-                else if (file.Status == FileStatus.Uploading || file.Status == FileStatus.Deleting)
-                {
-                    <RadzenStack AlignItems="AlignItems.Center"
-                                 JustifyContent="JustifyContent.Center"
-                                 Style="height: 100%;">
-                        <RadzenProgressBarCircular Value="100"
-                                                   ShowValue="false"
-                                                   Mode="ProgressBarMode.Indeterminate" />
-                    </RadzenStack>
-                }
-                else if (file.Status == FileStatus.UploadError)
-                {
-                    <span>@(file.ErrorMessage)</span>
-                }
-                else
-                {
-                    <span>Not uploaded</span>
-                }
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="UploadedFile"
-                              Width="100px"
+                              Width="70px"
                               TextAlign="TextAlign.Center"
                               Title="Remove">
             <Template Context="file">
-                <RadzenButton Icon="delete"
+                <RadzenButton Icon="delete" Size="ButtonSize.Small" Variant="Variant.Text"
+                              aria-label="@($"Remove {file.Name}")"
+                              title="@($"Remove {file.Name}")"
                               Click="@(() => RemoveFile(file))" />
             </Template>
         </RadzenDataGridColumn>

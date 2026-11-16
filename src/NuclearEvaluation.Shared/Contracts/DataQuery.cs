@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using NuclearEvaluation.Shared.Models.Filters;
 
 namespace NuclearEvaluation.Shared.Contracts;
@@ -37,6 +38,13 @@ public class DataQuery : IValidatableObject
     /// <summary>STEM preview session whose staged entries are queried.</summary>
     public Guid? StemSessionId { get; set; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Guid? StemFileId { get; set; }
+
+    [EnumDataType(typeof(StemQualityCheck))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public StemQualityCheck? StemCheck { get; set; }
+
     /// <summary>Ids ordered to the top of the result set (used by selection grids).</summary>
     [MaxLength(1000)]
     public List<int>? PriorityIds { get; set; }
@@ -47,6 +55,16 @@ public class DataQuery : IValidatableObject
             yield return new("Decay correction requires a project.", [nameof(ProjectId)]);
         if (PriorityIds?.Any(id => id <= 0) == true)
             yield return new("Priority IDs must be positive.", [nameof(PriorityIds)]);
+        if (
+            StemFileId is Guid fileId
+            && (fileId == Guid.Empty || StemSessionId.GetValueOrDefault() == Guid.Empty)
+        )
+            yield return new(
+                "A file filter requires a valid STEM file and session.",
+                [nameof(StemFileId)]
+            );
+        if (StemCheck is not null && StemFileId is null)
+            yield return new("A quality check requires a STEM file.", [nameof(StemCheck)]);
         if (
             PresetFilterBox is { } box
             && (

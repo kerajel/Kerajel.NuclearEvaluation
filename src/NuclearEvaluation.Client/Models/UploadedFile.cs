@@ -7,7 +7,9 @@ public class UploadedFile
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public int UploadBatchId { get; set; }
-    public IBrowserFile BrowserFile { get; set; } = null!;
+    public IBrowserFile? BrowserFile { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public long Size { get; init; }
     public FileStatus Status { get; set; }
     public string? ErrorMessage { get; set; }
     public CancellationTokenSource FileCancellationTokenSource { get; set; } = new();

@@ -1,0 +1,80 @@
+<section class="stem-quality-workbench" aria-label="Quality profile and matching rows">
+    <RadzenSplitter Orientation="Orientation.Vertical" class="stem-quality-splitter">
+        <RadzenSplitterPane Size="330px" Min="160px">
+            <div class="stem-quality-summary">
+                <div>
+                    <h3>@Profile.RowCount.ToString("N0") parsed rows</h3>
+                    @if (Profile.RowCount > 0)
+                    {
+                        <RadzenChart SeriesClick="OnChartClick" class="stem-quality-chart">
+                            <RadzenColumnSeries TItem="QualityMetric" Data="@metrics"
+                                                CategoryProperty="@nameof(QualityMetric.Category)"
+                                                ValueProperty="@nameof(QualityMetric.Count)"
+                                                Title="Matching rows" />
+                            <RadzenLegend Visible="false" />
+                            <RadzenValueAxis Min="0" Max="@ChartMaximum" />
+                        </RadzenChart>
+                    }
+                </div>
+                <div class="stem-quality-checks" aria-label="Checks">
+                    <button type="button" aria-pressed="@(selectedCheck is null ? "true" : "false")" @onclick="() => selectedCheck = null">
+                        <span>All parsed rows</span><strong>@Profile.RowCount.ToString("N0")</strong>
+                    </button>
+                    @foreach (QualityMetric metric in metrics)
+                    {
+                        <button type="button" aria-pressed="@(selectedCheck == metric.Check ? "true" : "false")"
+                                @onclick="() => selectedCheck = metric.Check">
+                            <span>@metric.Label</span><strong>@metric.Count.ToString("N0")</strong>
+                        </button>
+                    }
+                </div>
+            </div>
+            <p class="stem-quality-note">Missing measurements include absent optional columns. Repeated identifiers count all rows sharing an identifier within this file.</p>
+        </RadzenSplitterPane>
+        <RadzenSplitterPane Min="170px">
+            <div class="stem-quality-rows">
+                <StemPreviewEntryGrid @key="(FileId, selectedCheck)"
+                                      StemSessionId="@StemSessionId" StemFileId="@FileId"
+                                      StemCheck="@selectedCheck" Caption="@RowsCaption" />
+            </div>
+        </RadzenSplitterPane>
+    </RadzenSplitter>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public Guid StemSessionId { get; set; }
+    [Parameter, EditorRequired] public Guid FileId { get; set; }
+    [Parameter, EditorRequired] public StemFileProfile Profile { get; set; } = null!;
+
+    QualityMetric[] metrics = [];
+    StemQualityCheck? selectedCheck;
+
+    int ChartMaximum => Math.Max(1, metrics.Max(metric => metric.Count));
+
+    string RowsCaption => selectedCheck is null
+        ? "All parsed rows in this file"
+        : metrics.Single(metric => metric.Check == selectedCheck).Label;
+
+    protected override void OnParametersSet()
+    {
+        metrics =
+        [
+            new(StemQualityCheck.MissingU234, "U234", "Missing U234", Profile.MissingU234),
+            new(StemQualityCheck.MissingErU234, "ErU234", "Missing ErU234", Profile.MissingErU234),
+            new(StemQualityCheck.MissingU235, "U235", "Missing U235", Profile.MissingU235),
+            new(StemQualityCheck.MissingErU235, "ErU235", "Missing ErU235", Profile.MissingErU235),
+            new(StemQualityCheck.BlankLabCode, "Lab code", "Blank lab code", Profile.BlankLabCode),
+            new(StemQualityCheck.RepeatedIdentifier, "ID", "Repeated identifier", Profile.RepeatedIdentifierRows),
+        ];
+    }
+
+    void OnChartClick(SeriesClickEventArgs args)
+    {
+        if (args.Data is QualityMetric metric)
+        {
+            selectedCheck = metric.Check;
+        }
+    }
+
+    sealed record QualityMetric(StemQualityCheck Check, string Category, string Label, int Count);
+}

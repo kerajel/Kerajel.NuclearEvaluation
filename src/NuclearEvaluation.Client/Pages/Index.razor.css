@@ -1,0 +1,113 @@
+.home-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: clamp(1.25rem, 4vw, 3rem);
+    padding: clamp(1.5rem, 4vw, 3.5rem);
+    border-radius: 1.25rem;
+    background: #102c30;
+    color: #f0f8f6;
+}
+
+.home-hero h1 {
+    max-width: 9ch;
+    margin: 0;
+    color: inherit;
+    font-size: clamp(2.4rem, 5.5vw, 5rem);
+    line-height: 0.96;
+    letter-spacing: -0.045em;
+    font-weight: 650;
+}
+
+.home-hero p {
+    max-width: 35ch;
+    margin: 1.3rem 0 1.7rem;
+    color: #d1e3e2;
+    font-size: clamp(1rem, 1.6vw, 1.2rem);
+    line-height: 1.55;
+}
+
+.home-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.65rem 1rem;
+    border-radius: 0.5rem;
+    background: #c9eee6;
+    color: #102c30;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.home-primary:hover,
+.home-primary:focus-visible {
+    background: #e6fcf7;
+    color: #102c30;
+}
+
+.home-hero-map {
+    min-width: 0;
+}
+
+.home-destinations {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.home-destination {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: start;
+    padding: clamp(1rem, 2.5vw, 1.6rem);
+    border: 1px solid var(--rz-base-400);
+    border-radius: 0.85rem;
+    color: var(--rz-text-color);
+    text-decoration: none;
+}
+
+.home-destination:hover,
+.home-destination:focus-visible {
+    border-color: var(--rz-primary);
+    color: var(--rz-text-color);
+}
+
+.home-destination h2,
+.home-workspace h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1.3rem;
+}
+
+.home-destination p,
+.home-workspace p {
+    margin: 0;
+    color: var(--rz-text-secondary-color);
+}
+
+.home-arrow {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.home-workspace {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rz-base-400);
+}
+
+.home-workspace-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin-top: 0.75rem;
+    font-weight: 600;
+}
+
+@media (max-width: 767px) {
+    .home-hero,
+    .home-destinations {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

@@ -9,7 +9,7 @@
                 ColumnWidth="auto">
     <Columns>
         <RadzenDataGridColumn TItem="UploadedFile"
-                              Property="BrowserFile.Name"
+                              Property="@nameof(UploadedFile.Name)"
                               Title="File Name"
                               Width="50%" />
         <RadzenDataGridColumn TItem="UploadedFile"
@@ -17,7 +17,7 @@
                               Width="100px"
                               TextAlign="TextAlign.Center">
             <Template Context="file">
-                <span>@((file.BrowserFile.Size.AsMegabytes()).ToString("F2")) MB</span>
+                <span>@(file.Size < 1024 ? $"{file.Size:N0} B" : $"{file.Size.AsMegabytes():F2} MB")</span>
             </Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="UploadedFile"

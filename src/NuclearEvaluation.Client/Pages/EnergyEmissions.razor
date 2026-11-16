@@ -1,0 +1,111 @@
+@page "/energy-emissions"
+@using System.Globalization
+
+<PageTitle>Energy &amp; Emissions | Nuclear Evaluation</PageTitle>
+
+<div class="energy-page">
+    <header class="energy-header">
+        <h1>Energy &amp; Emissions</h1>
+        <p>Compare the greenhouse gas footprint of six ways to generate electricity.</p>
+    </header>
+
+    <div class="energy-layout">
+        <section class="energy-comparison" aria-labelledby="energy-comparison-title">
+            <header class="energy-comparison-header">
+                <div>
+                    <h2 id="energy-comparison-title">Lifecycle emissions</h2>
+                    <p>Median estimates from published studies, in g CO₂e/kWh</p>
+                </div>
+                <div class="energy-scales" role="group" aria-label="Chart scale">
+                    <button type="button" aria-pressed="@(!_logarithmic ? "true" : "false")"
+                            @onclick="() => _logarithmic = false">Linear</button>
+                    <button type="button" aria-label="Logarithmic" aria-pressed="@(_logarithmic ? "true" : "false")"
+                            @onclick="() => _logarithmic = true">Log</button>
+                </div>
+            </header>
+
+            <div class="energy-axis" aria-hidden="true">
+                <div class="energy-ticks">
+                    @foreach (var tick in _logarithmic ? LogTicks : LinearTicks)
+                    {
+                        <span style="@PositionStyle(tick)">@FormatNumber(tick)</span>
+                    }
+                </div>
+            </div>
+
+            <div class="energy-sources" role="group" aria-label="Select an energy source">
+                @foreach (var source in Sources)
+                {
+                    <button @key="source" type="button" class="energy-row"
+                            aria-label="@($"{source.Name}, {FormatNumber(source.Total)} grams of CO₂ equivalent per kilowatt-hour")"
+                            aria-pressed="@(source == _selectedSource ? "true" : "false")"
+                            aria-controls="energy-phase-details" @onclick="() => _selectedSource = source">
+                        <span class="energy-name">@source.Name</span>
+                        <span class="energy-track" aria-hidden="true">
+                            <span class="energy-marker" style="@PositionStyle(source.Total)"></span>
+                        </span>
+                        <strong class="energy-value">@FormatNumber(source.Total)</strong>
+                    </button>
+                }
+            </div>
+        </section>
+
+        <section class="energy-details" id="energy-phase-details" aria-labelledby="energy-phase-title" aria-live="polite">
+            <h2 id="energy-phase-title">@_selectedSource.Name</h2>
+            @if (_selectedSource.Scope is { } scope)
+            {
+                <p class="energy-scope">@scope</p>
+            }
+
+            <h3>Lifecycle phases</h3>
+            <p class="energy-phase-units">Median g CO₂e/kWh</p>
+            <dl class="energy-phases">
+                <div><dt>Upstream</dt><dd>@_selectedSource.Upstream</dd></div>
+                <div><dt>Combustion</dt><dd>@(_selectedSource.Combustion ?? "Not applicable")</dd></div>
+                <div><dt>Noncombustion</dt><dd>@_selectedSource.Noncombustion</dd></div>
+                <div><dt>Downstream</dt><dd>@_selectedSource.Downstream</dd></div>
+            </dl>
+        </section>
+    </div>
+
+    <footer class="energy-source-note">
+        <p>The phase and lifecycle medians are calculated independently. Adding the phase values may give a different total.</p>
+        <a href="https://www.nlr.gov/docs/fy21osti/80580.pdf#page=3" target="_blank" rel="noopener noreferrer">
+            NREL lifecycle assessment, 2021, Table 1
+        </a>
+    </footer>
+</div>
+
+@code {
+    const int AxisMaximum = 1200;
+
+    static readonly int[] LinearTicks = [0, 300, 600, 900, AxisMaximum];
+    static readonly int[] LogTicks = [1, 10, 100, 1000];
+
+    // The published estimates include approximate values and upper bounds.
+    static readonly EmissionSource[] Sources =
+    [
+        new("Nuclear", 13, "Light-water reactors", "2.0", null, "12", "0.7"),
+        new("Wind", 13, "Land-based and offshore", "12", null, "0.74", "0.34"),
+        new("Hydropower", 21, null, "6.2", null, "1.9", "0.004"),
+        new("Solar PV", 43, "Thin-film and crystalline silicon", "≈28", null, "≈10", "≈5"),
+        new("Natural gas", 486, null, "0.8", "389", "71", "0.02"),
+        new("Coal", 1001, null, "<5", "1,010", "10", "<5")
+    ];
+
+    EmissionSource _selectedSource = Sources[0];
+    bool _logarithmic;
+
+    string PositionStyle(int value)
+    {
+        var fraction = _logarithmic
+            ? Math.Log10(value) / Math.Log10(AxisMaximum)
+            : (double)value / AxisMaximum;
+        return FormattableString.Invariant($"--energy-position: {100 * fraction:F4}%");
+    }
+
+    static string FormatNumber(int value) => value.ToString("N0", CultureInfo.CurrentCulture);
+
+    sealed record EmissionSource(
+        string Name, int Total, string? Scope, string Upstream, string? Combustion, string Noncombustion, string Downstream);
+}

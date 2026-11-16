@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+using System.Net;
 using System.Text.Json;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Filters;
@@ -271,6 +271,25 @@ public class NuclearEvaluationApiClient : INuclearEvaluationApi
             JsonOptions,
             ct
         );
+
+    public async Task<StemFileProfile?> GetStemFileProfile(
+        Guid sessionId,
+        Guid fileId,
+        CancellationToken ct = default
+    )
+    {
+        using HttpResponseMessage response = await _http.GetAsync(
+            $"api/stem/{sessionId}/files/{fileId}/profile",
+            ct
+        );
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<StemFileProfile>(JsonOptions, ct)
+            ?? throw new InvalidDataException("The STEM profile was empty.");
+    }
 
     public async Task<OperationOutcome> UploadStemPreviewFile(
         Guid sessionId,

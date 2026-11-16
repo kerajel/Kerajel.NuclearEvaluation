@@ -9,9 +9,9 @@
          role="group" aria-label="Map of nuclear power plants in the contiguous United States"
          aria-hidden="@(PlantSelected.HasDelegate ? null : "true")">
         <svg class="fleet-map-outline" viewBox="0 0 @FleetGeography.Width @FleetGeography.Height" aria-hidden="true">
-            @foreach (string path in _geography.Paths)
+            @foreach (FleetGeography.StateOutline state in _geography.States)
             {
-                <path d="@path" />
+                <path d="@state.Path" class="@(HighlightedStateName is not null && state.Name == HighlightedStateName ? "fleet-map-state-active" : null)" />
             }
         </svg>
         @foreach (FleetPlant plant in MapPlants)
@@ -61,6 +61,7 @@ else if (PlantSelected.HasDelegate)
     [Parameter, EditorRequired] public IReadOnlyList<FleetPlant> Plants { get; set; } = [];
     [Parameter] public int? SelectedId { get; set; }
     [Parameter] public int? ComparedId { get; set; }
+    [Parameter] public string? HighlightedStateName { get; set; }
     [Parameter] public EventCallback<FleetPlant> PlantSelected { get; set; }
     [Parameter] public bool ShowCapacity { get; set; }
     [Parameter] public decimal CapacityScaleMw { get; set; } = 5_000;

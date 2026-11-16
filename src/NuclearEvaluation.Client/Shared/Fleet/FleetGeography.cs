@@ -20,18 +20,24 @@ internal sealed class FleetGeography
     readonly double _offsetX;
     readonly double _offsetY;
 
-    public IReadOnlyList<string> Paths { get; }
+    public IReadOnlyList<StateOutline> States { get; }
 
     public FleetGeography(JsonElement geometry)
     {
-        Point[][][] states = geometry
+        var states = geometry
             .GetProperty("features")
             .EnumerateArray()
-            .Select(feature => feature.GetProperty("geometry"))
-            .Select(ReadRings)
-            .Where(rings => rings.Length > 0)
+            .Select(feature => new
+            {
+                Name = feature.TryGetProperty("properties", out JsonElement properties)
+                && properties.TryGetProperty("name", out JsonElement name)
+                    ? name.GetString()
+                    : null,
+                Rings = ReadRings(feature.GetProperty("geometry")),
+            })
+            .Where(state => state.Rings.Length > 0)
             .ToArray();
-        Point[] points = states.SelectMany(state => state).SelectMany(ring => ring).ToArray();
+        Point[] points = states.SelectMany(state => state.Rings).SelectMany(ring => ring).ToArray();
         if (points.Length == 0)
             throw new JsonException("The state outline contains no contiguous US geometry.");
 
@@ -45,7 +51,9 @@ internal sealed class FleetGeography
         );
         _offsetX = (Width - (minX + maxX) * _scale) / 2;
         _offsetY = (Height - (minY + maxY) * _scale) / 2;
-        Paths = states.Select(BuildPath).ToArray();
+        States = states
+            .Select(state => new StateOutline(state.Name, BuildPath(state.Rings)))
+            .ToArray();
     }
 
     public Point Locate(double longitude, double latitude) =>
@@ -107,4 +115,6 @@ internal sealed class FleetGeography
     }
 
     internal readonly record struct Point(double X, double Y);
+
+    internal sealed record StateOutline(string? Name, string Path);
 }

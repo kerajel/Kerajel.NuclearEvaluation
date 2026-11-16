@@ -43,6 +43,7 @@ public abstract class TestBase : IDisposable
         TestContext.Services.AddSingleton(Api);
         TestContext.Services.AddSingleton<ISessionCache, SessionCache>();
         TestContext.Services.AddSingleton<IGridResultCache, GridResultCache>();
+        TestContext.Services.AddScoped<SiteAssistantWorkspace>();
         TestContext.Services.AddScoped<ProjectViewValidator>();
         TestContext.Services.AddScoped<PresetFilterValidator>();
         TestContext.Services.AddRadzenComponents();

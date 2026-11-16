@@ -31,6 +31,7 @@ services:
       ConnectionStrings__NuclearEvaluationServerDbConnection: "Server=db;Database=NuclearEvaluation;User Id=sa;Password=Local_Dev_Pass_123;TrustServerCertificate=True;Encrypt=False"
       Sandbox__ResetIntervalHours: "24"
       Sandbox__SweepIntervalMinutes: "30"
+      Sandbox__RateLimitPermitPerWindow: "${NUCLEAR_RATE_LIMIT_PER_MINUTE:-300}"
     ports:
       - "${NUCLEAR_APP_PORT:-8080}:8080"
     networks:
@@ -53,8 +54,10 @@ services:
     depends_on:
       app:
         condition: service_started
+    # Chromium exposes the cryptography API used by Blazor WASM on loopback HTTP.
+    network_mode: service:app
     environment:
-      E2E_BASE_URL: "http://nuclear-evaluation.test:8080"
+      E2E_BASE_URL: "http://127.0.0.1:8080"
       E2E_WORKERS: "${E2E_WORKERS:-2}"
       CI: "1"
     volumes:

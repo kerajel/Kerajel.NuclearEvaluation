@@ -15,27 +15,33 @@ export type ApiResult<T = unknown> = {
 
 export async function waitForApp(page: Page) {
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForFunction(
-    () => !document.body.innerText.includes('Loading Nuclear Evaluation'),
-    null,
-    { timeout: 30_000 }
-  ).catch(() => undefined);
+  await expect(page.locator('#site-content, .captcha-panel').first()).toBeVisible({ timeout: 30_000 });
 }
 
 export async function completeCaptchaGate(page: Page) {
   await waitForApp(page);
-  const body = await bodyText(page);
-  if (!body.includes('Quick human check')) {
+  if (await isCaptchaVerified(page)) {
     return;
   }
 
+  const gate = page.getByText('Quick human check', { exact: true });
+  await expect(gate).toBeVisible({ timeout: 120_000 });
   await page.getByText(/I accept\./).last().click();
   await page.getByRole('button', { name: /Accept.*verify.*human/i }).click();
-  await page.waitForFunction(
-    () => !document.body.innerText.includes('Quick human check'),
-    null,
-    { timeout: 120_000 }
-  );
+  await expect(gate).toBeHidden({ timeout: 120_000 });
+  expect(await isCaptchaVerified(page), 'the browser verification cookie is accepted').toBe(true);
+}
+
+async function isCaptchaVerified(page: Page) {
+  const response = await page.request.get('/api/captcha/status');
+  if (!response.ok()) {
+    throw new Error(`Human check status endpoint returned ${response.status()}.`);
+  }
+  const status = await response.json() as { verified?: boolean };
+  if (typeof status.verified !== 'boolean') {
+    throw new Error('Human check status endpoint did not return a verification state.');
+  }
+  return status.verified;
 }
 
 export async function gotoApp(page: Page, path: string) {
@@ -118,8 +124,10 @@ export async function openStemPreview(page: Page) {
 
 export async function openQueryBuilder(page: Page) {
   await gotoApp(page, '/evaluation');
-  await page.getByText('Query Builder', { exact: true }).click();
-  await expect(page.getByText('Preset Filters')).toBeVisible();
+  const tab = page.getByRole('tab', { name: 'Query Builder', exact: true });
+  await tab.click();
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByText('Preset Filters', { exact: true })).toBeVisible();
 }
 
 export async function confirmDialogYes(page: Page) {

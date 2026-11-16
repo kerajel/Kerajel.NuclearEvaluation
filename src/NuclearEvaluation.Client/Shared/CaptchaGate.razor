@@ -4,27 +4,22 @@
 }
 else if (_checking)
 {
-    <div style="display:flex;align-items:center;justify-content:center;height:100vh;">
+    <div class="captcha-frame" role="status" aria-label="Checking browser verification">
         <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
     </div>
 }
 else
 {
-    <div style="display:flex;align-items:center;justify-content:center;height:100vh;padding:1rem;">
-        <RadzenCard Style="max-width:420px;width:100%;text-align:center;">
-            <RadzenImage Path="images/nuclear-logo.png" Style="width:96px;height:96px;margin-bottom:1rem;" AlternateText="Logo" />
-            <RadzenText TextStyle="TextStyle.H5">Quick human check</RadzenText>
-            <RadzenText TextStyle="TextStyle.Body1" class="rz-my-3">
-                This site is open to everyone. To keep automated abuse out, your browser will
-                solve a small proof-of-work puzzle. No personal data is collected.
-            </RadzenText>
+    <div class="captcha-frame">
+        <main class="captcha-panel" aria-labelledby="captcha-title">
+            <img src="favicon-192x192.png" width="60" height="60" alt="" />
+            <h1 id="captcha-title">Quick human check</h1>
+            <p>Your browser solves a short puzzle before you can access the site.</p>
 
-            <div style="display:flex;align-items:flex-start;gap:0.5rem;text-align:left;margin-bottom:1rem;">
+            <div class="captcha-consent">
                 <RadzenCheckBox @bind-Value="_cookiesAccepted" Name="cookieConsent" TValue="bool" Change="@(_ => _error = null)" />
-                <RadzenLabel Component="cookieConsent" Style="cursor:pointer;">
-                    Use an essential cookie to remember this human check for 30 days.
-                    The only enrichment is a signed expiry with a tidy little half-life. No tracking,
-                    no personal data, and the uranium stays in the tables.
+                <RadzenLabel Component="cookieConsent">
+                    Use a cookie to remember this browser’s verification.
                     I accept.
                 </RadzenLabel>
             </div>
@@ -41,6 +36,6 @@ else
                           Disabled="@(_solving || !_cookiesAccepted)"
                           Click="@Solve"
                           Style="width:100%;" />
-        </RadzenCard>
+        </main>
     </div>
 }

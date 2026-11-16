@@ -1,37 +1,76 @@
 @inherits LayoutComponentBase
-<RadzenComponents />
+@inject NavigationManager Navigation
+@inject ILogger<MainLayout> Logger
 
-<RadzenLayout style="grid-template-areas: 'rz-sidebar rz-header' 'rz-sidebar rz-body';">
-    <RadzenHeader>
-        <RadzenRow JustifyContent="JustifyContent.Start" AlignItems="AlignItems.Center" Gap="0">
-            <RadzenColumn Size="5">
-                <RadzenSidebarToggle Click="@SidebarToggleClick"></RadzenSidebarToggle>
-            </RadzenColumn>
-            <RadzenColumn Size="7">
-                <RadzenStack AlignItems="AlignItems.Center" Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="rz-px-2">
-                    <RadzenAppearanceToggle />
-                </RadzenStack>
-            </RadzenColumn>
-        </RadzenRow>
-    </RadzenHeader>
-    <RadzenBody Expanded="@_sidebarExpanded">
-        <RadzenRow class="rz-mx-auto rz-px-4 rz-pt-2 rz-pt-md-4 rz-pt-lg-6 rz-pt-xl-12 rz-pb-2 rz-pb-lg-12" Style="max-width: 1440px;">
-            <RadzenColumn Size="12">
-                @Body
-            </RadzenColumn>
-        </RadzenRow>
-    </RadzenBody>
-    <RadzenSidebar Expanded="@_sidebarExpanded" style="z-index: 2">
-        <RadzenStack AlignItems="Radzen.AlignItems.Center" class="rz-py-4 rz-py-lg-6" Style="padding: var(--rz-panel-menu-item-padding); border-bottom: var(--rz-panel-menu-item-border);">
-            <RadzenImage Path="images/nuclear-logo.png" style="width: 160px; height: 160px;" AlternateText="Application logo"></RadzenImage>
-            <RadzenText Text="Nuclear Evaluation" TextStyle="Radzen.Blazor.TextStyle.Subtitle1" class="rz-mb-0" style="color: var(--rz-sidebar-color);" />
-        </RadzenStack>
-        <RadzenPanelMenu>
-            <RadzenPanelMenuItem Text="Home" Path="" />
-            <RadzenPanelMenuItem Text="Fleet Explorer" Path="fleet" />
-            <RadzenPanelMenuItem Text="Energy &amp; Emissions" Path="energy-emissions" />
-            <RadzenPanelMenuItem Text="Data Management" Path="data-management" />
-            <RadzenPanelMenuItem Text="Evaluation" Path="evaluation" />
-        </RadzenPanelMenu>
-    </RadzenSidebar>
-</RadzenLayout>
+<RadzenComponents />
+<RadzenMediaQuery Query="(max-width: 768px)" Change="@PhoneLayoutChanged" />
+<a class="ne-skip-link" href="#site-content" inert="@_phoneNavigation"
+   @onclick="FocusMain" @onclick:preventDefault>Skip to content</a>
+
+<div class="@ShellClass" @onkeydown="HandleNavigationKeys">
+    <header class="ne-shell-header">
+        <div class="ne-topbar">
+            <div class="ne-topbar-location">
+                <button type="button" class="ne-nav-toggle ne-nav-toggle-desktop" aria-label="Toggle navigation"
+                        aria-controls="site-navigation" aria-expanded="@(_desktopNavigation ? "true" : "false")"
+                        @onclick="ToggleDesktopNavigation">
+                    <RadzenIcon Icon="menu" aria-hidden="true" />
+                </button>
+                <button type="button" class="ne-nav-toggle ne-nav-toggle-phone" aria-label="Toggle navigation"
+                        aria-controls="site-navigation" aria-expanded="@(_phoneNavigation ? "true" : "false")"
+                        @onclick="TogglePhoneNavigation" @ref="_phoneToggle">
+                    <RadzenIcon Icon="menu" aria-hidden="true" />
+                </button>
+                <span>@PageLabel</span>
+            </div>
+            <RadzenAppearanceToggle />
+        </div>
+    </header>
+    <aside class="ne-shell-sidebar" id="site-navigation">
+        <a class="ne-brand" href="" aria-label="Nuclear Evaluation home" @ref="_navigationStart"
+           @onclick="ClosePhoneNavigation">
+            <img src="favicon-32x32.png" width="32" height="32" alt="" />
+            <span>Nuclear Evaluation</span>
+        </a>
+        <nav class="ne-navigation" aria-label="Primary">
+            <div class="ne-nav-group" aria-label="Explore" role="group">
+                <p aria-hidden="true">Explore</p>
+                <NavLink href="" Match="NavLinkMatch.All" class="ne-nav-link" @onclick="ClosePhoneNavigation">
+                    <RadzenIcon Icon="home" aria-hidden="true" /> Home
+                </NavLink>
+                <NavLink href="fleet" class="ne-nav-link" @onclick="ClosePhoneNavigation">
+                    <RadzenIcon Icon="map" aria-hidden="true" /> Fleet Explorer
+                </NavLink>
+                <NavLink href="fleet-generation" class="ne-nav-link" @onclick="ClosePhoneNavigation">
+                    <RadzenIcon Icon="calendar_month" aria-hidden="true" /> Generation Calendar
+                </NavLink>
+                <NavLink href="energy-emissions" class="ne-nav-link" @onclick="ClosePhoneNavigation">
+                    <RadzenIcon Icon="bar_chart" aria-hidden="true" /> Energy &amp; Emissions
+                </NavLink>
+                <NavLink href="sources" class="ne-nav-link" @onclick="ClosePhoneNavigation">
+                    <RadzenIcon Icon="source" aria-hidden="true" /> Sources &amp; Methods
+                </NavLink>
+            </div>
+            <div class="ne-nav-group" aria-label="Workspace" role="group">
+                <p aria-hidden="true">Workspace</p>
+                <NavLink href="data-management" class="ne-nav-link" @onclick="ClosePhoneNavigation">
+                    <RadzenIcon Icon="dataset" aria-hidden="true" /> Data Management
+                </NavLink>
+                <NavLink href="evaluation" class="@EvaluationNavClass" @onclick="ClosePhoneNavigation">
+                    <RadzenIcon Icon="query_stats" aria-hidden="true" /> Evaluation
+                </NavLink>
+            </div>
+        </nav>
+    </aside>
+    <main class="ne-shell-body" id="site-content" tabindex="-1" inert="@_phoneNavigation" @ref="_mainContent">
+        <div class="ne-content">
+            @Body
+        </div>
+    </main>
+    @if (_phoneNavigation)
+    {
+        <div class="ne-navigation-backdrop" aria-hidden="true" @onclick="ClosePhoneNavigation"></div>
+    }
+</div>
+<div inert="@_phoneNavigation">
+</div>

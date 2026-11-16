@@ -1,60 +1,148 @@
 @page "/"
+@implements IDisposable
 @using NuclearEvaluation.Client.Shared.Fleet
 @inject HttpClient Http
+@inject ILogger<Index> Logger
 
 <PageTitle>Nuclear Evaluation</PageTitle>
 
 <section class="home-hero" aria-labelledby="home-title">
+    <img class="home-hero-image" src="images/fleet-river-hero-1600.webp"
+         srcset="images/fleet-river-hero-800.webp 800w, images/fleet-river-hero-1600.webp 1600w"
+         sizes="(max-width: 900px) 96vw, 75vw" width="1600" height="800" alt="" fetchpriority="high" />
     <div class="home-hero-copy">
         <h1 id="home-title">Nuclear Evaluation</h1>
-        <p>Explore the U.S. nuclear fleet. See where plants are, how much power they can supply, and how much electricity they generate.</p>
-        <a class="home-primary" href="fleet">Explore the fleet <span aria-hidden="true">→</span></a>
+        <p>Explore U.S. nuclear power plants and their electricity output, compare energy sources, or inspect sample data in the evaluation workspace.</p>
+        <div class="home-actions">
+            <a class="home-primary" href="fleet">Explore the fleet <span aria-hidden="true">→</span></a>
+            <a class="home-secondary" href="#evaluation-workspace" @onclick="FocusWorkspace">Find a workspace</a>
+        </div>
     </div>
-    <div class="home-hero-map" aria-hidden="true">
-        <FleetMap Plants="@(_fleet?.Plants ?? [])" />
+    <span class="home-illustration">Illustration</span>
+</section>
+
+@if (_fleet is { Plants.Length: > 0 } fleet)
+{
+    <section class="home-snapshot" aria-labelledby="home-snapshot-title">
+        <div class="home-section-heading">
+            <div>
+                <h2 id="home-snapshot-title">U.S. nuclear fleet at year-end @fleet.Year</h2>
+                <p>Plant inventory and reported generation from the EIA snapshot.</p>
+            </div>
+            <a href="sources">Sources &amp; Methods <span aria-hidden="true">→</span></a>
+        </div>
+        <dl class="home-metrics">
+            <div><dt>Power plants</dt><dd>@fleet.Plants.Length.ToString("N0")</dd></div>
+            <div><dt>Reactor units</dt><dd>@fleet.UnitCount.ToString("N0")</dd></div>
+            <div><dt>Net summer capacity</dt><dd>@FormatMetric(fleet.NetSummerCapacityMw / 1_000, "GW")</dd></div>
+            <div><dt>Annual net generation</dt><dd>@FormatMetric(fleet.AnnualNetGenerationMwh / 1_000_000, "TWh")</dd></div>
+        </dl>
+    </section>
+}
+
+<section class="home-section" aria-labelledby="home-data-title">
+    <div class="home-section-heading">
+        <h2 id="home-data-title">Explore the data</h2>
+    </div>
+    <div class="home-entries">
+        <a class="home-entry" href="fleet">
+            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="map" /></span>
+            <div>
+                <h3>Fleet Explorer</h3>
+                <p>Find plants on the map, browse state rankings, and compare two plants’ monthly generation.</p>
+            </div>
+            <span class="home-entry-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="home-entry" href="fleet-generation">
+            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="calendar_month" /></span>
+            <div>
+                <h3>Generation Calendar</h3>
+                <p>Explore seasonal differences in reported generation by state, month, and plant.</p>
+            </div>
+            <span class="home-entry-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="home-entry" href="energy-emissions">
+            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="bar_chart" /></span>
+            <div>
+                <h3>Energy &amp; Emissions</h3>
+                <p>Compare lifecycle emissions estimates for six electricity sources.</p>
+            </div>
+            <span class="home-entry-arrow" aria-hidden="true">→</span>
+        </a>
     </div>
 </section>
 
-<div class="home-destinations">
-    <a class="home-destination" href="energy-emissions">
-        <RadzenIcon Icon="bar_chart" />
+<section class="home-section" id="evaluation-workspace" aria-labelledby="home-workspace-title"
+         tabindex="-1" @ref="_workspace">
+    <div class="home-section-heading">
         <div>
-            <h2>Energy &amp; Emissions</h2>
-            <p>Compare lifecycle greenhouse gas estimates across six electricity sources.</p>
+            <h2 id="home-workspace-title">Evaluation workspace</h2>
+            <p>The shared sandbox uses generated records. Changes reset periodically and uploads are temporary.</p>
         </div>
-        <span class="home-arrow" aria-hidden="true">→</span>
-    </a>
-    <a class="home-destination" href="data-management?tab=stem-preview&amp;view=quality">
-        <RadzenIcon Icon="fact_check" />
-        <div>
-            <h2>STEM Quality</h2>
-            <p>Inspect a spreadsheet for missing measurements and repeated identifiers, then open the affected rows.</p>
-        </div>
-        <span class="home-arrow" aria-hidden="true">→</span>
-    </a>
-</div>
-
-<section class="home-workspace" aria-labelledby="home-workspace-title">
-    <h2 id="home-workspace-title">Evaluation workspace</h2>
-    <p>The shared sandbox uses generated example data. Changes reset periodically and file uploads are temporary.</p>
-    <div class="home-workspace-links">
-        <a href="data-management">Browse series and samples</a>
-        <a href="evaluation">Explore projects and build queries</a>
+    </div>
+    <div class="home-entries">
+        <a class="home-entry" href="data-management">
+            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="dataset" /></span>
+            <div>
+                <h3>Data Management</h3>
+                <p>Browse series, filter their records, and inspect related samples.</p>
+            </div>
+            <span class="home-entry-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="home-entry" href="data-management?tab=stem-preview&amp;view=quality">
+            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="fact_check" /></span>
+            <div>
+                <h3>STEM Quality</h3>
+                <p>Find missing measurements and repeated identifiers in staged spreadsheet rows.</p>
+            </div>
+            <span class="home-entry-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="home-entry" href="evaluation">
+            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="query_stats" /></span>
+            <div>
+                <h3>Evaluation</h3>
+                <p>Explore projects and build queries across series, samples, and measurements.</p>
+            </div>
+            <span class="home-entry-arrow" aria-hidden="true">→</span>
+        </a>
     </div>
 </section>
 
 @code {
-    private FleetSnapshot? _fleet;
+    readonly CancellationTokenSource _lifetime = new();
+    FleetSnapshot? _fleet;
+    ElementReference _workspace;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _fleet = await Http.GetFromJsonAsync<FleetSnapshot>(FleetSnapshot.AssetPath);
+            _fleet = await Http.GetFromJsonAsync<FleetSnapshot>(FleetSnapshot.AssetPath, _lifetime.Token);
         }
         catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
         {
-            // The map on the home page is a preview. Keep its link and the workspace available.
+            // The public dataset cards still link to their pages if the summary cannot load.
         }
+    }
+
+    static string FormatMetric(decimal? value, string unit) =>
+        value is decimal reported ? $"{reported:N1} {unit}" : "Unavailable";
+
+    async Task FocusWorkspace()
+    {
+        try
+        {
+            await _workspace.FocusAsync(preventScroll: true);
+        }
+        catch (JSException exception)
+        {
+            Logger.LogDebug(exception, "Unable to focus the home workspace section.");
+        }
+    }
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
     }
 }

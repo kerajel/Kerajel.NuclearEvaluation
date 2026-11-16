@@ -1,10 +1,10 @@
 .energy-page {
-    --energy-accent: var(--rz-primary);
+    --energy-accent: var(--ne-accent, var(--rz-primary));
     --energy-ink: var(--rz-text-color);
     --energy-muted: var(--rz-text-secondary-color);
     --energy-line: color-mix(in srgb, var(--energy-ink) 18%, transparent);
     --energy-surface: color-mix(in srgb, var(--energy-ink) 4%, var(--rz-body-background-color));
-    --energy-highlight: color-mix(in srgb, var(--energy-accent) 14%, transparent);
+    --energy-highlight: color-mix(in srgb, var(--energy-accent) 12%, transparent);
     container-type: inline-size;
     padding-block-end: 1.25rem;
 }
@@ -34,7 +34,8 @@
 }
 
 .energy-comparison,
-.energy-details {
+.energy-details,
+.energy-scenario {
     padding: clamp(1rem, 2.5vw, 1.65rem);
     border: 1px solid var(--energy-line);
     border-radius: .85rem;
@@ -58,7 +59,8 @@
 }
 
 .energy-comparison-header h2,
-.energy-details h2 {
+.energy-details h2,
+.energy-scenario h2 {
     margin: 0;
     font-size: 1.5rem;
     line-height: 1.18;
@@ -66,7 +68,8 @@
 
 .energy-comparison-header p,
 .energy-scope,
-.energy-phase-units {
+.energy-phase-units,
+.energy-scenario-header p {
     margin: .25rem 0 0;
     color: var(--energy-muted);
     font-size: .925rem;
@@ -102,7 +105,10 @@
 }
 
 .energy-scales button:focus-visible,
-.energy-row:focus-visible {
+.energy-row:focus-visible,
+.energy-scenario:focus-visible,
+.energy-scenario select:focus-visible,
+.energy-scenario input:focus-visible {
     outline: 2px solid var(--energy-accent);
     outline-offset: 2px;
 }
@@ -179,6 +185,27 @@
     box-shadow: 0 0 0 .2rem var(--energy-highlight);
 }
 
+.energy-details {
+    background: linear-gradient(155deg, var(--energy-highlight), transparent 70%);
+}
+
+.energy-selected-total {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .3rem .65rem;
+    margin: .85rem 0 0;
+    color: var(--energy-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.energy-selected-total strong {
+    color: var(--energy-ink);
+    font-size: clamp(2rem, 4cqi, 2.8rem);
+    line-height: 1.1;
+    letter-spacing: -.04em;
+}
+
 .energy-details h3 {
     margin: 1.25rem 0 0;
     font-size: 1.125rem;
@@ -211,6 +238,140 @@
     font-variant-numeric: tabular-nums;
 }
 
+.energy-scenario {
+    margin-block-start: 1.25rem;
+    scroll-margin-block-start: 1.25rem;
+    background-color: var(--energy-surface);
+}
+
+.energy-scenario-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.15fr);
+    gap: 1rem;
+    margin-block: 1.45rem;
+}
+
+.energy-scenario-field {
+    display: grid;
+    gap: .35rem;
+    min-width: 0;
+}
+
+.energy-scenario-field label {
+    font-size: .875rem;
+    font-weight: 650;
+}
+
+.energy-scenario-field select,
+.energy-scenario-field input {
+    min-width: 0;
+    min-height: 2.75rem;
+    padding: .5rem .625rem;
+    color: var(--energy-ink);
+    background-color: var(--rz-body-background-color);
+    border: 1px solid var(--energy-line);
+    border-radius: .45rem;
+    font: inherit;
+}
+
+.energy-scenario-field select {
+    cursor: pointer;
+}
+
+.energy-scenario-field input[aria-invalid="true"] {
+    border-color: var(--rz-danger, var(--energy-accent));
+}
+
+.energy-generation-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .4rem;
+}
+
+.energy-scenario-results {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(13rem, 1fr);
+    align-items: stretch;
+    gap: 1.15rem;
+}
+
+.energy-estimates {
+    display: grid;
+    align-content: center;
+    gap: 1.15rem;
+    margin: 0;
+}
+
+.energy-estimate {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: .4rem .65rem;
+    color: var(--energy-ink);
+}
+
+.energy-estimate dt,
+.energy-estimate dd {
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+.energy-estimate dd {
+    margin: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.energy-estimate-track {
+    grid-column: 1 / -1;
+    height: .65rem;
+    border-radius: 99rem;
+    overflow: hidden;
+    background-color: var(--energy-line);
+}
+
+.energy-estimate-track span {
+    display: block;
+    height: 100%;
+    width: var(--energy-estimate-width);
+    border-radius: inherit;
+    background-color: var(--energy-accent);
+    transition: width 160ms ease-out;
+}
+
+.energy-estimate:nth-child(2) .energy-estimate-track span {
+    background-color: color-mix(in srgb, var(--energy-accent) 42%, var(--energy-ink));
+}
+
+.energy-scenario-summary,
+.energy-scenario-empty {
+    margin: 0;
+    padding: 1rem;
+    border-radius: .6rem;
+    background-color: var(--energy-highlight);
+}
+
+.energy-scenario-summary p {
+    margin: 0;
+}
+
+.energy-scenario-summary p:nth-child(2),
+.energy-scenario-note {
+    color: var(--energy-muted);
+    font-size: .875rem;
+}
+
+.energy-scenario-summary strong {
+    font-size: clamp(1.15rem, 2.6cqi, 1.65rem);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.energy-scenario-note {
+    margin: 1.1rem 0 0;
+}
+
 .energy-source-note {
     color: var(--energy-muted);
     font-size: .9rem;
@@ -228,6 +389,11 @@
 }
 
 @container (max-width: 30rem) {
+    .energy-scenario-controls,
+    .energy-scenario-results {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .energy-comparison {
         --energy-label-width: 5rem;
         --energy-value-width: 2.65rem;
@@ -251,7 +417,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .energy-marker {
+    .energy-marker,
+    .energy-estimate-track span {
         transition: none;
     }
 }

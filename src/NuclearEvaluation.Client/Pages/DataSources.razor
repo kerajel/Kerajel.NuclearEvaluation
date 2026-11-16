@@ -1,0 +1,116 @@
+@page "/sources"
+
+<PageTitle>Sources &amp; Methods | Nuclear Evaluation</PageTitle>
+
+<div class="sources-page">
+    <header class="sources-header">
+        <h1>Sources &amp; Methods</h1>
+        <p>Where the fleet and emissions figures come from and how they differ from the workspace data.</p>
+    </header>
+
+    <div class="sources-published">
+        <section class="sources-card" aria-labelledby="sources-fleet-title">
+            <header class="sources-card-header">
+                <span class="sources-icon" aria-hidden="true"><RadzenIcon Icon="map" /></span>
+                <h2 id="sources-fleet-title">U.S. nuclear fleet</h2>
+                <p>The 2024 snapshot covers nuclear generators that the U.S. Energy Information Administration lists as operating at year-end.</p>
+            </header>
+
+            <dl class="sources-definitions">
+                <div>
+                    <dt>Net summer capacity <span>MW</span></dt>
+                    <dd>Maximum power a generator can supply during summer peak demand, after accounting for power used by the plant.</dd>
+                </div>
+                <div>
+                    <dt>Net generation <span>MWh or GWh</span></dt>
+                    <dd>Electricity generated over time, after subtracting the electricity used by the plant. A gigawatt-hour is 1,000 megawatt-hours.</dd>
+                </div>
+            </dl>
+
+            <p class="sources-method">
+                Plant-month totals add the reported values for included reactors. A month with no reported values stays blank.
+                Negative values are preserved, and an annual plant total requires 12 reported months.
+                The Generation Calendar divides the reported state total by the number of days in the month for its daily average.
+            </p>
+
+            <ul class="sources-references" aria-label="Fleet datasets" role="list">
+                <li>
+                    <a href="https://www.eia.gov/electricity/data/eia860/archive/xls/eia8602024.zip">
+                        EIA-860 generator inventory <span>2024 ZIP</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="https://www.eia.gov/nuclear/generation/archive/xls/usreact24.xlsx">
+                        EIA reactor generation workbook <span>2024 XLSX</span>
+                    </a>
+                </li>
+            </ul>
+
+            <p class="sources-map-note">
+                State outlines use U.S. Census cartographic boundaries distributed by
+                <a href="https://github.com/topojson/us-atlas" target="_blank" rel="noopener noreferrer">U.S. Atlas</a>.
+                <a href="data/fleet-map-license.txt">Map license</a>
+            </p>
+            <div class="sources-actions">
+                <a class="sources-action" href="fleet">Explore the fleet <span aria-hidden="true">→</span></a>
+                <a class="sources-action" href="fleet-generation">Open the generation calendar <span aria-hidden="true">→</span></a>
+            </div>
+        </section>
+
+        <section class="sources-card" aria-labelledby="sources-emissions-title">
+            <header class="sources-card-header">
+                <span class="sources-icon" aria-hidden="true"><RadzenIcon Icon="stacked_bar_chart" /></span>
+                <h2 id="sources-emissions-title">Lifecycle emissions</h2>
+                <p>Energy &amp; Emissions compares six technologies using published greenhouse gas estimates.</p>
+            </header>
+
+            <dl class="sources-definitions">
+                <div>
+                    <dt>Emissions intensity <span>g CO₂e/kWh</span></dt>
+                    <dd>Grams of carbon dioxide equivalent for each kilowatt-hour of electricity generated over a technology's lifecycle.</dd>
+                </div>
+                <div>
+                    <dt>Lifecycle phases</dt>
+                    <dd>Materials and construction, combustion where applicable, other operating activities, and end of life.</dd>
+                </div>
+            </dl>
+
+            <p class="sources-method">
+                The published phase and lifecycle medians are calculated separately, so the phase values may add to a different total.
+                The calculator multiplies the lifecycle median by the electricity generated to estimate a hypothetical total.
+            </p>
+
+            <ul class="sources-references" aria-label="Emissions source" role="list">
+                <li>
+                    <a href="https://docs.nlr.gov/docs/fy21osti/80580.pdf#page=3" target="_blank" rel="noopener noreferrer">
+                        NREL lifecycle assessment, Table 1 <span>2021 PDF</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sources-actions">
+                <a class="sources-action" href="energy-emissions#emissions-estimate">Compare emissions <span aria-hidden="true">→</span></a>
+            </div>
+        </section>
+    </div>
+
+    <section class="sources-card sources-workspace" aria-labelledby="sources-workspace-title">
+        <header class="sources-card-header">
+            <span class="sources-icon" aria-hidden="true"><RadzenIcon Icon="science" /></span>
+            <h2 id="sources-workspace-title">Evaluation workspace</h2>
+            <p>The shared workspace uses example data for testing analysis workflows.</p>
+        </header>
+        <div class="sources-workspace-details">
+            <div>
+                <h3>Generated records</h3>
+                <p>Series, samples, measurements, and projects start with generated examples. The sandbox restores them periodically.</p>
+                <a class="sources-action" href="evaluation">Open Evaluation <span aria-hidden="true">→</span></a>
+            </div>
+            <div>
+                <h3>STEM files</h3>
+                <p>STEM Preview stages uploaded files for temporary analysis. Idle sessions expire, and the quality workbench includes a synthetic example.</p>
+                <a class="sources-action" href="data-management?tab=stem-preview&amp;view=quality">Open STEM Quality <span aria-hidden="true">→</span></a>
+            </div>
+        </div>
+    </section>
+</div>

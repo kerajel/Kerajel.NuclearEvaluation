@@ -99,12 +99,11 @@ test('CAP-01 captcha status remains verified in a fresh browser session', async 
 
 test('NAV-01 home page and sidebar navigation render', async ({ page }) => {
   await gotoApp(page, '/');
-  const text = await bodyText(page);
-
   await expect(page.getByText('Nuclear Evaluation').first()).toBeVisible();
-  expect(text).toContain('Home');
-  expect(text).toContain('Data Management');
-  expect(text).toContain('Evaluation');
+  const navigation = page.getByRole('navigation', { name: 'Primary' });
+  for (const name of ['Home', 'Data Management', 'Evaluation']) {
+    await expect(navigation.getByRole('link', { name, exact: true })).toBeVisible();
+  }
   await expectNoVisibleAppError(page);
 });
 
@@ -112,19 +111,22 @@ test('NAV-02 unknown route shows friendly not-found page', async ({ page }) => {
   await gotoApp(page, '/definitely-not-a-real-route');
 
   await expect(page.getByText('Page not found')).toBeVisible();
-  await expect(page.getByText("Sorry, but there's nothing here!")).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Return to home' })).toBeVisible();
   await expectNoVisibleAppError(page);
 });
 
-test('UI-01 dark/light appearance toggle changes the active theme', async ({ page }) => {
+test('UI-01 dark/light appearance toggle changes the theme and survives reload', async ({ page }) => {
   await gotoApp(page, '/data-management');
   const before = await themeState(page);
 
   await page.locator('button:has-text("light_mode"), button:has-text("dark_mode")').first().click();
-  await page.waitForTimeout(750);
+  await expect.poll(async () => (await themeState(page)).background).not.toBe(before.background);
   const after = await themeState(page);
 
   expect(after).not.toEqual(before);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
+  await expect.poll(() => themeState(page)).toEqual(after);
 });
 
 test('DM-01 Data Management Series tab loads totals and first page without fetch errors', async ({ page }) => {
@@ -239,7 +241,7 @@ test('DM-05 returning to Data Management keeps cached totals visible during refr
     });
   });
 
-  await page.getByText('Data Management', { exact: true }).click();
+  await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Data Management' }).click();
   await expect(totals).toHaveAttribute('aria-busy', 'true');
   await expect(totals).toContainText('100,000');
   await expect(totals).toHaveAttribute('aria-busy', 'false', { timeout: 60_000 });
@@ -539,17 +541,16 @@ test('ADD-05 Evaluation reload is stable', async ({ page }) => {
 
 test('ADD-06 sidebar toggle changes width and restores', async ({ page }) => {
   await gotoApp(page, '/data-management');
-  const sidebar = page.locator('.rz-sidebar');
-  const toggle = page.locator('button[aria-label="Toggle"]').first();
+  const sidebar = page.locator('#site-navigation');
+  const toggle = page.getByRole('button', { name: 'Toggle navigation' });
   const before = await sidebar.evaluate(e => e.getBoundingClientRect().width);
 
   await toggle.click();
-  await expect.poll(() => sidebar.evaluate(e => e.getBoundingClientRect().width)).not.toBe(before);
-  const mid = await sidebar.evaluate(e => e.getBoundingClientRect().width);
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect.poll(() => sidebar.evaluate(e => e.getBoundingClientRect().width)).toBeLessThan(before / 2);
   await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await expect.poll(() => sidebar.evaluate(e => e.getBoundingClientRect().width)).toBeCloseTo(before, 0);
-
-  expect(mid).toBeLessThan(before / 2);
 });
 
 test('ADD-07 Home fits mobile viewport', async ({ page }) => {

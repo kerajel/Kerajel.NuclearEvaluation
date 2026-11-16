@@ -14,6 +14,9 @@ export default async function globalSetup(config: FullConfig) {
   const page = await browser.newPage({ baseURL });
 
   await gotoWhenReady(page, '/');
+  if (!(await page.evaluate(() => typeof globalThis.crypto?.subtle === 'object'))) {
+    throw new Error('Blazor requires a secure browser origin with crypto.subtle available.');
+  }
   await completeCaptchaGate(page);
   await waitForSeedData(page);
   await waitForApp(page);

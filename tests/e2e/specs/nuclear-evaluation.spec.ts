@@ -498,7 +498,7 @@ test('ADD-05 Evaluation reload is stable', async ({ page }) => {
   await waitForApp(page);
 
   await expect(page.getByText('Projects').first()).toBeVisible();
-  await expect(page.getByText('Query Builder')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Query Builder', exact: true })).toBeVisible();
   await expectNoVisibleAppError(page);
 });
 

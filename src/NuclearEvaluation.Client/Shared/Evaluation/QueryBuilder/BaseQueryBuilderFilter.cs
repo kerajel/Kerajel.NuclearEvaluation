@@ -17,7 +17,13 @@ public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilt
     [Parameter]
     public EventCallback OnDraftEdited { get; set; }
 
-    protected Task NotifyDraftEdited() => OnDraftEdited.InvokeAsync();
+    protected Task NotifyDraftEdited()
+    {
+        if (filter is not null)
+            logicalFilterOperator = filter.LogicalFilterOperator;
+
+        return OnDraftEdited.InvokeAsync();
+    }
 
     protected virtual string DecimalFormat => "{0:0.##}";
     protected virtual string DateOnlyFormat => "{0:yyyy-MM-dd}";

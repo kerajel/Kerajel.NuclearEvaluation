@@ -2,6 +2,7 @@ using LinqToDB.EntityFrameworkCore;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Server.Controllers;
+using NuclearEvaluation.Server.Services.Assistant;
 using NuclearEvaluation.Server.Services.Captcha;
 using NuclearEvaluation.Server.Services.Sandbox;
 using NuclearEvaluation.Shared;
@@ -16,6 +17,11 @@ internal class Program
     private static async Task Main(string[] args)
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+        bool localAssistantEnabled =
+            builder.Environment.IsDevelopment()
+            && builder.Configuration.GetValue<bool>("Assistant:Enabled");
+        if (localAssistantEnabled)
+            builder.Services.AddLocalAssistant();
 
         builder.Services.Configure<KestrelServerOptions>(options =>
         {
@@ -131,6 +137,8 @@ internal class Program
         }
 
         app.UseExceptionHandler();
+        if (localAssistantEnabled)
+            app.UseLocalAssistantAccess();
 
         if (!app.Environment.IsDevelopment())
         {
@@ -142,8 +150,11 @@ internal class Program
         app.UseStaticFiles();
         app.UseRouting();
         app.UseRateLimiter();
-        app.UseMiddleware<CaptchaGateMiddleware>();
+        if (!app.Environment.IsDevelopment())
+            app.UseMiddleware<CaptchaGateMiddleware>();
         app.MapControllers();
+        if (localAssistantEnabled)
+            app.MapLocalAssistant();
 
         // Unmatched API routes must not fall through to the SPA shell. This fallback is more
         // specific than the catch-all file fallback below, so it wins for /api/* only and

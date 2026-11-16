@@ -8,6 +8,7 @@ using LinqToDB.Async;
 using LinqToDB.Data;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Server.Services.Assistant;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Views;
 
@@ -172,6 +173,15 @@ public sealed class StemSession : IAsyncDisposable
         RunExclusive(
             async db =>
             {
+                AssistantGridQuery? assistant = command.Query?.AssistantQuery;
+                AssistantSurface surface = command.Query?.StemFileId is null
+                    ? AssistantSurface.StemPreview
+                    : AssistantSurface.StemQuality;
+                if (assistant is not null && assistant.Grid != surface)
+                    throw new ArgumentException(
+                        "The assistant query does not target this STEM grid."
+                    );
+
                 IQueryable<StemPreviewEntry> entries = db.GetTable<StemPreviewEntry>();
                 if (command.Query?.StemFileId is Guid fileId)
                 {
@@ -192,17 +202,27 @@ public sealed class StemSession : IAsyncDisposable
                         FileName = entry.FileName,
                         RowOrdinal = entry.RowOrdinal,
                     });
-                IQueryable<PreviewRow> filtered = FilterRows(rows, command.Query?.Filter);
+                IQueryable<PreviewRow> filtered = FilterRows(
+                    rows,
+                    command.Query?.Filter,
+                    assistant
+                );
 
                 int total = await filtered.CountAsync(ct);
-                IOrderedQueryable<PreviewRow> ordered =
-                    (IOrderedQueryable<PreviewRow>)
+                IOrderedQueryable<PreviewRow> ordered = assistant is { SortField: not null }
+                    ? AssistantGridQueries.ApplyOrder(filtered, assistant, x => x.Id)
+                    : (IOrderedQueryable<PreviewRow>)
                         filtered.OrderByWithFallback(command.Query, x => x.Id);
-                PreviewRow[] data = await ordered
+                IQueryable<PreviewRow> limited = ordered
                     .ThenBy(x => x.FileId)
-                    .ThenBy(x => x.RowOrdinal)
-                    .PageWithFallback(command.Query)
-                    .ToArrayAsync(ct);
+                    .ThenBy(x => x.RowOrdinal);
+                if (assistant?.Limit is int limit)
+                {
+                    total = Math.Min(total, limit);
+                    limited = limited.Take(limit);
+                }
+
+                PreviewRow[] data = await limited.PageWithFallback(command.Query).ToArrayAsync(ct);
 
                 FetchDataResult<StemPreviewEntryView> result =
                     FetchDataResult<StemPreviewEntryView>.Succeeded(data);
@@ -323,12 +343,18 @@ public sealed class StemSession : IAsyncDisposable
     static string SqlLiteral(string value) =>
         "'" + value.Replace("'", "''", StringComparison.Ordinal) + "'";
 
-    static IQueryable<PreviewRow> FilterRows(IQueryable<PreviewRow> rows, string? filter)
+    static IQueryable<PreviewRow> FilterRows(
+        IQueryable<PreviewRow> rows,
+        string? filter,
+        AssistantGridQuery? assistant
+    )
     {
-        if (string.IsNullOrWhiteSpace(filter))
+        if (string.IsNullOrWhiteSpace(filter) && assistant is null)
             return rows;
 
         IQueryable<PreviewRow> filtered = rows.FilterWithFallback(filter);
+        if (assistant is not null)
+            filtered = AssistantGridQueries.ApplyFilters(filtered, assistant);
         return filtered.Provider.CreateQuery<PreviewRow>(
             new PreviewStringSearch().Visit(filtered.Expression)
         );

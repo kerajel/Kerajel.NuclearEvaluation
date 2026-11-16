@@ -46,6 +46,8 @@ public class ChartService : DbServiceBase, IChartService
         }
 
         IQueryable<ParticleView> filteredQuery = GetFilteredQuery(baseQuery, command);
+        if (command.Query?.AssistantQuery?.Limit is int limit)
+            filteredQuery = GetOrderedQuery(filteredQuery, command).Take(limit);
 
         (string Isotope, Expression<Func<ParticleView, decimal?>>)[] isotopeSelectors =
         [
@@ -79,6 +81,8 @@ public class ChartService : DbServiceBase, IChartService
         }
 
         IQueryable<ApmView> filteredQuery = GetFilteredQuery(baseQuery, command);
+        if (command.Query?.AssistantQuery?.Limit is int limit)
+            filteredQuery = GetOrderedQuery(filteredQuery, command).Take(limit);
 
         (string Isotope, Expression<Func<ApmView, decimal?>>)[] isotopeSelectors =
         [

@@ -36,6 +36,77 @@ namespace NuclearEvaluation.Server.Tests;
 public class StemPreviewDuckDbTests
 {
     [Fact]
+    public async Task AssistantQueryKeepsTheQualityFileAndPagesTheLimitedResults()
+    {
+        using UploadFiles files = new();
+        await using StemSessionManager sessions = files.CreateSessions();
+        StemPreviewEntryService entries = new(sessions, new StemPreviewParser());
+        StemPreviewService uploads = new(entries, NullLogger<StemPreviewService>.Instance);
+        Guid session = Guid.NewGuid();
+        Guid selectedFile = Guid.NewGuid();
+
+        await UploadSuccessfully(
+            uploads,
+            session,
+            selectedFile,
+            "selected.csv",
+            """
+            42,LAB-A,2026-01-01,true,0
+            42,Lab-A,2026-01-02,true,1
+            42,LAB-A,2026-01-03,true,2
+            42,LAB-A,2026-01-04,true,3
+            43,LAB-A,2026-01-05,true,4
+            42,LAB-B,2026-01-05,true,5
+            42,LAB-A,2026-01-06,true,6
+            """
+        );
+        await UploadSuccessfully(
+            uploads,
+            session,
+            Guid.NewGuid(),
+            "other.csv",
+            "42,LAB-A,2026-01-06,true,5"
+        );
+
+        DataQuery query = new()
+        {
+            StemSessionId = session,
+            StemFileId = selectedFile,
+            StemCheck = StemQualityCheck.RepeatedIdentifier,
+            AssistantQuery = new(
+                AssistantSurface.StemQuality,
+                [
+                    new(nameof(StemPreviewEntryView.LabCode), SeriesComparison.Contains, "lab-a"),
+                    new(
+                        nameof(StemPreviewEntryView.AnalysisDate),
+                        SeriesComparison.LessOrEqual,
+                        "2026-01-05"
+                    ),
+                ],
+                nameof(StemPreviewEntryView.AnalysisDate),
+                Descending: true,
+                Limit: 2
+            ),
+            Top = 1,
+        };
+
+        FetchDataResult<StemPreviewEntryView> first = await Query(entries, session, query);
+        Assert.Equal(2, first.TotalCount);
+        StemPreviewEntryView latest = Assert.Single(first.Entries);
+        Assert.Equal(selectedFile, latest.FileId);
+        Assert.Equal(new DateOnly(2026, 1, 4), latest.AnalysisDate);
+
+        query.Skip = 1;
+        FetchDataResult<StemPreviewEntryView> second = await Query(entries, session, query);
+        Assert.Equal(new DateOnly(2026, 1, 3), Assert.Single(second.Entries).AnalysisDate);
+
+        query.Skip = 2;
+        FetchDataResult<StemPreviewEntryView> beyondLimit = await Query(entries, session, query);
+        Assert.Equal(2, beyondLimit.TotalCount);
+        Assert.Empty(beyondLimit.Entries);
+    }
+
+    [Fact]
     public async Task QualityChecksProfileAndPageOnlyTheSelectedFile()
     {
         using UploadFiles files = new();

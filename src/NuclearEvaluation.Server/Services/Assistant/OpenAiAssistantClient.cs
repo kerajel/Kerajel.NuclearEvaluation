@@ -7,12 +7,15 @@ internal sealed class OpenAiAssistantClient(HttpClient httpClient, IConfiguratio
 {
     static readonly Uri ResponsesUrl = new("https://api.openai.com/v1/responses");
 
-    string? ApiKey =>
+    static string? GetApiKey(IConfiguration configuration) =>
         configuration["OpenAI:ApiKey"]?.Trim() is { Length: > 0 } configuredKey
             ? configuredKey
             : configuration["OPENAI_API_KEY"]?.Trim();
 
-    public bool IsConfigured => ApiKey is { Length: > 0 };
+    public bool IsConfigured => HasConfiguredKey(configuration);
+
+    internal static bool HasConfiguredKey(IConfiguration configuration) =>
+        GetApiKey(configuration) is { Length: > 0 };
 
     public async Task<JsonElement[]> RequestAsync(
         string instructions,
@@ -21,7 +24,7 @@ internal sealed class OpenAiAssistantClient(HttpClient httpClient, IConfiguratio
         CancellationToken ct
     )
     {
-        if (ApiKey is not { Length: > 0 } apiKey)
+        if (GetApiKey(configuration) is not { Length: > 0 } apiKey)
             throw new InvalidOperationException("The OpenAI API key is not configured.");
 
         string model = configuration["OpenAI:Model"]?.Trim() is { Length: > 0 } configuredModel

@@ -22,6 +22,32 @@ public class SiteAssistantPanelTests : TestBase
     const string ProviderUnavailable = "The AI service is unavailable right now. Try again later.";
 
     [Theory]
+    [InlineData(HttpStatusCode.OK, true, true)]
+    [InlineData(HttpStatusCode.OK, false, false)]
+    [InlineData(HttpStatusCode.Forbidden, true, false)]
+    [InlineData(HttpStatusCode.NotFound, true, false)]
+    public void HonorsAssistantAvailabilityOnPublicSites(
+        HttpStatusCode availabilityStatus,
+        bool chatAvailable,
+        bool launcherVisible
+    )
+    {
+        using AssistantHandler handler = new(
+            availabilityStatus: availabilityStatus,
+            chatAvailable: chatAvailable
+        );
+        using HttpClient http = Register(handler, "https://nuclearevaluation.example/");
+
+        IRenderedComponent<SiteAssistantPanel> panel = TestContext.Render<SiteAssistantPanel>();
+
+        Assert.Equal(1, handler.StatusRequests);
+        Assert.Equal(
+            launcherVisible ? 1 : 0,
+            panel.FindAll("button[aria-controls='site-assistant-panel']").Count
+        );
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task AppliesActionToTheGridCapturedByTheQuestion(bool scrollHelperUnavailable)
@@ -218,9 +244,9 @@ public class SiteAssistantPanelTests : TestBase
         Assert.Empty(applied);
     }
 
-    HttpClient Register(AssistantHandler handler)
+    HttpClient Register(AssistantHandler handler, string baseAddress = "http://127.0.0.1:8081")
     {
-        HttpClient http = new(handler) { BaseAddress = new Uri("http://127.0.0.1:8081") };
+        HttpClient http = new(handler) { BaseAddress = new Uri(baseAddress) };
         TestContext.Services.AddSingleton(http);
         return http;
     }
@@ -241,9 +267,12 @@ public class SiteAssistantPanelTests : TestBase
     sealed class AssistantHandler(
         bool observeCancellation = true,
         HttpStatusCode replyStatus = HttpStatusCode.OK,
-        int? retryAfterSeconds = null
+        int? retryAfterSeconds = null,
+        HttpStatusCode availabilityStatus = HttpStatusCode.OK,
+        bool chatAvailable = true
     ) : HttpMessageHandler
     {
+        public int StatusRequests { get; private set; }
         public TaskCompletionSource<SiteAssistantQuestion> Sent { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource<SiteAssistantReply> Reply { get; } =
@@ -257,9 +286,10 @@ public class SiteAssistantPanelTests : TestBase
             if (request.Method == HttpMethod.Get)
             {
                 Assert.Equal("/api/assistant/status", request.RequestUri?.AbsolutePath);
-                return new HttpResponseMessage(HttpStatusCode.OK)
+                StatusRequests++;
+                return new HttpResponseMessage(availabilityStatus)
                 {
-                    Content = JsonContent.Create(new AssistantStatus(ChatAvailable: true)),
+                    Content = JsonContent.Create(new AssistantStatus(chatAvailable)),
                 };
             }
 

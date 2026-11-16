@@ -94,20 +94,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (Http.BaseAddress?.IsLoopback != true)
-            return;
-
         Workspace.Changed += ContextChanged;
         Navigation.LocationChanged += LocationChanged;
         try
         {
             using HttpResponseMessage response = await Http.GetAsync("api/assistant/status", _lifetime.Token);
             _available = response.IsSuccessStatusCode
-                && await response.Content.ReadFromJsonAsync<AssistantStatus>(_lifetime.Token) is not null;
+                && await response.Content.ReadFromJsonAsync<AssistantStatus>(_lifetime.Token) is { ChatAvailable: true };
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or OperationCanceledException)
         {
-            // The panel is available only when the local server advertises it.
+            // The panel is available only when the server advertises it.
         }
     }
 

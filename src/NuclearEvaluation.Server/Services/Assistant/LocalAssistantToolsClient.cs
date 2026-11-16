@@ -10,6 +10,8 @@ namespace NuclearEvaluation.Server.Services.Assistant;
 internal sealed class LocalAssistantToolsClient(
     HttpClient httpClient,
     IConfiguration configuration,
+    IHostEnvironment environment,
+    InProcessAssistantMcp inProcessMcp,
     AssistantCatalogCache<SeriesSchemaDescription> schemaCache
 )
 {
@@ -96,6 +98,24 @@ internal sealed class LocalAssistantToolsClient(
     {
         using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(ToolTimeout);
+        try
+        {
+            return environment.IsDevelopment()
+                ? await CallHttpToolAsync(toolName, arguments, timeout.Token)
+                : await inProcessMcp.CallToolAsync(toolName, arguments, timeout.Token);
+        }
+        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException("The local MCP request timed out.", ex);
+        }
+    }
+
+    async Task<CallToolResult> CallHttpToolAsync(
+        string toolName,
+        IReadOnlyDictionary<string, object?>? arguments,
+        CancellationToken ct
+    )
+    {
         await using HttpClientTransport transport = new(
             new HttpClientTransportOptions
             {
@@ -105,23 +125,11 @@ internal sealed class LocalAssistantToolsClient(
             },
             httpClient
         );
-
-        try
-        {
-            await using McpClient client = await McpClient.CreateAsync(
-                transport,
-                cancellationToken: timeout.Token
-            );
-            return await client.CallToolAsync(
-                toolName,
-                arguments,
-                cancellationToken: timeout.Token
-            );
-        }
-        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested)
-        {
-            throw new TimeoutException("The local MCP request timed out.", ex);
-        }
+        await using McpClient client = await McpClient.CreateAsync(
+            transport,
+            cancellationToken: ct
+        );
+        return await client.CallToolAsync(toolName, arguments, cancellationToken: ct);
     }
 
     Uri GetEndpoint()

@@ -24,18 +24,28 @@ export async function waitForApp(page: Page) {
 
 export async function completeCaptchaGate(page: Page) {
   await waitForApp(page);
-  const body = await bodyText(page);
-  if (!body.includes('Quick human check')) {
+  if (await isCaptchaVerified(page)) {
     return;
   }
 
+  const gate = page.getByText('Quick human check', { exact: true });
+  await expect(gate).toBeVisible({ timeout: 120_000 });
   await page.getByText(/I accept\./).last().click();
   await page.getByRole('button', { name: /Accept.*verify.*human/i }).click();
-  await page.waitForFunction(
-    () => !document.body.innerText.includes('Quick human check'),
-    null,
-    { timeout: 120_000 }
-  );
+  await expect(gate).toBeHidden({ timeout: 120_000 });
+  expect(await isCaptchaVerified(page), 'the browser verification cookie is accepted').toBe(true);
+}
+
+async function isCaptchaVerified(page: Page) {
+  const response = await page.request.get('/api/captcha/status');
+  if (!response.ok()) {
+    throw new Error(`Human check status endpoint returned ${response.status()}.`);
+  }
+  const status = await response.json() as { verified?: boolean };
+  if (typeof status.verified !== 'boolean') {
+    throw new Error('Human check status endpoint did not return a verification state.');
+  }
+  return status.verified;
 }
 
 export async function gotoApp(page: Page, path: string) {

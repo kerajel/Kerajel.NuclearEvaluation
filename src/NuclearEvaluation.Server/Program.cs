@@ -17,11 +17,15 @@ internal class Program
     private static async Task Main(string[] args)
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-        bool localAssistantEnabled =
-            builder.Environment.IsDevelopment()
-            && builder.Configuration.GetValue<bool>("Assistant:Enabled");
-        if (localAssistantEnabled)
-            builder.Services.AddLocalAssistant();
+        bool isDevelopment = builder.Environment.IsDevelopment();
+        bool assistantEnabled = isDevelopment
+            ? builder.Configuration.GetValue<bool>("Assistant:Enabled")
+            : builder.Environment.IsProduction()
+                && builder.Configuration.GetValue("Assistant:Enabled", true)
+                && OpenAiAssistantClient.HasConfiguredKey(builder.Configuration);
+        bool localAssistantEnabled = assistantEnabled && isDevelopment;
+        if (assistantEnabled)
+            builder.Services.AddAssistant(localAssistantEnabled);
 
         builder.Services.Configure<KestrelServerOptions>(options =>
         {
@@ -153,8 +157,10 @@ internal class Program
         if (!app.Environment.IsDevelopment())
             app.UseMiddleware<CaptchaGateMiddleware>();
         app.MapControllers();
-        if (localAssistantEnabled)
-            app.MapLocalAssistant();
+        if (assistantEnabled)
+            app.MapAssistant(localAssistantEnabled);
+        if (!localAssistantEnabled)
+            app.MapFallback("/mcp/{**path}", () => Results.NotFound());
 
         // Unmatched API routes must not fall through to the SPA shell. This fallback is more
         // specific than the catch-all file fallback below, so it wins for /api/* only and

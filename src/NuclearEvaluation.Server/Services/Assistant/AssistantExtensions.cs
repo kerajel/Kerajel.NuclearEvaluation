@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using ModelContextProtocol;
 using ModelContextProtocol.AspNetCore;
@@ -8,19 +9,21 @@ using NuclearEvaluation.Shared.Contracts;
 
 namespace NuclearEvaluation.Server.Services.Assistant;
 
-internal static class LocalAssistantExtensions
+internal static class AssistantExtensions
 {
-    public static void AddLocalAssistant(this IServiceCollection services)
+    public static void AddAssistant(this IServiceCollection services, bool enableLocalHttp)
     {
-        services
+        IMcpServerBuilder mcp = services
             .AddMcpServer()
-            .WithHttpTransport(options => options.SessionMode = HttpServerSessionMode.Stateless)
             .WithTools<LocalSeriesTools>()
             .WithTools<LocalSiteAssistantTools>();
+        if (enableLocalHttp)
+            mcp.WithHttpTransport(options => options.SessionMode = HttpServerSessionMode.Stateless);
 
         services.AddSingleton<AssistantCatalogCache<SeriesSchemaDescription>>();
         services.AddSingleton<AssistantCatalogCache<SiteAssistantCatalog>>();
         services.AddSingleton(_ => new AssistantRequestLimiter(TimeProvider.System));
+        services.AddSingleton<InProcessAssistantMcp>();
         services.AddTransient<LocalSiteAssistantClient>();
         services.AddTransient<OpenAiSeriesAssistant>();
         services.AddTransient<OpenAiSiteAssistant>();
@@ -68,18 +71,20 @@ internal static class LocalAssistantExtensions
         );
     }
 
-    public static void MapLocalAssistant(this WebApplication app)
+    public static void MapAssistant(this WebApplication app, bool enableLocalHttp)
     {
-        app.MapMcp("/mcp");
+        if (enableLocalHttp)
+            app.MapMcp("/mcp");
 
         RouteGroupBuilder routes = app.MapGroup("/api/assistant");
         routes.MapGet("/status", (OpenAiAssistantClient assistant) =>
-            new AssistantStatus(assistant.IsConfigured)
+            new AssistantStatus(enableLocalHttp || assistant.IsConfigured)
         );
         AssistantRequestLimiter limiter =
             app.Services.GetRequiredService<AssistantRequestLimiter>();
         RouteGroupBuilder prompts = routes
             .MapGroup("")
+            .WithMetadata(new RequestSizeLimitAttribute(64 * 1024))
             .AddEndpointFilter(
                 async (invocation, next) =>
                 {
@@ -98,7 +103,8 @@ internal static class LocalAssistantExtensions
                     return await next(invocation);
                 }
             );
-        prompts.MapPost("/ask", AskAsync);
+        if (enableLocalHttp)
+            prompts.MapPost("/ask", AskAsync);
         prompts.MapPost("/chat", AskSiteAsync);
     }
 
@@ -214,7 +220,7 @@ internal static class LocalAssistantExtensions
             )
         {
             return Results.Problem(
-                title: "The assistant service is unavailable. Check the local configuration.",
+                title: "The assistant service is unavailable. Try again later.",
                 statusCode: StatusCodes.Status502BadGateway
             );
         }

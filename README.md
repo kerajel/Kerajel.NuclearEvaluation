@@ -109,7 +109,7 @@ The setup/seed SQL lives at `src/NuclearEvaluation.Kernel/Data/Seed/NuclearEvalu
 and is embedded into the Kernel assembly so the app can run it for both first-time setup and the
 nightly reset.
 
-### Local site assistant and MCP
+### Site assistant and MCP
 
 With the local SQL Server configured, run the assistant host on loopback:
 
@@ -126,7 +126,8 @@ and refresh the selected results as an unsaved draft. In STEM it can filter the 
 and open a quality check for the selected file. On the Generation Calendar, try “Show Illinois in
 February as a daily average” to change the displayed state, month, and measure.
 
-The app connects to its MCP server over Streamable HTTP at `http://127.0.0.1:8081/mcp`. It caches
+In Development, the app connects to its MCP server over Streamable HTTP at
+`http://127.0.0.1:8081/mcp`. It caches
 the catalog from `describe_site_assistant` on first use and sends each proposed action through
 `validate_site_assistant_action` before applying it. `get_site_help` supplies the site's help
 text. If you change the port, set `Assistant__McpUrl` to the matching loopback URL.
@@ -135,7 +136,12 @@ For natural-language requests across the site, set an [OpenAI API project key](h
 as `OPENAI_API_KEY` in the server process environment or as `OpenAI:ApiKey` in the server project's
 .NET user secrets, then restart the host. `OpenAI:Model` overrides the default `gpt-5-mini`.
 The local parser still handles common Series questions without an API key.
-Both the assistant API and MCP endpoint require explicitly enabled local Development mode.
+
+In Production, the server enables the chat when an API key is configured. The human check protects
+chat and status requests, and chat accepts up to five requests per client IP and 60 across the app
+in each rolling minute per server process. The production app calls its MCP tools in-process.
+The HTTP MCP endpoint is available only in enabled local Development. Set
+`Assistant__Enabled=false` on the host to turn off production chat.
 
 ## Abuse protection & ephemeral data
 

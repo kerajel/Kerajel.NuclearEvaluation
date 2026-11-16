@@ -111,14 +111,6 @@ public partial class StemPreview
                 continue;
             }
 
-            using IDisposable? scope = Logger.BeginScope(
-                "Processing file {fileId} on STEM session {stemSessionId}",
-                file.Id,
-                sessionId
-            );
-
-            Logger.LogInformation("Processing started");
-
             IBrowserFile browserFile = file.BrowserFile;
             file.Status = FileStatus.Uploading;
 
@@ -155,8 +147,6 @@ public partial class StemPreview
                 await InvokeAsync(StateHasChanged);
                 await Task.Yield();
             }
-
-            Logger.LogInformation("Processing complete");
         }
 
         await InvokeAsync(stemPreviewEntryGrid.Refresh);

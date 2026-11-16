@@ -3,14 +3,25 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using Kerajel.Primitives.Models;
 using LinqToDB.Data;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using NSubstitute.Core;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
+using NuclearEvaluation.Server.Controllers;
 using NuclearEvaluation.Server.Interfaces.STEM;
 using NuclearEvaluation.Server.Services.EFS;
 using NuclearEvaluation.Server.Services.Sandbox;
@@ -165,6 +176,109 @@ public class StemPreviewDuckDbTests
             ],
             (await Query(entries, session)).Entries.Select(row => row.U234)
         );
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MultipartUploadLogsOneSafeSummaryEvenWhenHttp200ContainsFailure(bool fail)
+    {
+        const string fileName = "private-workbook.csv";
+        const string labCode = "private-lab-code";
+        ILogger<StemUploadLog> logger = Substitute.For<
+            ILogger<StemUploadLog>,
+            ILogger<StemPreviewService>
+        >();
+        IStemPreviewEntryService entries = Substitute.For<IStemPreviewEntryService>();
+        if (fail)
+        {
+            entries
+                .AppendFileData(
+                    Arg.Any<Guid>(),
+                    Arg.Any<Guid>(),
+                    fileName,
+                    Arg.Any<Stream>(),
+                    Arg.Any<CancellationToken>()
+                )
+                .Returns(
+                    Task.FromException(
+                        new FormatException($"Invalid value {labCode} in {fileName}")
+                    )
+                );
+        }
+        StemPreviewService uploads = new(entries, (ILogger<StemPreviewService>)logger);
+        IStorageQuotaService quota = Substitute.For<IStorageQuotaService>();
+        quota.CanAccept(Arg.Any<long>()).Returns(true);
+        WebApplicationBuilder builder = WebApplication.CreateSlimBuilder();
+        builder.Services.AddControllers().AddApplicationPart(typeof(StemController).Assembly);
+        builder.Services.AddSingleton<IStemPreviewService>(uploads);
+        builder.Services.AddSingleton(quota);
+        builder.Services.AddSingleton(logger);
+        builder.Services.AddScoped<StemUploadLog>();
+        await using WebApplication app = builder.Build();
+        await using AsyncServiceScope scope = app.Services.CreateAsyncScope();
+        IServiceProvider services = scope.ServiceProvider;
+        ControllerActionDescriptor upload = services
+            .GetRequiredService<IActionDescriptorCollectionProvider>()
+            .ActionDescriptors.Items.OfType<ControllerActionDescriptor>()
+            .Single(action =>
+                action.ControllerTypeInfo.AsType() == typeof(StemController)
+                && action.ActionName == nameof(StemController.Upload)
+            );
+
+        Guid fileId = Guid.NewGuid();
+        byte[] csv = Encoding.UTF8.GetBytes(
+            $"Identifier,LaboratoryCode,AnalysisDate,IsNu\n42,{labCode},2026-01-03,true\n"
+        );
+        using MultipartFormDataContent multipart = new();
+        multipart.Add(new StringContent(fileId.ToString()), "fileId");
+        multipart.Add(new ByteArrayContent(csv), "file", fileName);
+        using MemoryStream body = new(await multipart.ReadAsByteArrayAsync());
+        using MemoryStream response = new();
+        DefaultHttpContext http = new() { RequestServices = services };
+        http.Request.Method = HttpMethods.Post;
+        http.Request.ContentType = multipart.Headers.ContentType!.ToString();
+        http.Request.ContentLength = body.Length;
+        http.Request.Body = body;
+        http.Response.Body = response;
+        RouteData route = new();
+        route.Values["sessionId"] = Guid.NewGuid().ToString();
+
+        IActionInvokerFactory invokers = services.GetRequiredService<IActionInvokerFactory>();
+        await invokers.CreateInvoker(new ActionContext(http, route, upload))!.InvokeAsync();
+
+        response.Position = 0;
+        OperationOutcome envelope = Assert.IsType<OperationOutcome>(
+            await JsonSerializer.DeserializeAsync<OperationOutcome>(
+                response,
+                JsonSerializerOptions.Web
+            )
+        );
+        Assert.Equal(!fail, envelope.IsSuccessful);
+        Assert.Equal(StatusCodes.Status200OK, http.Response.StatusCode);
+        ICall log = Assert.Single(logger.ReceivedCalls(), call =>
+            call.GetMethodInfo().Name == nameof(ILogger.Log)
+        );
+        object?[] arguments = log.GetArguments();
+        Assert.Equal(
+            fail ? LogLevel.Warning : LogLevel.Information,
+            Assert.IsType<LogLevel>(arguments[0])
+        );
+        Assert.Null(arguments[3]);
+        IReadOnlyList<KeyValuePair<string, object?>> state = Assert.IsAssignableFrom<
+            IReadOnlyList<KeyValuePair<string, object?>>
+        >(arguments[2]);
+        Dictionary<string, object?> fields = state.ToDictionary(StringComparer.Ordinal);
+        Assert.Equal(fail ? "failed" : "succeeded", fields["Outcome"]);
+        Assert.Equal(StatusCodes.Status200OK, Assert.IsType<int>(fields["StatusCode"]));
+        Assert.Equal(fileId, Assert.IsType<Guid>(fields["FileId"]));
+        Assert.Equal(csv.LongLength, Assert.IsType<long>(fields["FileBytes"]));
+        if (fail)
+            Assert.Equal(nameof(FormatException), fields["ErrorKind"]);
+        Assert.True(Assert.IsType<double>(fields["MvcElapsedMs"]) >= 0);
+        string? message = state.ToString();
+        Assert.DoesNotContain(fileName, message);
+        Assert.DoesNotContain(labCode, message);
     }
 
     [Fact]

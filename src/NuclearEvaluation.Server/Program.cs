@@ -11,7 +11,7 @@ using Serilog.Sinks.SystemConsole.Themes;
 internal class Program
 {
     const string logTemplate =
-        "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Exception}{NewLine}{Properties:j}";
+        "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}";
 
     private static async Task Main(string[] args)
     {
@@ -39,8 +39,9 @@ internal class Program
             );
 
         builder.Services.Configure<SandboxSettings>(builder.Configuration.GetSection("Sandbox"));
-        SandboxSettings sandboxSettings =
-            builder.Configuration.GetSection("Sandbox").Get<SandboxSettings>()
+        SandboxSettings sandboxSettings = builder
+            .Configuration.GetSection("Sandbox")
+            .Get<SandboxSettings>()
             ?? new SandboxSettings();
 
         builder.Services.AddRateLimiter(options =>
@@ -69,6 +70,7 @@ internal class Program
         builder.Services.AddTransient<IChartService, ChartService>();
         builder.Services.AddTransient<IGenericDbService, GenericDbService>();
         builder.Services.AddSingleton<IStemSessionManager, StemSessionManager>();
+        builder.Services.AddScoped<StemUploadLog>();
         builder.Services.AddTransient<IStemPreviewEntryService, StemPreviewEntryService>();
         builder.Services.AddTransient<IStemPreviewService, StemPreviewService>();
         builder.Services.AddTransient<IStemPreviewParser, StemPreviewParser>();

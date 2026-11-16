@@ -5,6 +5,16 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: SmarterASP.NET deployment action
+        type: choice
+        required: true
+        default: plan
+        options:
+          - plan
+          - deploy
 
 jobs:
   build-and-test:
@@ -45,6 +55,7 @@ jobs:
         run: dotnet test Kerajel.NuclearEvaluation.sln --configuration Release --no-build --verbosity normal
 
   browser-e2e:
+    if: ${{ github.event_name != 'workflow_dispatch' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -61,3 +72,74 @@ jobs:
           path: tests/e2e/playwright-report/
           if-no-files-found: ignore
           retention-days: 14
+
+  deploy-production:
+    needs: build-and-test
+    if: >-
+      ${{ github.ref == 'refs/heads/master' &&
+          (github.event_name == 'workflow_dispatch' ||
+           (github.event_name == 'push' && vars.AUTO_DEPLOY_PRODUCTION == 'true')) }}
+    runs-on: windows-2025-vs2026
+    environment: production
+    concurrency:
+      group: smarterasp-production
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: '11.0.x'
+
+      - name: Publish Windows release
+        shell: pwsh
+        run: >-
+          dotnet publish src/NuclearEvaluation.Server --configuration Release
+          --runtime win-x64 --self-contained true -p:ServerGarbageCollection=false
+          --output (Join-Path $env:RUNNER_TEMP 'nuclear-evaluation-publish')
+
+      - name: Prepare Windows release
+        shell: pwsh
+        run: >-
+          ./scripts/deploy-smarterasp.ps1
+          -PublishDirectory (Join-Path $env:RUNNER_TEMP 'nuclear-evaluation-publish')
+          -Commit $env:GITHUB_SHA -Mode prepare
+
+      - name: Upload published release
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: nuclear-evaluation-win-x64-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/nuclear-evaluation-publish/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Verify current master commit
+        if: ${{ github.event_name == 'push' || inputs.action == 'deploy' }}
+        shell: pwsh
+        run: |
+          $masterRef = git ls-remote --exit-code origin refs/heads/master
+          if ($LASTEXITCODE -ne 0) {
+              throw 'Could not determine the current master commit.'
+          }
+          $masterCommit = ($masterRef -split '\s+', 2)[0]
+          if ($masterCommit -ne $env:GITHUB_SHA) {
+              throw "Master moved to $masterCommit. This release was built for $env:GITHUB_SHA."
+          }
+
+      - name: Run SmarterASP.NET deployment
+        shell: pwsh
+        env:
+          SMARTERASP_DEPLOY_MODE: ${{ github.event_name == 'push' && 'deploy' || inputs.action }}
+          SMARTERASP_WEBDEPLOY_URL: ${{ vars.SMARTERASP_WEBDEPLOY_URL }}
+          SMARTERASP_WEBDEPLOY_SITE: ${{ vars.SMARTERASP_WEBDEPLOY_SITE }}
+          SMARTERASP_WEBDEPLOY_USERNAME: ${{ secrets.SMARTERASP_WEBDEPLOY_USERNAME }}
+          SMARTERASP_WEBDEPLOY_PASSWORD: ${{ secrets.SMARTERASP_WEBDEPLOY_PASSWORD }}
+        run: >-
+          ./scripts/deploy-smarterasp.ps1
+          -PublishDirectory (Join-Path $env:RUNNER_TEMP 'nuclear-evaluation-publish')
+          -Commit $env:GITHUB_SHA -Mode $env:SMARTERASP_DEPLOY_MODE

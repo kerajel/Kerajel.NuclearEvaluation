@@ -1,0 +1,53 @@
+.grid-ribbon,
+.grid-ribbon-leading,
+.grid-ribbon-actions,
+.grid-ribbon-assistant,
+.grid-ribbon-assistant span {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.7rem;
+}
+
+.grid-ribbon {
+    justify-content: space-between;
+}
+
+.grid-ribbon-actions {
+    margin-inline-start: auto;
+}
+
+.grid-ribbon-assistant {
+    padding: 0.22rem 0.45rem 0.22rem 0.55rem;
+    border: 1px solid var(--ne-line);
+    border-radius: 0.4rem;
+    background: var(--ne-accent-tint);
+    color: var(--ne-ink);
+    font-size: 0.86rem;
+}
+
+.grid-ribbon-assistant span {
+    gap: 0.35rem;
+}
+
+.grid-ribbon-assistant ::deep .rzi {
+    color: var(--ne-accent);
+    font-size: 1.05rem;
+}
+
+.grid-ribbon-assistant button {
+    min-height: 1.85rem;
+    padding: 0.15rem 0.45rem;
+    border: 1px solid var(--ne-line);
+    border-radius: 0.3rem;
+    background: var(--ne-surface);
+    color: var(--ne-ink);
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.grid-ribbon-assistant button:hover,
+.grid-ribbon-assistant button:focus-visible {
+    border-color: var(--ne-accent);
+}

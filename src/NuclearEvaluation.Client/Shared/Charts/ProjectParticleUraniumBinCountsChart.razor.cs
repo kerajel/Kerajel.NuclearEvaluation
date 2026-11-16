@@ -1,12 +1,13 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using NuclearEvaluation.Shared.Contracts;
-using NuclearEvaluation.Shared.Models.Plotting;
+using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Client.Shared.Charts;
 
 public partial class ProjectParticleUraniumBinCountsChart
 {
+    static readonly string[] Isotopes = [nameof(ParticleBase.U234), nameof(ParticleBase.U235)];
+
     [Parameter]
     public int ProjectId { get; set; }
 
@@ -14,69 +15,18 @@ public partial class ProjectParticleUraniumBinCountsChart
     public DataQuery? Query { get; set; }
 
     [Parameter]
+    public int QueryVersion { get; set; }
+
+    [Parameter]
+    public bool AwaitingGridQuery { get; set; }
+
+    [Parameter]
     public string? Caption { get; set; }
 
     [Inject]
     protected INuclearEvaluationApi Api { get; set; } = null!;
 
-    ILookup<string, BinCount> _particleUraniumBinCounts = Enumerable
-        .Empty<(string, BinCount)>()
-        .ToLookup(pair => pair.Item1, pair => pair.Item2);
+    UraniumBinHistogram? _histogram;
 
-    string? _lastQueryKey;
-    bool _isReady;
-    bool _hasError;
-    int _loadSequence;
-
-    protected override async Task OnParametersSetAsync()
-    {
-        DataQuery query = GetEffectiveQuery();
-        string queryKey = JsonSerializer.Serialize(query);
-        if (queryKey != _lastQueryKey)
-        {
-            _lastQueryKey = queryKey;
-            await Load(query);
-        }
-    }
-
-    public async Task Refresh()
-    {
-        await Load(GetEffectiveQuery());
-    }
-
-    DataQuery GetEffectiveQuery()
-    {
-        return Query ?? new DataQuery { ProjectId = ProjectId };
-    }
-
-    async Task Load(DataQuery query)
-    {
-        int sequence = ++_loadSequence;
-        _isReady = false;
-        _hasError = false;
-        await InvokeAsync(StateHasChanged);
-
-        List<IsotopeBinCounts> data;
-        try
-        {
-            data = await Api.GetProjectParticleUraniumBinCounts(query);
-        }
-        catch (HttpRequestException)
-        {
-            if (sequence != _loadSequence)
-                return;
-            _hasError = true;
-            await InvokeAsync(StateHasChanged);
-            return;
-        }
-        if (sequence != _loadSequence)
-        {
-            return;
-        }
-
-        _particleUraniumBinCounts = data.SelectMany(x => x.Bins.Select(b => (x.Isotope, Bin: b)))
-            .ToLookup(x => x.Isotope, x => x.Bin);
-        _isReady = true;
-        await InvokeAsync(StateHasChanged);
-    }
+    public Task Refresh() => _histogram?.Refresh() ?? Task.CompletedTask;
 }

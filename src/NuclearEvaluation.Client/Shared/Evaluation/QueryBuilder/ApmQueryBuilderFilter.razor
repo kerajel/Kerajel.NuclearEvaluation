@@ -1,7 +1,7 @@
 ﻿@implements IPresetFilterComponent
 @inherits BaseQueryBuilderFilter<ApmViewPresetFilter>
 
-<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="false" Style="width: 65%;" TItem="ApmViewPresetFilter">
+<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="true" ViewChanged="NotifyDraftEdited" TItem="ApmViewPresetFilter">
     <Properties>
         <RadzenDataFilterProperty Property="Apm.Id" Title="Apm Id" />
         <RadzenDataFilterProperty Property="Apm.U234" Title="U234" />

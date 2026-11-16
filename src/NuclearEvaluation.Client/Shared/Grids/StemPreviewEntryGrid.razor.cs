@@ -21,6 +21,8 @@ public partial class StemPreviewEntryGrid : BaseGridGeneric<StemPreviewEntryView
     public override string EntityDisplayName => "STEM preview entry";
 
     protected RadzenDataGrid<StemPreviewEntryView> grid = null!;
+    protected override RadzenDataGrid<StemPreviewEntryView>? AssistantGrid =>
+        Visible && !disposed ? grid : null;
     CancellationTokenSource? loadCancellation;
     bool disposed;
 
@@ -41,6 +43,7 @@ public partial class StemPreviewEntryGrid : BaseGridGeneric<StemPreviewEntryView
             DataQuery query = loadDataArgs.ToDataQuery(stemSessionId: StemSessionId);
             query.StemFileId = StemFileId;
             query.StemCheck = StemCheck;
+            query.AssistantQuery = AssistantQuery;
             DataResult<StemPreviewEntryView> result = await Api.GetStemPreviewEntryViews(
                 query,
                 cancellation.Token
@@ -68,11 +71,8 @@ public partial class StemPreviewEntryGrid : BaseGridGeneric<StemPreviewEntryView
         loadCancellation = null;
     }
 
-    public override async Task Reset(bool resetColumnState = true, bool resetRowState = false)
-    {
-        grid.Reset(resetColumnState, resetRowState);
-        await grid.Reload();
-    }
+    public override Task Reset(bool resetColumnState = true, bool resetRowState = false) =>
+        ResetGrid(grid, resetColumnState, resetRowState);
 
     public async Task Refresh()
     {

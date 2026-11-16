@@ -1,0 +1,23 @@
+.upload-file {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.upload-file strong {
+    display: block;
+    line-height: 1.25;
+}
+
+.upload-file__status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .15rem .4rem;
+    margin-top: .2rem;
+    color: var(--rz-text-secondary-color);
+    font-size: .875rem;
+}
+
+.upload-file__error {
+    color: var(--rz-danger);
+}

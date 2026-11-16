@@ -10,13 +10,18 @@ reusable queries, isotope charts, and spreadsheet processing into one interactiv
 
 ### What to try
 
-- **Fleet Explorer:** select a U.S. nuclear plant from the map or list, view capacity by reactor,
-  and compare two plants' monthly electricity generation. See [the source snapshot](docs/fleet-data.md).
-- **Energy & Emissions:** compare published lifecycle greenhouse gas estimates across six electricity
-  sources and inspect the estimates for each lifecycle phase.
+- **Fleet Explorer** shows reactor capacity, state rankings, and monthly generation for two
+  selected plants. See [the source snapshot](docs/fleet-data.md).
+- **Generation Calendar** shows monthly or daily-average generation by state, with a plant-level
+  breakdown for the selected month of the 2024 snapshot and CSV exports for both measures.
+- **Energy & Emissions** compares published lifecycle factors for six electricity sources and
+  estimates totals for a generation amount you choose. Fleet and Calendar links can fill that amount.
+- **Sources & Methods** links to the public datasets and explains the units, calculations, and
+  generated records in the evaluation workspace.
 - **Data Management:** browse and filter series, expand their samples, and inspect matching totals.
 - **Evaluation:** open a project, change its series membership, and explore isotope distributions.
-- **Query Builder:** combine filters across related entities and save reusable presets.
+- **Query Builder** combines filters across related entities, includes example drafts, and saves
+  reusable presets on request.
 - **STEM Preview:** upload Excel or delimited text files, inspect their rows, and remove individual
   files. Open **Quality** to profile a file and inspect the rows that match a check.
 
@@ -67,7 +72,7 @@ docker compose up --build
 ```
 
 Then open <http://localhost:8080>. On first run the app applies EF Core migrations and seeds
-the database; the proof-of-work captcha appears once, after which a cookie remembers you.
+the database. Development mode skips the proof-of-work captcha.
 
 SQL Server data and uploaded files persist in named Docker volumes (`mssql-data`, `app-storage`).
 
@@ -103,6 +108,34 @@ dotnet ef database update --project ../NuclearEvaluation.Kernel --startup-projec
 The setup/seed SQL lives at `src/NuclearEvaluation.Kernel/Data/Seed/NuclearEvaluationServerDbSetUp.sql`
 and is embedded into the Kernel assembly so the app can run it for both first-time setup and the
 nightly reset.
+
+### Local site assistant and MCP
+
+With the local SQL Server configured, run the assistant host on loopback:
+
+```bash
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://127.0.0.1:8081 Assistant__Enabled=true \
+  dotnet run --project src/NuclearEvaluation.Server --no-launch-profile
+```
+
+Open <http://127.0.0.1:8081> and use **Assistant** in the bottom-right corner. The popup follows
+the active page and tab. It applies filters, sort, and a row limit directly to the active data
+grid. Ask “Show me top 5 series where Is DU is false and there is at least 1 QC sample order by
+ID desc,” or ask it to clear the assistant's criteria. In Query Builder it can fill the editor
+and refresh the selected results as an unsaved draft. In STEM it can filter the current preview
+and open a quality check for the selected file. On the Generation Calendar, try “Show Illinois in
+February as a daily average” to change the displayed state, month, and measure.
+
+The app connects to its MCP server over Streamable HTTP at `http://127.0.0.1:8081/mcp`. It caches
+the catalog from `describe_site_assistant` on first use and sends each proposed action through
+`validate_site_assistant_action` before applying it. `get_site_help` supplies the site's help
+text. If you change the port, set `Assistant__McpUrl` to the matching loopback URL.
+
+For natural-language requests across the site, set an [OpenAI API project key](https://developers.openai.com/api/docs/quickstart)
+as `OPENAI_API_KEY` in the server process environment or as `OpenAI:ApiKey` in the server project's
+.NET user secrets, then restart the host. `OpenAI:Model` overrides the default `gpt-5-mini`.
+The local parser still handles common Series questions without an API key.
+Both the assistant API and MCP endpoint require explicitly enabled local Development mode.
 
 ## Abuse protection & ephemeral data
 

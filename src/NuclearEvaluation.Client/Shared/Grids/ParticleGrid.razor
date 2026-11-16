@@ -2,7 +2,8 @@
 
 <div style="display:@(Visible ? "block" : "none");">
 
-    <GridButtonRibbon>
+    <GridButtonRibbon Compact="false" HasAssistantQuery="@(AssistantQuery is not null)"
+                      ClearAssistantQuery="@(() => SetAssistantGridQuery(null))">
         <ResetGridButton Click="@(() => Reset())" />
     </GridButtonRibbon>
 

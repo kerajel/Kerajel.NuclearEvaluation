@@ -1,0 +1,49 @@
+.project-overview__dates {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: .6rem;
+    margin: 0 0 1.2rem;
+}
+
+.project-overview__dates div {
+    padding: .65rem .75rem;
+    border: 1px solid var(--rz-base-300);
+    border-radius: .4rem;
+}
+
+.project-overview__dates dt {
+    color: var(--rz-text-secondary-color);
+    font-size: .85rem;
+}
+
+.project-overview__dates dd {
+    margin: .2rem 0 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.project-notes h2 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.project-notes p {
+    margin: .25rem 0 .75rem;
+    color: var(--rz-text-secondary-color);
+}
+
+.project-notes__fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: .75rem;
+}
+
+.project-notes__fields label {
+    display: block;
+    margin-bottom: .3rem;
+    font-weight: 650;
+}
+
+.project-notes__fields ::deep textarea {
+    width: 100%;
+    resize: vertical;
+}

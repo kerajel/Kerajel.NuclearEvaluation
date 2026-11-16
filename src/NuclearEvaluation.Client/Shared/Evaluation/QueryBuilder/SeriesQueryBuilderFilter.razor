@@ -1,7 +1,7 @@
 ﻿@implements IPresetFilterComponent
 @inherits BaseQueryBuilderFilter<SeriesViewPresetFilter>
 
-<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="false" Style="width: 65%;" TItem="SeriesViewPresetFilter" FilterDateFormat="{0:yyyy-MM-dd}">
+<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="true" ViewChanged="NotifyDraftEdited" TItem="SeriesViewPresetFilter" FilterDateFormat="{0:yyyy-MM-dd}">
     <Properties>
         <RadzenDataFilterProperty Property="Series.Id" Title="Series Id" />
         <RadzenDataFilterProperty Property="Series.SeriesType" Title="Series Type" />

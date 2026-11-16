@@ -1,0 +1,152 @@
+.stem-workspace {
+    --stem-line: var(--rz-base-300);
+    --stem-muted: var(--rz-text-secondary-color);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    min-width: 0;
+}
+
+.stem-workspace__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .85rem;
+}
+
+.stem-workspace__header h2 {
+    margin: 0;
+    font-size: clamp(1.3rem, 3vw, 1.65rem);
+    letter-spacing: -.02em;
+}
+
+.stem-workspace__header p {
+    margin: .3rem 0 0;
+    color: var(--stem-muted);
+}
+
+.stem-workspace__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.stem-workspace__actions ::deep .rz-variant-outlined {
+    color: var(--rz-text-color);
+    border-color: var(--rz-base-400);
+}
+
+.stem-upload-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .9rem;
+    min-width: 0;
+    padding: clamp(.7rem, 2vw, 1rem);
+    border: 1px solid var(--stem-line);
+    border-radius: .65rem;
+    background: var(--rz-base-background-color);
+}
+
+.stem-upload-panel__top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .9rem;
+}
+
+.stem-upload-panel .stem-dropzone {
+    flex: 3 1 20rem;
+    min-width: 0;
+    min-height: 10rem;
+    margin: 0;
+    padding: 1.15rem;
+    border-color: color-mix(in srgb, var(--rz-primary) 35%, var(--stem-line));
+    background: color-mix(in srgb, var(--rz-primary) 4%, var(--rz-base-background-color));
+}
+
+.stem-upload-panel .stem-dropzone:hover,
+.stem-upload-panel .stem-dropzone:focus-within {
+    border-color: var(--rz-primary);
+    background: color-mix(in srgb, var(--rz-primary) 9%, var(--rz-base-background-color));
+}
+
+.stem-dropzone-content strong {
+    font-size: 1.02rem;
+}
+
+.stem-dropzone-content span:last-child {
+    color: var(--stem-muted);
+    font-size: .88rem;
+}
+
+.stem-downloads {
+    display: grid;
+    flex: 1 1 13rem;
+    align-content: start;
+    min-width: 0;
+    gap: .2rem;
+    padding: .65rem .8rem .75rem;
+    border: 1px solid var(--stem-line);
+    border-radius: .5rem;
+}
+
+.stem-downloads h3 {
+    margin: .25rem 0 .3rem;
+    font-size: .92rem;
+}
+
+.stem-downloads a {
+    display: flex;
+    justify-content: space-between;
+    gap: .6rem;
+    padding: .45rem .5rem;
+    border-radius: .35rem;
+    font-size: .9rem;
+    text-decoration: none;
+}
+
+.stem-downloads a:hover {
+    background: color-mix(in srgb, var(--rz-primary) 9%, var(--rz-base-background-color));
+    text-decoration: underline;
+}
+
+.stem-downloads a:focus-visible {
+    outline: 2px solid var(--rz-primary);
+}
+
+.stem-upload-queue {
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.stem-file-select {
+    display: grid;
+    justify-items: start;
+    min-width: 0;
+    gap: .3rem;
+}
+
+.stem-file-select label {
+    font-weight: 650;
+}
+
+.stem-file-select select {
+    width: min(100%, 27rem);
+    max-width: 100%;
+    padding: .48rem .6rem;
+    border: 1px solid var(--rz-input-border-color, var(--stem-line));
+    border-radius: .35rem;
+    background: var(--rz-input-background-color, var(--rz-base-background-color));
+    color: var(--rz-text-color);
+    font: inherit;
+}
+
+.stem-file-select select:focus-visible {
+    outline: 2px solid var(--rz-primary);
+    outline-offset: 2px;
+}
+
+.stem-workspace__status {
+    margin: 0;
+    color: var(--stem-muted);
+}

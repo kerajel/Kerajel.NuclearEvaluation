@@ -1,0 +1,41 @@
+@implements IDisposable
+
+@if (AwaitingGridQuery)
+{
+    <p role="status">Waiting for the measurement grid…</p>
+}
+else if (_isLoading)
+{
+    <p role="status">Loading uranium distributions…</p>
+}
+else if (_hasError)
+{
+    <p role="alert">The chart could not be loaded.</p>
+    <RadzenButton Text="Retry chart" Click="Refresh" />
+}
+else if (_bins.Count == 0)
+{
+    <p role="status">No matching rows.</p>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(Caption))
+    {
+        <div class="ne-chart-caption">@Caption</div>
+    }
+
+    <div role="group" aria-label="@Title">
+        <RadzenChart>
+            <RadzenChartTooltipOptions Shared="@true" />
+            @foreach (string isotope in Isotopes)
+            {
+                <RadzenLineSeries TItem="BinCount" @key="isotope" Smooth="@false"
+                                  Data="@(_bins[isotope])" CategoryProperty="@nameof(BinCount.Name)"
+                                  Title="@isotope" LineType="LineType.Dashed" ValueProperty="@nameof(BinCount.Count)">
+                    <RadzenMarkers Visible="@true" MarkerType="MarkerType.Square" />
+                    <RadzenSeriesDataLabels Visible="@true" />
+                </RadzenLineSeries>
+            }
+        </RadzenChart>
+    </div>
+}

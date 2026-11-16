@@ -2,22 +2,20 @@
 
 <div style="display:@(Visible ? "block" : "none");">
 
-    <RadzenCard Visible="@(AllowEdit || Visible)" Style="padding: 10px;">
-        <RadzenRow>
-            <RadzenColumn Size="6">
-                <RadzenButton ButtonStyle="ButtonStyle.Success"
-                              Visible="@(AllowEdit && Visible)"
-                              Click="@InsertRow"
-                              Disabled="@(_editMode == DataGridEditMode.Single && _seriesToInsert.Count() > 0)"
-                              Icon="add_circle"
-                              Text="Add New Series"
-                              Style="width: 33%; padding: 5px 10px;" />
-            </RadzenColumn>
-            <RadzenColumn Size="6" Style="text-align: right;">
-                <ResetGridButton Click="@(() => this.Reset())" />
-            </RadzenColumn>
-        </RadzenRow>
-    </RadzenCard>
+    <GridButtonRibbon Visible="@(AllowEdit || Visible)" HasAssistantQuery="@HasAssistantQuery"
+                      ClearAssistantQuery="@(() => SetAssistantQuery(null))">
+        <StartContent>
+            <RadzenButton ButtonStyle="ButtonStyle.Success"
+                          Visible="@(AllowEdit && Visible)"
+                          Click="@InsertRow"
+                          Disabled="@(_editMode == DataGridEditMode.Single && _seriesToInsert.Count() > 0)"
+                          Icon="add_circle"
+                          Text="Add New Series" />
+        </StartContent>
+        <ChildContent>
+            <ResetGridButton Click="@(() => Reset())" />
+        </ChildContent>
+    </GridButtonRibbon>
 
     @if (HasCaption)
     {

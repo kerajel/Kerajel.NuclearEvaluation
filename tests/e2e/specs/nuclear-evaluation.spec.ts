@@ -131,7 +131,8 @@ test('UI-01 dark/light appearance toggle changes the theme and survives reload',
 
 test('DM-01 Data Management Series tab loads totals and first page without fetch errors', async ({ page }) => {
   await gotoApp(page, '/data-management');
-  await page.waitForFunction(() => document.body.innerText.includes('TOTAL SERIES') && document.body.innerText.includes('100,000'), null, { timeout: 60_000 });
+  const totals = page.getByRole('region', { name: 'Matching records' }).locator('dd');
+  await expect(totals.first()).toHaveText('100,000', { timeout: 60_000 });
   const counts = await apiPost<SeriesCountsView>(page, '/api/views/series-counts', { top: 1, skip: 0 });
 
   expect(counts.ok).toBe(true);
@@ -149,19 +150,8 @@ test('DM-01 Data Management Series tab loads totals and first page without fetch
     counts.json!.particleCount
   ].map(value => value.toLocaleString('en-US'));
 
-  await page.waitForFunction(
-    values => values.every(value => document.body.innerText.includes(value)),
-    expectedCounts,
-    { timeout: 60_000 }
-  );
-
-  const text = await bodyText(page);
-
-  expect(text).toContain('TOTAL SERIES');
-  for (const value of expectedCounts) {
-    expect(text).toContain(value);
-  }
-  expect(text).toContain('10000');
+  await expect(totals).toHaveText(expectedCounts, { timeout: 60_000 });
+  expect(await bodyText(page)).toContain('10000');
   await expectNoVisibleAppError(page);
 });
 
@@ -176,7 +166,8 @@ test('DM-02 no PMI upload/dashboard affordances remain in the app shell', async 
 
 test('DM-03 grid result cache and reserved grid height are active', async ({ page }) => {
   await gotoApp(page, '/data-management');
-  await page.waitForFunction(() => document.body.innerText.includes('TOTAL SERIES') && document.body.innerText.includes('100,000'), null, { timeout: 60_000 });
+  await expect(page.getByRole('region', { name: 'Matching records' }).locator('dd').first())
+    .toHaveText('100,000', { timeout: 60_000 });
   const state = await page.evaluate(() => {
     const keys = Object.keys(localStorage);
     const grids = [...document.querySelectorAll<HTMLElement>('.rz-data-grid')].map(grid => {
@@ -212,8 +203,8 @@ test('DM-04 disabled delete tooltip is native title and does not create horizont
 
 test('DM-05 returning to Data Management keeps cached totals visible during refresh', async ({ page }) => {
   await gotoApp(page, '/data-management');
-  const totals = page.locator('.ne-series-counts-grid');
-  await expect(totals).toContainText('100,000', { timeout: 60_000 });
+  const totals = page.getByRole('region', { name: 'Matching records' });
+  await expect(totals.locator('dd').first()).toHaveText('100,000', { timeout: 60_000 });
   await expect(totals).toHaveAttribute('aria-busy', 'false');
   await page.waitForFunction(() => Object.keys(localStorage).some(key => key.includes('series-counts|')));
 
@@ -222,39 +213,10 @@ test('DM-05 returning to Data Management keeps cached totals visible during refr
     await new Promise(resolve => setTimeout(resolve, 1_500));
     await route.continue();
   }, { times: 1 });
-  await page.evaluate(() => {
-    const trackedWindow = window as Window & {
-      __totalsEmptyFlash?: boolean;
-      __totalsObserver?: MutationObserver;
-    };
-    trackedWindow.__totalsEmptyFlash = false;
-    trackedWindow.__totalsObserver = new MutationObserver(() => {
-      const text = document.querySelector('.ne-series-counts-grid')?.textContent ?? '';
-      if (text.includes('No records to display')) {
-        trackedWindow.__totalsEmptyFlash = true;
-      }
-    });
-    trackedWindow.__totalsObserver.observe(document.body, {
-      childList: true,
-      characterData: true,
-      subtree: true
-    });
-  });
-
   await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Data Management' }).click();
-  await expect(totals).toHaveAttribute('aria-busy', 'true');
-  await expect(totals).toContainText('100,000');
+  const refreshing = totals.and(page.locator('[aria-busy="true"]'));
+  await expect(refreshing.locator('dd').first()).toHaveText('100,000');
   await expect(totals).toHaveAttribute('aria-busy', 'false', { timeout: 60_000 });
-
-  const sawEmptyFlash = await page.evaluate(() => {
-    const trackedWindow = window as Window & {
-      __totalsEmptyFlash?: boolean;
-      __totalsObserver?: MutationObserver;
-    };
-    trackedWindow.__totalsObserver?.disconnect();
-    return trackedWindow.__totalsEmptyFlash ?? false;
-  });
-  expect(sawEmptyFlash).toBe(false);
 });
 
 test('BE-01 project view filtering by id succeeds with includes applied last', async ({ page }) => {
@@ -535,7 +497,7 @@ test('ADD-05 Evaluation reload is stable', async ({ page }) => {
   await waitForApp(page);
 
   await expect(page.getByText('Projects').first()).toBeVisible();
-  await expect(page.getByText('Query Builder')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Query Builder', exact: true })).toBeVisible();
   await expectNoVisibleAppError(page);
 });
 

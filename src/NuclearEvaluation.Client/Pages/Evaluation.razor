@@ -4,4 +4,12 @@
 
 @using NuclearEvaluation.Client.Shared.Evaluation
 
-<EvaluationTabs />
+<WorkspacePage Title="Evaluation workspace"
+               Description="Open a project to inspect its measurements, or use Query Builder to filter across related records.">
+    <EvaluationTabs OpenAdvancedExample="@(Example == QueryBuilderExample.AdvancedSlug)" />
+</WorkspacePage>
+
+@code {
+    [SupplyParameterFromQuery(Name = "example")]
+    public string? Example { get; set; }
+}

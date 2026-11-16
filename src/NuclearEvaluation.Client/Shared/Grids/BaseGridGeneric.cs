@@ -4,6 +4,7 @@ using NuclearEvaluation.Client.Services;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Filters;
 using Radzen;
+using Radzen.Blazor;
 
 namespace NuclearEvaluation.Client.Shared.Grids;
 
@@ -89,6 +90,32 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
     public abstract Task LoadData(LoadDataArgs args);
 
     public abstract Task Reset(bool resetColumnState = true, bool resetRowState = false);
+
+    protected virtual RadzenDataGrid<T>? AssistantGrid => null;
+
+    protected AssistantGridQuery? AssistantQuery { get; private set; }
+
+    public async Task SetAssistantGridQuery(AssistantGridQuery? query)
+    {
+        RadzenDataGrid<T> grid = AssistantGrid
+            ?? throw new NotSupportedException("This grid does not accept an assistant query.");
+
+        AssistantQuery = query;
+        await InvokeAsync(StateHasChanged);
+        await grid.FirstPage(forceReload: true);
+    }
+
+    protected Task ResetGrid(RadzenDataGrid<T> grid, bool resetColumnState, bool resetRowState)
+    {
+        bool clearAssistantQuery = resetColumnState && AssistantQuery is not null;
+        if (clearAssistantQuery)
+        {
+            AssistantQuery = null;
+        }
+
+        grid.Reset(resetColumnState, resetRowState);
+        return clearAssistantQuery ? grid.FirstPage(forceReload: true) : grid.Reload();
+    }
 
     int GetGridMinHeightRem()
     {

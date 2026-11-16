@@ -1,10 +1,16 @@
 using System.Reflection;
 using Bunit;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using NuclearEvaluation.Client.Services;
+using NuclearEvaluation.Client.Shared.Evaluation;
 using NuclearEvaluation.Client.Shared.Evaluation.QueryBuilder;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Enums;
 using NuclearEvaluation.Shared.Models.Filters;
+using NuclearEvaluation.Shared.Models.QueryBuilder;
+using NuclearEvaluation.Shared.Models.Views;
 using Radzen;
 using Radzen.Blazor;
 using Shouldly;
@@ -95,6 +101,284 @@ public class QueryBuilderFilterTests : TestBase
                     ),
             DefaultWaitForStateTimeout
         );
+    }
+
+    [Fact]
+    public async Task AssistantDraftReplacesSavedSelectionAndAppliesTypedFilters()
+    {
+        PresetFilter saved = new()
+        {
+            Id = 7,
+            Name = "Reviewed series",
+            Entries =
+            [
+                new PresetFilterEntry
+                {
+                    PresetFilterEntryType = PresetFilterEntryType.Series,
+                    IsEnabled = true,
+                    LogicalFilterOperator = LogicalFilterOperator.Or,
+                },
+            ],
+        };
+        Api.GetPresetFilters(Arg.Any<CancellationToken>()).Returns([saved]);
+        IRenderedComponent<QueryBuilderCard> component = TestContext.Render<QueryBuilderCard>();
+        IRenderedComponent<RadzenDropDown<int?>> savedFilter = component
+            .FindComponent<PresetFilterDropDown>()
+            .FindComponent<RadzenDropDown<int?>>();
+        await savedFilter.InvokeAsync(() =>
+            savedFilter.Instance.ValueChanged.InvokeAsync(saved.Id)
+        );
+        Api.ClearReceivedCalls();
+
+        AssistantAction action = new(AssistantActionKind.DraftQuery)
+        {
+            BuilderFilters =
+            [
+                new(
+                    SeriesQueryEntity.Series,
+                    new(nameof(SeriesView.IsDu), SeriesComparison.Equal, "false")
+                ),
+                new(
+                    SeriesQueryEntity.Series,
+                    new(nameof(SeriesView.SampleCount), SeriesComparison.GreaterOrEqual, "1")
+                ),
+                new(
+                    SeriesQueryEntity.Samples,
+                    new(
+                        nameof(SampleView.SampleType),
+                        SeriesComparison.Equal,
+                        nameof(SampleType.Qc)
+                    )
+                ),
+            ],
+        };
+        await component.InvokeAsync(async () =>
+            (await component.Instance.ApplyAssistantAction(action)).ShouldBeTrue()
+        );
+
+        PresetFilterEntry series = component
+            .FindComponent<SeriesQueryBuilderFilter>()
+            .Instance.PresetFilterEntry;
+        series.LogicalFilterOperator.ShouldBe(LogicalFilterOperator.And);
+        series.Descriptors.Select(filter => filter.FilterValue).ShouldBe([false, 1]);
+        PresetFilterEntry sample = component
+            .FindComponent<SampleQueryBuilderFilter>()
+            .Instance.PresetFilterEntry;
+        sample.Descriptors.Single().FilterValue.ShouldBe(SampleType.Qc);
+        savedFilter.Instance.Value.ShouldBeNull();
+        saved
+            .Entries.Single(entry => entry.PresetFilterEntryType == PresetFilterEntryType.Series)
+            .LogicalFilterOperator.ShouldBe(LogicalFilterOperator.Or);
+        await Api.Received()
+            .GetSeriesViews(
+                Arg.Is<DataQuery>(query =>
+                    query.PresetFilterBox != null
+                    && query.PresetFilterBox.Filters.ContainsKey(PresetFilterEntryType.Series)
+                    && query.PresetFilterBox.Filters.ContainsKey(PresetFilterEntryType.Sample)
+                ),
+                Arg.Any<CancellationToken>()
+            );
+        await Api.DidNotReceive()
+            .CreatePresetFilter(Arg.Any<PresetFilter>(), Arg.Any<CancellationToken>());
+        await Api.DidNotReceive()
+            .UpdatePresetFilter(Arg.Any<PresetFilter>(), Arg.Any<CancellationToken>());
+        await Api.DidNotReceive().DeletePresetFilter(Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ExampleQueriesApplyUnsavedDraftsAndExpirePendingAssistantActions()
+    {
+        Api.GetProjectViews(Arg.Any<DataQuery>(), Arg.Any<CancellationToken>())
+            .Returns(DataResult<ProjectView>.Succeeded([], 0));
+        TestContext
+            .Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/evaluation?tab=query-builder");
+        SiteAssistantWorkspace workspace =
+            TestContext.Services.GetRequiredService<SiteAssistantWorkspace>();
+        IRenderedComponent<EvaluationTabs> evaluation = TestContext.Render<EvaluationTabs>();
+        IRenderedComponent<QueryBuilderCard> builder = evaluation.FindComponent<QueryBuilderCard>();
+        SiteAssistantTarget pending = workspace.Current!;
+
+        void LoadExample(string title) =>
+            builder
+                .FindAll(".query-builder-examples button")
+                .Single(button => button.TextContent == title)
+                .Click();
+
+        LoadExample("Regular series with QC samples");
+        builder
+            .FindComponent<SeriesQueryBuilderFilter>()
+            .Instance.PresetFilterEntry.Descriptors.Single()
+            .FilterValue.ShouldBe(SeriesType.Regular);
+        builder
+            .FindComponent<SampleQueryBuilderFilter>()
+            .Instance.PresetFilterEntry.Descriptors.Single()
+            .FilterValue.ShouldBe(SampleType.Qc);
+        workspace.Current!.Context.ResultGrid.ShouldBe(AssistantSurface.Series);
+        workspace.Current.ShouldNotBeSameAs(pending);
+        await builder.InvokeAsync(async () =>
+            (
+                await pending.ApplyAsync(
+                    new(AssistantActionKind.DraftQuery) { BuilderFilters = [] }
+                )
+            ).ShouldBeFalse()
+        );
+        await Api.Received()
+            .GetSeriesViews(
+                Arg.Is<DataQuery>(query =>
+                    query.PresetFilterBox != null
+                    && query.PresetFilterBox.Filters.ContainsKey(PresetFilterEntryType.Series)
+                    && query.PresetFilterBox.Filters.ContainsKey(PresetFilterEntryType.Sample)
+                ),
+                Arg.Any<CancellationToken>()
+            );
+
+        LoadExample("Samples in NU series");
+        workspace.Current!.Context.ResultGrid.ShouldBe(AssistantSurface.Samples);
+        await Api.Received()
+            .GetSampleViews(
+                Arg.Is<DataQuery>(query =>
+                    query.PresetFilterBox != null
+                    && query.PresetFilterBox.Filters.ContainsKey(PresetFilterEntryType.Series)
+                ),
+                Arg.Any<CancellationToken>()
+            );
+
+        LoadExample("NU particles with a U-234 value");
+        workspace.Current!.Context.ResultGrid.ShouldBe(AssistantSurface.Particles);
+        await Api.Received()
+            .GetParticleViews(
+                Arg.Is<DataQuery>(query =>
+                    query.PresetFilterBox != null
+                    && query.PresetFilterBox.Filters.ContainsKey(PresetFilterEntryType.Particle)
+                ),
+                Arg.Any<CancellationToken>()
+            );
+        await Api.DidNotReceive()
+            .CreatePresetFilter(Arg.Any<PresetFilter>(), Arg.Any<CancellationToken>());
+        await Api.DidNotReceive()
+            .UpdatePresetFilter(Arg.Any<PresetFilter>(), Arg.Any<CancellationToken>());
+        await Api.DidNotReceive().DeletePresetFilter(Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AssistantExampleCreatesAnUnsavedNamedParticleDraftWithAllLinkedFilters()
+    {
+        QueryBuilderExample example = QueryBuilderExample.Advanced;
+        Api.IsPresetFilterNameAvailable(example.Title, 0, Arg.Any<CancellationToken>())
+            .Returns(true);
+        IRenderedComponent<QueryBuilderCard> builder = TestContext.Render<QueryBuilderCard>();
+        builder.WaitForAssertion(() => Assert.True(builder.Instance.IsAssistantReady));
+        Assert.Equal(AssistantSurface.Series, builder.Instance.AssistantResultSurface);
+
+        await builder.InvokeAsync(async () =>
+            Assert.True(
+                await builder.Instance.ApplyAssistantAction(
+                    new(AssistantActionKind.ShowQueryBuilderExample)
+                )
+            )
+        );
+
+        Assert.Equal(AssistantSurface.Particles, builder.Instance.AssistantResultSurface);
+        Assert.Contains(
+            $"{example.Title} · Unsaved draft",
+            builder.Find(".ne-grid-caption[role='status']").TextContent,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(builder.FindAll(".query-builder-examples button"), button =>
+            button.TextContent == example.Title
+        );
+        IRenderedComponent<PresetFilterDropDown> presets =
+            builder.FindComponent<PresetFilterDropDown>();
+        Assert.Null(presets.FindComponent<RadzenDropDown<int?>>().Instance.Value);
+        PresetFilter draft = presets.Instance.GetAppliedPresetFilter();
+        Assert.Equal(0, draft.Id);
+        Assert.Equal(example.Title, draft.Name);
+        Assert.All(draft.Entries, entry => Assert.True(entry.IsEnabled));
+        Assert.Equal(
+            [
+                "Apm.U235",
+                "Particle.ErU234",
+                "Particle.U234",
+                "Sample.SampleType",
+                "Series.AnalysisCompleteDate",
+                "Series.SeriesType",
+                "SubSample.IsFromLegacySystem",
+            ],
+            draft
+                .Entries.SelectMany(entry => entry.Descriptors)
+                .Select(descriptor => descriptor.Property)
+                .Order(StringComparer.Ordinal)
+        );
+        await Api.Received()
+            .GetParticleViews(
+                Arg.Is<DataQuery>(query =>
+                    query.PresetFilterBox != null && query.PresetFilterBox.Filters.Count == 5
+                ),
+                Arg.Any<CancellationToken>()
+            );
+
+        builder
+            .Find("button[aria-label='Save the current query builder filters as a preset.']")
+            .Click();
+        Assert.Equal(example.Title, presets.FindComponent<RadzenTextBox>().Instance.Value);
+        await Api.DidNotReceive()
+            .CreatePresetFilter(Arg.Any<PresetFilter>(), Arg.Any<CancellationToken>());
+        await Api.DidNotReceive()
+            .UpdatePresetFilter(Arg.Any<PresetFilter>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ManualFilterAndPresetEditsInvalidatePendingAssistantDraft()
+    {
+        PresetFilter saved = CreateSampleSequencePreset("saved query");
+        saved.Id = 9;
+        Api.GetPresetFilters(Arg.Any<CancellationToken>()).Returns([saved]);
+        Api.GetProjectViews(Arg.Any<DataQuery>(), Arg.Any<CancellationToken>())
+            .Returns(DataResult<ProjectView>.Succeeded([], 0));
+        TestContext
+            .Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/evaluation?tab=query-builder");
+
+        SiteAssistantWorkspace workspace =
+            TestContext.Services.GetRequiredService<SiteAssistantWorkspace>();
+        IRenderedComponent<EvaluationTabs> evaluation = TestContext.Render<EvaluationTabs>();
+        IRenderedComponent<QueryBuilderCard> builder = evaluation.FindComponent<QueryBuilderCard>();
+        SiteAssistantTarget beforeManualEdit = workspace.Current!;
+        beforeManualEdit.Context.Surface.ShouldBe(AssistantSurface.QueryBuilder);
+        AssistantAction draft = new(AssistantActionKind.DraftQuery) { BuilderFilters = [] };
+
+        IRenderedComponent<RadzenDataFilter<SampleViewPresetFilter>> editor = builder.FindComponent<
+            RadzenDataFilter<SampleViewPresetFilter>
+        >();
+        await editor.InvokeAsync(() =>
+            editor.Instance.AddFilter(
+                new CompositeFilterDescriptor
+                {
+                    Property = "Sample.Sequence",
+                    FilterOperator = FilterOperator.Equals,
+                    FilterValue = "my latest input",
+                }
+            )
+        );
+
+        SiteAssistantTarget beforePresetSelection = workspace.Current!;
+        beforePresetSelection.ShouldNotBeSameAs(beforeManualEdit);
+        await builder.InvokeAsync(async () =>
+            (await beforeManualEdit.ApplyAsync(draft)).ShouldBeFalse()
+        );
+        editor.Instance.Filters.Single().FilterValue.ShouldBe("my latest input");
+
+        IRenderedComponent<RadzenDropDown<int?>> preset = builder
+            .FindComponent<PresetFilterDropDown>()
+            .FindComponent<RadzenDropDown<int?>>();
+        await preset.InvokeAsync(() => preset.Instance.ValueChanged.InvokeAsync(saved.Id));
+
+        workspace.Current.ShouldNotBeSameAs(beforePresetSelection);
+        await builder.InvokeAsync(async () =>
+            (await beforePresetSelection.ApplyAsync(draft)).ShouldBeFalse()
+        );
+        preset.Instance.Value.ShouldBe(saved.Id);
     }
 
     [Fact]

@@ -12,10 +12,12 @@ public partial class ProjectGrid : BaseGridGeneric<ProjectView>
     public override string EntityDisplayName => nameof(Project);
 
     protected RadzenDataGrid<ProjectView> grid = null!;
+    protected override RadzenDataGrid<ProjectView>? AssistantGrid => grid;
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
         DataQuery query = loadDataArgs.ToDataQuery();
+        query.AssistantQuery = AssistantQuery;
 
         if (!await FetchData(query, () => Api.GetProjectViews(query)))
             return;
@@ -23,11 +25,8 @@ public partial class ProjectGrid : BaseGridGeneric<ProjectView>
         isLoading = false;
     }
 
-    public override async Task Reset(bool resetColumnState = true, bool resetRowState = false)
-    {
-        grid.Reset(resetColumnState, resetRowState);
-        await grid.Reload();
-    }
+    public override Task Reset(bool resetColumnState = true, bool resetRowState = false) =>
+        ResetGrid(grid, resetColumnState, resetRowState);
 
     public async Task Refresh()
     {

@@ -1,42 +1,44 @@
-﻿<RadzenRow Style="align-items: flex-start; margin-bottom: 0px; font-style: italic;">
-    <RadzenColumn xs="10" sm="10" md="10" lg="10">
-        <RadzenLabel Text="Created At:" />
-        <RadzenLabel Text="@ProjectView.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")" />
-    </RadzenColumn>
-</RadzenRow>
+﻿<dl class="project-overview__dates">
+    <div>
+        <dt>Created</dt>
+        <dd><time datetime="@ProjectView.CreatedAt.ToString("s")">@ProjectView.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</time></dd>
+    </div>
+    <div>
+        <dt>Last updated</dt>
+        <dd><time datetime="@ProjectView.UpdatedAt.ToString("s")">@ProjectView.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss")</time></dd>
+    </div>
+</dl>
 
-<RadzenRow Style="align-items: flex-start; margin-bottom: 0px; font-style: italic;">
-    <RadzenColumn xs="10" sm="10" md="10" lg="10">
-        <RadzenLabel Text="Updated At:" />
-        <RadzenLabel Text="@ProjectView.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss")" />
-    </RadzenColumn>
-</RadzenRow>
-
-<div style="margin-top: 20px;">
-    <RadzenLabel Text="Conclusions" Style="font-weight:bold;" />
-    <ValidatedTextArea @ref="_projectConclusionsInputRef"
-                       Model="@ProjectView"
-                       PropertyExpression="@(x => x.Conclusions)"
-                       Validator="ProjectViewValidator"
-                       AutoCompleteType="AutoCompleteType.Off"
-                       Style="width: 100%; resize:none;"
-                       Rows="5"
-                       DebounceTimeout="TimeSpan.Zero"
-                       TooltipOffsetX="-247"
-                       @onblur="OnConclusionsBlur" />
-</div>
-
-<div style="margin-top: 20px;">
-    <RadzenLabel Text="Follow up actions recommended" Style="font-weight:bold;" />
-    <ValidatedTextArea TModel="ProjectView"
-                       @ref="_projectFollowUpActionsRecommendedInputRef"
-                       Model="@ProjectView"
-                       PropertyExpression="@(x => x.FollowUpActionsRecommended)"
-                       Validator="ProjectViewValidator"
-                       AutoCompleteType="AutoCompleteType.Off"
-                       Style="width: 100%; resize:none;"
-                       Rows="5"
-                       DebounceTimeout="TimeSpan.Zero"
-                       TooltipOffsetX="-247"
-                       @onblur="OnFollowUpActionsRecommendedBlur" />
-</div>
+<section class="project-notes" aria-labelledby="project-notes-title">
+    <header>
+        <h2 id="project-notes-title">Project notes</h2>
+        <p>Valid edits save when you leave the field.</p>
+    </header>
+    <div class="project-notes__fields">
+        <div>
+            <label for="project-conclusions">Conclusions</label>
+            <ValidatedTextArea Id="project-conclusions"
+                               @ref="_projectConclusionsInputRef"
+                               Model="@ProjectView"
+                               PropertyExpression="@(x => x.Conclusions)"
+                               Validator="ProjectViewValidator"
+                               AutoCompleteType="AutoCompleteType.Off"
+                               Rows="5"
+                               DebounceTimeout="TimeSpan.Zero"
+                               @onblur="OnConclusionsBlur" />
+        </div>
+        <div>
+            <label for="project-follow-up">Recommended follow-up</label>
+            <ValidatedTextArea Id="project-follow-up"
+                               TModel="ProjectView"
+                               @ref="_projectFollowUpActionsRecommendedInputRef"
+                               Model="@ProjectView"
+                               PropertyExpression="@(x => x.FollowUpActionsRecommended)"
+                               Validator="ProjectViewValidator"
+                               AutoCompleteType="AutoCompleteType.Off"
+                               Rows="5"
+                               DebounceTimeout="TimeSpan.Zero"
+                               @onblur="OnFollowUpActionsRecommendedBlur" />
+        </div>
+    </div>
+</section>

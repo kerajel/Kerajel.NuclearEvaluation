@@ -1,4 +1,4 @@
-<div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+<div class="preset-filter-controls" @oninput="NotifyDraftEdited">
     <ValidatedTextBox TModel="PresetFilter"
                       @ref="_validatedTextBoxRef"
                       Model="@_activeFilter"
@@ -11,7 +11,7 @@
                       Name="FilterName"
                       TooltipOffsetX="-200"
                       OnValidated="@(_ => StateHasChanged())"
-                      Style="min-width: 180px; flex: 1 1 220px;" />
+                      Style="width: 100%;" />
 
     <RadzenDropDown Data="@_filters"
                     Visible="@(_operationMode == OperationMode.Browsing)"
@@ -21,15 +21,13 @@
                     Value="@ActiveFilterId"
                     ValueChanged="@OnDropDownChange"
                     TValue="int?"
-                    aria-label="Saved filter"
-                    Style="min-width: 180px; flex: 1 1 220px;" />
+                    aria-label="Saved filter" />
 
     <RadzenButton ButtonStyle="ButtonStyle.Light"
                   Icon="@SubmitIcon"
                   Text="@SubmitText"
                   title="@SubmitTitle"
                   aria-label="@SubmitTitle"
-                  Style="@ToolbarButtonStyle"
                   Disabled="@(_operationMode == OperationMode.Editing && !CanSubmitFilter())"
                   Click="@SubmitAction" />
     <RadzenButton ButtonStyle="ButtonStyle.Light"
@@ -37,14 +35,12 @@
                   Text="@CancelText"
                   title="@CancelTitle"
                   aria-label="@CancelTitle"
-                  Style="@ToolbarButtonStyle"
                   Click="@CancelAction" />
     <RadzenButton ButtonStyle="ButtonStyle.Light"
                   Icon="delete_forever"
                   Text="Delete"
                   title="Delete the selected saved filter."
                   aria-label="Delete the selected saved filter."
-                  Style="@ToolbarButtonStyle"
                   Click="@ConfirmDelete"
                   Disabled="@(_activeFilter.Id == 0)" />
 </div>

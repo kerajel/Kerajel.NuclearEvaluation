@@ -2,61 +2,74 @@
 
 <NavigationLock OnBeforeInternalNavigation="@HandleBeforeInternalNavigation" />
 
-<RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" AlignItems="AlignItems.Center" Gap="0.75rem" class="rz-mb-3">
-    <RadzenButton Text="@(showQuality ? "Back to preview" : "Quality workbench")"
-                  Click="ToggleQuality"
-                  Variant="Variant.Outlined" />
-    @if (showQuality)
-    {
-        <RadzenButton Text="Load synthetic example" Click="LoadExample" Disabled="@IsExampleStaged" />
-    }
-</RadzenStack>
-
-@if (showQuality)
-{
-    <h2>STEM Quality Workbench</h2>
-    <p>Profile the rows parsed from one upload, then select a check to inspect its matching records.</p>
-}
-else
-{
-    <h3>Upload your STEM-compatible analysis files for preview</h3>
-    <h3>This preview tool is highly capable and can handle files with hundreds of thousands of rows</h3>
-
-    <p>You can download a populated sample file (1,048,575 data rows) <a href="files/stem-preview/populated-stem-preview-file-1048575-rows.xlsx" download>here</a></p>
-    <p>Or a smaller one here (350,000 rows) <a href="files/stem-preview/populated-stem-preview-file-350000-rows.xlsx" download>here</a></p>
-    <p>Or a blank sample file <a href="files/stem-preview/blank-stem-preview-template.xlsx" download>here</a></p>
-}
-
-<RadzenCard Variant="Variant.Outlined" style="padding: 1rem;">
-    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Multiple Files Upload</RadzenText>
-
-    <div class="stem-dropzone">
-        <InputFile @ref="fileInput"
-                   OnChange="OnInputFileChange"
-                   multiple="multiple"
-                   accept=".csv,.tsv,.txt,.dat,.psv,.xls,.xlsx,.xlsb"
-                   class="stem-dropzone-input"
-                   title="Drag and drop files here, or click to browse" />
-        <div class="stem-dropzone-content">
-            <RadzenIcon Icon="cloud_upload" />
-            <RadzenText TextStyle="TextStyle.Body1" class="rz-mb-0">Drag &amp; drop one or more STEM files here, or click to browse</RadzenText>
+<section class="stem-workspace" aria-labelledby="stem-workspace-title">
+    <header class="stem-workspace__header">
+        <div>
+            <h2 id="stem-workspace-title">@(showQuality ? "STEM Quality Workbench" : "Preview STEM files")</h2>
+            <p>
+                @(showQuality
+                    ? "Choose a file and select a quality check to see its matching rows."
+                    : "Stage Excel or delimited text files to browse their measurement rows. Uploads are temporary.")
+            </p>
         </div>
+        <div class="stem-workspace__actions">
+            <RadzenButton Text="@(showQuality ? "Back to preview" : "Quality workbench")"
+                          Icon="@(showQuality ? "arrow_back" : "fact_check")"
+                          Click="ToggleQuality"
+                          Variant="Variant.Outlined" />
+            <RadzenButton Text="Load synthetic example" Icon="science" Click="LoadExample" Disabled="@IsExampleStaged" />
+        </div>
+    </header>
+
+    <div class="stem-upload-panel">
+        <div class="stem-upload-panel__top">
+            <div class="stem-dropzone">
+                <InputFile @ref="fileInput"
+                           OnChange="OnInputFileChange"
+                           multiple="multiple"
+                           accept=".csv,.tsv,.txt,.dat,.psv,.xls,.xlsx,.xlsb"
+                           class="stem-dropzone-input"
+                           aria-label="Choose STEM files"
+                           aria-describedby="stem-upload-formats"
+                           title="Drag and drop files here, or click to browse" />
+                <div class="stem-dropzone-content">
+                    <span aria-hidden="true"><RadzenIcon Icon="cloud_upload" /></span>
+                    <strong>Drop files here or browse</strong>
+                    <span id="stem-upload-formats">Excel, CSV, TSV, and other delimited text files · up to @(maxPreviewFileSize / (1024 * 1024)) MiB each</span>
+                </div>
+            </div>
+
+            @if (!showQuality)
+            {
+                <section class="stem-downloads" aria-labelledby="stem-downloads-title">
+                    <h3 id="stem-downloads-title">Sample files</h3>
+                    <a href="files/stem-preview/blank-stem-preview-template.xlsx" download>
+                        <span>Blank Excel template</span><span aria-hidden="true">↓</span>
+                    </a>
+                    <a href="files/stem-preview/populated-stem-preview-file-350000-rows.xlsx" download>
+                        <span>350,000 example rows</span><span aria-hidden="true">↓</span>
+                    </a>
+                    <a href="files/stem-preview/populated-stem-preview-file-1048575-rows.xlsx" download>
+                        <span>1,048,575 example rows</span><span aria-hidden="true">↓</span>
+                    </a>
+                </section>
+            }
+        </div>
+
+        @if (files.Any())
+        {
+            <div class="ne-compact-grid stem-upload-queue">
+                <FileUploadGrid Data="@files" OnRemoveFile="@RemoveFile" />
+            </div>
+        }
+
+        @if (files.Any(f => f.Status == FileStatus.Pending))
+        {
+            <div class="stem-workspace__actions">
+                <RadzenButton Text="Upload Files" Icon="upload" Click="ProcessUpload" />
+            </div>
+        }
     </div>
-
-    @if (files.Any())
-    {
-        <div class="ne-compact-grid">
-            <FileUploadGrid Data="@files"
-                            OnRemoveFile="@RemoveFile" />
-        </div>
-    }
-
-    @if (files.Any(f => f.Status == FileStatus.Pending))
-    {
-        <RadzenButton Text="Upload Files"
-                      Click="ProcessUpload"
-                      Style="margin-top: 10px;" />
-    }
 
     @if (!showQuality)
     {
@@ -65,34 +78,35 @@ else
                               Caption="Preview rows parsed from uploaded STEM files in this session."
                               Visible="@ShowStemPreviewEntryGrid()" />
     }
-</RadzenCard>
-
-@if (showQuality && FirstUploadedFileId() is not null)
-{
-    <div class="rz-my-3">
-        <label for="stem-quality-file">File to profile</label>
-        <select id="stem-quality-file" value="@qualityFileId" @onchange="OnQualityFileChange"
-                style="max-width: 100%; padding: 0.45rem;">
-            <option value="" disabled>Select a file</option>
-            @{ int uploadNumber = 0; }
-            @foreach (UploadedFile file in files.Where(file => file.Status == FileStatus.Uploaded))
-            {
-                uploadNumber++;
-                <option value="@file.Id">@file.Name (upload @uploadNumber)</option>
-            }
-        </select>
-    </div>
-    @if (profileCancellation is not null)
+    else if (FirstUploadedFileId() is not null)
     {
-        <p role="status">Loading quality profile…</p>
+        <div class="stem-file-select">
+            <label for="stem-quality-file">File to profile</label>
+            <select id="stem-quality-file" value="@qualityFileId" @onchange="OnQualityFileChange">
+                <option value="" disabled>Select a file</option>
+                @{ int uploadNumber = 0; }
+                @foreach (UploadedFile file in files.Where(file => file.Status == FileStatus.Uploaded))
+                {
+                    uploadNumber++;
+                    <option value="@file.Id">@file.Name (upload @uploadNumber)</option>
+                }
+            </select>
+        </div>
+        @if (profileCancellation is not null)
+        {
+            <p class="stem-workspace__status" role="status">Loading quality profile…</p>
+        }
+        else if (qualityError is not null)
+        {
+            <div>
+                <RadzenAlert AlertStyle="AlertStyle.Warning" AllowClose="false">@qualityError</RadzenAlert>
+                <RadzenButton Text="Retry profile" Click="@(() => SelectQualityFile(qualityFileId))" />
+            </div>
+        }
+        else if (qualityProfile is not null && qualityFileId is Guid fileId)
+        {
+            <StemQualityWorkbench @key="fileId" @ref="qualityWorkbench" StemSessionId="@sessionId"
+                                  FileId="@fileId" Profile="@qualityProfile" @bind-SelectedCheck="qualityCheck" />
+        }
     }
-    else if (qualityError is not null)
-    {
-        <RadzenAlert AlertStyle="AlertStyle.Warning" AllowClose="false">@qualityError</RadzenAlert>
-        <RadzenButton Text="Retry profile" Click="@(() => SelectQualityFile(qualityFileId))" />
-    }
-    else if (qualityProfile is not null && qualityFileId is Guid fileId)
-    {
-        <StemQualityWorkbench @key="fileId" StemSessionId="@sessionId" FileId="@fileId" Profile="@qualityProfile" />
-    }
-}
+</section>

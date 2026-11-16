@@ -16,6 +16,7 @@ public partial class SubSampleGrid : BaseGridGeneric<SubSampleView>
     public override string EntityDisplayName => nameof(SubSample);
 
     protected RadzenDataGrid<SubSampleView> grid = null!;
+    protected override RadzenDataGrid<SubSampleView>? AssistantGrid => grid;
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
@@ -25,6 +26,7 @@ public partial class SubSampleGrid : BaseGridGeneric<SubSampleView>
             presetFilterBox: GetPresetFilterBox?.Invoke(),
             projectId: ProjectId
         );
+        query.AssistantQuery = AssistantQuery;
 
         if (!await FetchData(query, () => Api.GetSubSampleViews(query)))
             return;
@@ -32,11 +34,8 @@ public partial class SubSampleGrid : BaseGridGeneric<SubSampleView>
         isLoading = false;
     }
 
-    public override async Task Reset(bool resetColumnState = true, bool resetRowState = false)
-    {
-        grid.Reset(resetColumnState, resetRowState);
-        await grid.Reload();
-    }
+    public override Task Reset(bool resetColumnState = true, bool resetRowState = false) =>
+        ResetGrid(grid, resetColumnState, resetRowState);
 
     public async Task Refresh()
     {

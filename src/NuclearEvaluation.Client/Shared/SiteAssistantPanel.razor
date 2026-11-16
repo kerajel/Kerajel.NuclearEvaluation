@@ -1,0 +1,328 @@
+@using System.Net
+@using System.Text.Json
+@using NuclearEvaluation.Client.Shared.Evaluation
+@implements IDisposable
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject SiteAssistantWorkspace Workspace
+@inject IJSRuntime JS
+@inject ILogger<SiteAssistantPanel> Logger
+
+@if (_available)
+{
+    SiteAssistantContext context = Capture().Context;
+    <aside class="site-assistant">
+        @if (_open)
+        {
+            <section id="site-assistant-panel" class="site-assistant__panel"
+                     role="dialog" aria-labelledby="site-assistant-title" @onkeydown="HandleKeyDown">
+                <header class="site-assistant__header">
+                    <div>
+                        <h2 id="site-assistant-title">Assistant</h2>
+                        <p>@context.DisplayName</p>
+                    </div>
+                    <RadzenButton Icon="close" Variant="Variant.Text" ButtonStyle="ButtonStyle.Secondary"
+                                  Size="ButtonSize.Small" aria-label="Close assistant" Click="@Close" />
+                </header>
+
+                <div class="site-assistant__messages" role="log" aria-label="Assistant conversation"
+                     aria-live="polite" @ref="_log">
+                    @foreach (ChatMessage message in _messages)
+                    {
+                        <p class="@(message.IsUser ? "site-assistant__user" : "site-assistant__reply")">
+                            <span class="site-assistant__sr">@(message.IsUser ? "You: " : "Assistant: ")</span>@message.Text
+                        </p>
+                    }
+                    @if (_busy)
+                    {
+                        <p class="site-assistant__status" role="status">@(_pendingRequest is null ? "Updating this view…" : "Working on your request…")</p>
+                    }
+                </div>
+
+                @if (_messages.Count == 0)
+                {
+                    <button type="button" class="site-assistant__example" @onclick="UseExample">
+                        <RadzenIcon Icon="chat_bubble_outline" aria-hidden="true" />
+                        <span>@ExamplePrompt(context)</span>
+                    </button>
+                }
+
+                <form class="site-assistant__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+                    <label class="site-assistant__sr" for="site-assistant-question">Ask the assistant</label>
+                    <textarea id="site-assistant-question" rows="2" maxlength="1000"
+                              placeholder="@($"Ask about {context.DisplayName}")" @ref="_input"
+                              @bind="_question" @bind:event="oninput"></textarea>
+                    @if (_pendingRequest is { } pending)
+                    {
+                        <RadzenButton Icon="stop_circle" Size="ButtonSize.Small" Text="Stop"
+                                      Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Secondary" ButtonType="ButtonType.Button"
+                                      aria-label="Stop assistant request" Disabled="@pending.IsCancellationRequested"
+                                      Click="@StopRequest" />
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="send" Size="ButtonSize.Small" ButtonType="ButtonType.Submit"
+                                      aria-label="Send question" aria-keyshortcuts="Control+Enter" title="Send question (Ctrl+Enter)"
+                                      Disabled="@(_busy || string.IsNullOrWhiteSpace(_question))" />
+                    }
+                </form>
+            </section>
+        }
+        <RadzenButton Text="Assistant" Icon="@(_open ? "expand_more" : "auto_awesome")"
+                      Size="ButtonSize.Medium" aria-controls="site-assistant-panel"
+                      aria-expanded="@(_open ? "true" : "false")" Click="@Toggle" @ref="_launcher" />
+    </aside>
+}
+
+@code {
+    const int MaxTurns = 4;
+    const int MaxMessages = 24;
+    readonly CancellationTokenSource _lifetime = new();
+    readonly List<ChatMessage> _messages = [];
+    readonly List<ScopedTurn> _history = [];
+    ElementReference _input;
+    ElementReference _log;
+    RadzenButton? _launcher;
+    string _question = string.Empty;
+    bool _available;
+    bool _open;
+    bool _busy;
+    bool _focusInput;
+    bool _focusLauncher;
+    bool _scroll;
+    CancellationTokenSource? _pendingRequest;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Http.BaseAddress?.IsLoopback != true)
+            return;
+
+        Workspace.Changed += ContextChanged;
+        Navigation.LocationChanged += LocationChanged;
+        try
+        {
+            using HttpResponseMessage response = await Http.GetAsync("api/assistant/status", _lifetime.Token);
+            _available = response.IsSuccessStatusCode
+                && await response.Content.ReadFromJsonAsync<AssistantStatus>(_lifetime.Token) is not null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or OperationCanceledException)
+        {
+            // The panel is available only when the local server advertises it.
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        bool focusInput = _focusInput && _open;
+        bool focusLauncher = _focusLauncher && !_open;
+        bool scroll = _scroll && _open;
+        _focusInput = _focusLauncher = _scroll = false;
+
+        try
+        {
+            if (focusInput)
+                await _input.FocusAsync();
+            if (focusLauncher && _launcher is not null)
+                await _launcher.Element.FocusAsync();
+            if (scroll)
+                await JS.InvokeVoidAsync("scrollSiteAssistantLog", _log);
+        }
+        catch (JSException exception)
+        {
+            Logger.LogDebug(exception, "The assistant could not focus or scroll the conversation.");
+        }
+    }
+
+    void ContextChanged() => _ = InvokeAsync(StateHasChanged);
+
+    void LocationChanged(object? sender, LocationChangedEventArgs args) => ContextChanged();
+
+    void Toggle()
+    {
+        if (_open)
+        {
+            Close();
+            return;
+        }
+        _open = true;
+        _focusInput = true;
+        _scroll = true;
+    }
+
+    void Close()
+    {
+        _open = false;
+        _focusLauncher = true;
+    }
+
+    void UseExample()
+    {
+        _question = ExamplePrompt(Capture().Context);
+        _focusInput = true;
+    }
+
+    void HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape")
+            Close();
+    }
+
+    void StopRequest() => _pendingRequest?.Cancel();
+
+    async Task SubmitAsync()
+    {
+        string question = _question.Trim();
+        if (_busy || question.Length == 0)
+            return;
+
+        ViewSnapshot view = Capture();
+        SiteAssistantTurn[] history = _history
+            .Where(turn => turn.View.Matches(view))
+            .TakeLast(MaxTurns)
+            .Select(turn => turn.Turn)
+            .ToArray();
+        _question = string.Empty;
+        _busy = true;
+        AddMessage(question, isUser: true);
+        CancellationToken lifetime = _lifetime.Token;
+        using CancellationTokenSource pending = CancellationTokenSource.CreateLinkedTokenSource(lifetime);
+        _pendingRequest = pending;
+        CancellationToken ct = pending.Token;
+        try
+        {
+            using HttpResponseMessage response = await Http.PostAsJsonAsync(
+                "api/assistant/chat",
+                new SiteAssistantQuestion(question, view.Context, history),
+                ct
+            );
+            ct.ThrowIfCancellationRequested();
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                AddMessage(RateLimitMessage(response.Headers.RetryAfter?.Delta));
+                return;
+            }
+            if (response.StatusCode >= HttpStatusCode.InternalServerError)
+            {
+                AddMessage("The AI service is unavailable right now. Try again later.");
+                return;
+            }
+
+            response.EnsureSuccessStatusCode();
+            SiteAssistantReply reply = await response.Content.ReadFromJsonAsync<SiteAssistantReply>(ct)
+                ?? throw new JsonException("Missing assistant reply.");
+
+            ct.ThrowIfCancellationRequested();
+            _pendingRequest = null;
+            if (!view.Matches(Capture()))
+            {
+                AddMessage("The active view changed while I was working. Ask again in the current view.");
+                return;
+            }
+
+            string message = reply.Message;
+            if (reply.Action is { } action)
+            {
+                StateHasChanged();
+                if (action.Kind == AssistantActionKind.ShowQueryBuilderExample
+                    && view.Context.Surface != AssistantSurface.QueryBuilder)
+                    Navigation.NavigateTo(EvaluationTabs.AdvancedExampleRoute);
+                else if (view.Target is null || !await view.Target.ApplyAsync(action))
+                    message = "That action is unavailable in the current view.";
+            }
+
+            AddMessage(message);
+            _history.Add(new ScopedTurn(view, new SiteAssistantTurn(question, message)));
+            if (_history.Count > MaxMessages)
+                _history.RemoveAt(0);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or OperationCanceledException)
+        {
+            if (!lifetime.IsCancellationRequested)
+                AddMessage(ct.IsCancellationRequested ? "Request stopped." : "The assistant could not complete the request. Try again.");
+        }
+        finally
+        {
+            _pendingRequest = null;
+            _busy = false;
+        }
+    }
+
+    static string RateLimitMessage(TimeSpan? retryAfter)
+    {
+        const string limitReached = "Assistant request limit reached.";
+        if (retryAfter is not { TotalSeconds: > 0 } wait)
+            return $"{limitReached} Try again in a moment.";
+
+        long seconds = (long)Math.Ceiling(wait.TotalSeconds);
+        string unit = seconds == 1 ? "second" : "seconds";
+        return $"{limitReached} Try again in {seconds} {unit}.";
+    }
+
+    void AddMessage(string text, bool isUser = false)
+    {
+        _messages.Add(new ChatMessage(text, isUser));
+        if (_messages.Count > MaxMessages)
+            _messages.RemoveAt(0);
+        _scroll = true;
+    }
+
+    ViewSnapshot Capture()
+    {
+        string route = new Uri(Navigation.Uri).AbsolutePath.Trim('/');
+        AssistantPage page = route.ToLowerInvariant() switch
+        {
+            "" => AssistantPage.Home,
+            "fleet" => AssistantPage.Fleet,
+            "fleet-generation" => AssistantPage.FleetGeneration,
+            "energy-emissions" => AssistantPage.Emissions,
+            "sources" => AssistantPage.Sources,
+            "data-management" => AssistantPage.DataManagement,
+            "evaluation" => AssistantPage.Evaluation,
+            string path when path.StartsWith("projects/", StringComparison.Ordinal) => AssistantPage.Project,
+            _ => AssistantPage.Unknown,
+        };
+        SiteAssistantTarget? target = Workspace.Current is { } current && current.Context.Page == page
+            ? current
+            : null;
+        return new(route, target, target?.Context ?? new SiteAssistantContext(page, AssistantSurface.None));
+    }
+
+    static string ExamplePrompt(SiteAssistantContext context) => context.Surface switch
+    {
+        AssistantSurface.Series => "Show the five series with the most QC samples",
+        AssistantSurface.Projects => "Show the five newest projects",
+        AssistantSurface.Samples => "Show the five most recent sampling dates",
+        AssistantSurface.SubSamples => "Show the five most recently screened subsamples",
+        AssistantSurface.Apms or AssistantSurface.Particles => "Show the five highest U234 measurements",
+        AssistantSurface.QueryBuilder => "Build a query for regular series with QC samples",
+        AssistantSurface.GenerationCalendar => "Show Illinois in February as a daily average",
+        AssistantSurface.StemPreview or AssistantSurface.StemQuality => context.HasUploads
+            ? "Find repeated identifiers in the selected STEM file"
+            : "How do I load the synthetic STEM example?",
+        _ => context.Page switch
+        {
+            AssistantPage.Fleet => "How do I compare two plants?",
+            AssistantPage.FleetGeneration => "What does daily average generation mean?",
+            AssistantPage.Emissions => "How do I compare emissions for 1 GWh?",
+            AssistantPage.Sources => "Where do the plant and emissions data come from?",
+            AssistantPage.Project => "How do I explore this project's records?",
+            _ => "Where can I find the data management and evaluation tools?",
+        },
+    };
+
+    public void Dispose()
+    {
+        Workspace.Changed -= ContextChanged;
+        Navigation.LocationChanged -= LocationChanged;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+
+    sealed record ChatMessage(string Text, bool IsUser);
+    sealed record ScopedTurn(ViewSnapshot View, SiteAssistantTurn Turn);
+    sealed record ViewSnapshot(string Route, SiteAssistantTarget? Target, SiteAssistantContext Context)
+    {
+        public bool Matches(ViewSnapshot other) =>
+            Route == other.Route && Context == other.Context && ReferenceEquals(Target, other.Target);
+    }
+}

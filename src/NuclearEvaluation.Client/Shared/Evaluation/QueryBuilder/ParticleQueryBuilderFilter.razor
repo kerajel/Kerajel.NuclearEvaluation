@@ -1,7 +1,7 @@
 ﻿@implements IPresetFilterComponent
 @inherits BaseQueryBuilderFilter<ParticleViewPresetFilter>
 
-<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="false" Style="width: 65%;" TItem="ParticleViewPresetFilter">
+<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="true" ViewChanged="NotifyDraftEdited" TItem="ParticleViewPresetFilter">
     <Properties>
         <RadzenDataFilterProperty Property="Particle.ParticleExternalId" Title="Particle External Id" />
         <RadzenDataFilterProperty Property="Particle.U234" Title="U234" />

@@ -1,36 +1,60 @@
 @page "/"
+@using NuclearEvaluation.Client.Shared.Fleet
+@inject HttpClient Http
 
 <PageTitle>Nuclear Evaluation</PageTitle>
 
-<section class="ne-intro" aria-labelledby="home-title">
-    <h1 id="home-title">Nuclear Evaluation</h1>
-    <p class="ne-intro-lead">Explore sample data, build queries, and compare isotope measurements.</p>
-    <p>Follow the connections between series, samples, and measurements. Build reusable queries,
-        explore isotope distributions, and preview spreadsheet data in one workspace.</p>
-    <p class="ne-demo-note">This is a shared sandbox with generated example data. Changes are periodically
-        reset, and uploaded files are temporary.</p>
+<section class="home-hero" aria-labelledby="home-title">
+    <div class="home-hero-copy">
+        <h1 id="home-title">Nuclear Evaluation</h1>
+        <p>Explore the U.S. nuclear fleet. See where plants are, how much power they can supply, and how much electricity they generate.</p>
+        <a class="home-primary" href="fleet">Explore the fleet <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="home-hero-map" aria-hidden="true">
+        <FleetMap Plants="@(_fleet?.Plants ?? [])" />
+    </div>
 </section>
 
-<div class="ne-feature-cards">
-    <section class="ne-feature-card">
-        <RadzenIcon Icon="table_view" />
-        <h2>Explore the data</h2>
-        <p>Browse series, expand their samples, and filter or sort the results.
-            Summary counts follow the active series filters.</p>
-        <a href="data-management">Open Data Management →</a>
-    </section>
-    <section class="ne-feature-card">
-        <RadzenIcon Icon="filter_alt" />
-        <h2>Build an evaluation</h2>
-        <p>Explore projects and isotope charts, or combine filters across series,
-            samples, and measurements. Save a query as a reusable preset.</p>
-        <a href="evaluation">Open Evaluation →</a>
-    </section>
-    <section class="ne-feature-card">
-        <RadzenIcon Icon="upload_file" />
-        <h2>Preview a file</h2>
-        <p>Upload a spreadsheet or delimited text file and inspect the parsed rows.
-            Start with the included sample files or the blank template.</p>
-        <a href="data-management?tab=stem-preview">Try STEM Preview →</a>
-    </section>
+<div class="home-destinations">
+    <a class="home-destination" href="energy-emissions">
+        <RadzenIcon Icon="bar_chart" />
+        <div>
+            <h2>Energy &amp; Emissions</h2>
+            <p>Compare lifecycle greenhouse gas estimates across six electricity sources.</p>
+        </div>
+        <span class="home-arrow" aria-hidden="true">→</span>
+    </a>
+    <a class="home-destination" href="data-management?tab=stem-preview&amp;view=quality">
+        <RadzenIcon Icon="fact_check" />
+        <div>
+            <h2>STEM Quality</h2>
+            <p>Inspect a spreadsheet for missing measurements and repeated identifiers, then open the affected rows.</p>
+        </div>
+        <span class="home-arrow" aria-hidden="true">→</span>
+    </a>
 </div>
+
+<section class="home-workspace" aria-labelledby="home-workspace-title">
+    <h2 id="home-workspace-title">Evaluation workspace</h2>
+    <p>The shared sandbox uses generated example data. Changes reset periodically and file uploads are temporary.</p>
+    <div class="home-workspace-links">
+        <a href="data-management">Browse series and samples</a>
+        <a href="evaluation">Explore projects and build queries</a>
+    </div>
+</section>
+
+@code {
+    private FleetSnapshot? _fleet;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _fleet = await Http.GetFromJsonAsync<FleetSnapshot>(FleetSnapshot.AssetPath);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
+        {
+            // The map on the home page is a preview. Keep its link and the workspace available.
+        }
+    }
+}

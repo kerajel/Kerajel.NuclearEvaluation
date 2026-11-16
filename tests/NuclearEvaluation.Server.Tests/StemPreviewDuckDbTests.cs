@@ -36,6 +36,84 @@ namespace NuclearEvaluation.Server.Tests;
 public class StemPreviewDuckDbTests
 {
     [Fact]
+    public async Task QualityChecksProfileAndPageOnlyTheSelectedFile()
+    {
+        using UploadFiles files = new();
+        await using StemSessionManager sessions = files.CreateSessions();
+        StemPreviewEntryService entries = new(sessions, new StemPreviewParser());
+        StemPreviewService uploads = new(entries, NullLogger<StemPreviewService>.Instance);
+        Guid session = Guid.NewGuid();
+        Guid firstFile = Guid.NewGuid();
+        Guid secondFile = Guid.NewGuid();
+        Guid emptyFile = Guid.NewGuid();
+
+        await UploadSuccessfully(
+            uploads,
+            session,
+            firstFile,
+            "same-name.csv",
+            """
+            42,LAB-A,2026-01-01,true,0
+            42,,2026-01-02,true,
+            43,LAB-A,2026-01-03,false,2
+            """
+        );
+        await UploadSuccessfully(
+            uploads,
+            session,
+            secondFile,
+            "same-name.csv",
+            "42,LAB-B,2026-01-04,true,3"
+        );
+        await UploadSuccessfully(uploads, session, emptyFile, "empty.csv", "");
+
+        StemFileProfile profile = Assert.IsType<StemFileProfile>(
+            await entries.GetFileProfile(session, firstFile, default)
+        );
+        Assert.Equal(3, profile.RowCount);
+        Assert.Equal(1, profile.MissingU234);
+        Assert.Equal(3, profile.MissingErU234);
+        Assert.Equal(3, profile.MissingU235);
+        Assert.Equal(3, profile.MissingErU235);
+        Assert.Equal(1, profile.BlankLabCode);
+        Assert.Equal(2, profile.RepeatedIdentifierRows);
+
+        DataQuery query = new()
+        {
+            StemSessionId = session,
+            StemFileId = firstFile,
+            StemCheck = StemQualityCheck.RepeatedIdentifier,
+            Top = 1,
+            Skip = 1,
+        };
+        FetchDataResult<StemPreviewEntryView> repeated = await Query(entries, session, query);
+        Assert.Equal(profile.RepeatedIdentifierRows, repeated.TotalCount);
+        Assert.Equal(new DateOnly(2026, 1, 2), Assert.Single(repeated.Entries).AnalysisDate);
+
+        query.StemCheck = StemQualityCheck.MissingU234;
+        query.Skip = 0;
+        FetchDataResult<StemPreviewEntryView> missing = await Query(entries, session, query);
+        Assert.Equal(profile.MissingU234, missing.TotalCount);
+        StemPreviewEntryView missingRow = Assert.Single(missing.Entries);
+        Assert.Equal(firstFile, missingRow.FileId);
+        Assert.Null(missingRow.U234);
+
+        StemFileProfile second = Assert.IsType<StemFileProfile>(
+            await entries.GetFileProfile(session, secondFile, default)
+        );
+        Assert.Equal(0, second.RepeatedIdentifierRows);
+        Assert.Equal(0, second.MissingU234);
+        StemFileProfile empty = Assert.IsType<StemFileProfile>(
+            await entries.GetFileProfile(session, emptyFile, default)
+        );
+        Assert.Equal(0, empty.RowCount);
+        Assert.Null(await entries.GetFileProfile(Guid.NewGuid(), firstFile, default));
+        Assert.True((await uploads.DeleteFileData(session, firstFile)).IsSuccessful);
+        Assert.Null(await entries.GetFileProfile(session, firstFile, default));
+        Assert.Empty((await Query(entries, session, query)).Entries);
+    }
+
+    [Fact]
     public async Task UploadsCanBeFilteredSortedAndPagedAcrossFiles()
     {
         using UploadFiles files = new();

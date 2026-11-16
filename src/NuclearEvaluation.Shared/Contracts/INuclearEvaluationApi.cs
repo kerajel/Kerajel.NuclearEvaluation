@@ -71,6 +71,11 @@ public interface INuclearEvaluationApi
     );
 
     // STEM preview
+    Task<StemFileProfile?> GetStemFileProfile(
+        Guid sessionId,
+        Guid fileId,
+        CancellationToken ct = default
+    );
     Task<OperationOutcome> UploadStemPreviewFile(
         Guid sessionId,
         Guid fileId,

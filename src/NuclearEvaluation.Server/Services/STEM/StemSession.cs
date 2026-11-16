@@ -8,6 +8,7 @@ using LinqToDB.Async;
 using LinqToDB.Data;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Server.Services.STEM;
@@ -126,6 +127,44 @@ public sealed class StemSession : IAsyncDisposable
             ct
         );
 
+    internal Task<StemFileProfile?> GetFileProfileAsync(Guid fileId, CancellationToken ct) =>
+        RunExclusive<StemFileProfile?>(
+            async db =>
+            {
+                if (!_files.ContainsKey(fileId))
+                {
+                    return null;
+                }
+
+                IQueryable<StemPreviewEntry> rows = db.GetTable<StemPreviewEntry>()
+                    .Where(row => row.FileId == fileId);
+                StemFileProfile? profile = await rows.GroupBy(row => row.FileId)
+                    .Select(group => new StemFileProfile
+                    {
+                        RowCount = group.Count(),
+                        MissingU234 = group.Count(row => row.U234 == null),
+                        MissingErU234 = group.Count(row => row.ErU234 == null),
+                        MissingU235 = group.Count(row => row.U235 == null),
+                        MissingErU235 = group.Count(row => row.ErU235 == null),
+                        BlankLabCode = group.Count(row => row.LabCode.Trim() == ""),
+                    })
+                    .SingleOrDefaultAsync(ct);
+                if (profile is null)
+                {
+                    return new();
+                }
+
+                profile.RepeatedIdentifierRows = await FilterQualityRows(
+                        rows,
+                        StemQualityCheck.RepeatedIdentifier
+                    )
+                    .CountAsync(ct);
+                return profile;
+            },
+            ct,
+            () => null
+        );
+
     public Task<FetchDataResult<StemPreviewEntryView>> QueryViewsAsync(
         FetchDataCommand<StemPreviewEntryView> command,
         CancellationToken ct = default
@@ -133,7 +172,12 @@ public sealed class StemSession : IAsyncDisposable
         RunExclusive(
             async db =>
             {
-                IQueryable<PreviewRow> rows = db.GetTable<StemPreviewEntry>()
+                IQueryable<StemPreviewEntry> entries = db.GetTable<StemPreviewEntry>();
+                if (command.Query?.StemFileId is Guid fileId)
+                {
+                    entries = entries.Where(row => row.FileId == fileId);
+                }
+                IQueryable<PreviewRow> rows = FilterQualityRows(entries, command.Query?.StemCheck)
                     .Select(entry => new PreviewRow
                     {
                         Id = entry.Id,
@@ -168,6 +212,27 @@ public sealed class StemSession : IAsyncDisposable
             ct,
             () => FetchDataResult<StemPreviewEntryView>.Succeeded([])
         );
+
+    static IQueryable<StemPreviewEntry> FilterQualityRows(
+        IQueryable<StemPreviewEntry> rows,
+        StemQualityCheck? check
+    ) =>
+        check switch
+        {
+            null => rows,
+            StemQualityCheck.MissingU234 => rows.Where(row => row.U234 == null),
+            StemQualityCheck.MissingErU234 => rows.Where(row => row.ErU234 == null),
+            StemQualityCheck.MissingU235 => rows.Where(row => row.U235 == null),
+            StemQualityCheck.MissingErU235 => rows.Where(row => row.ErU235 == null),
+            StemQualityCheck.BlankLabCode => rows.Where(row => row.LabCode.Trim() == ""),
+            StemQualityCheck.RepeatedIdentifier => rows.Where(row =>
+                rows.GroupBy(candidate => candidate.Id)
+                    .Where(group => group.Count() > 1)
+                    .Select(group => group.Key)
+                    .Contains(row.Id)
+            ),
+            _ => throw new ArgumentOutOfRangeException(nameof(check)),
+        };
 
     static async Task AppendRowsAsync(DataConnection db, StoredFile file, CancellationToken ct)
     {

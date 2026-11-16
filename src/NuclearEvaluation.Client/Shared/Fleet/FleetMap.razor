@@ -1,0 +1,114 @@
+@using System.Text.Json
+@inject HttpClient Http
+@inject ILogger<FleetMap> Logger
+@implements IDisposable
+
+@if (_geography is not null)
+{
+    <div class="fleet-map @(ShowCapacity ? "fleet-map-capacity" : "")"
+         role="group" aria-label="Map of nuclear power plants in the contiguous United States"
+         aria-hidden="@(PlantSelected.HasDelegate ? null : "true")">
+        <svg class="fleet-map-outline" viewBox="0 0 @FleetGeography.Width @FleetGeography.Height" aria-hidden="true">
+            @foreach (string path in _geography.Paths)
+            {
+                <path d="@path" />
+            }
+        </svg>
+        @foreach (FleetPlant plant in MapPlants)
+        {
+            @if (PlantSelected.HasDelegate)
+            {
+                <button @key="plant.Id" type="button" class="@MarkerClass(plant)" style="@MarkerStyle(plant)"
+                        title="@MarkerLabel(plant)" aria-label="@MarkerLabel(plant)"
+                        aria-pressed="@(plant.Id == SelectedId || plant.Id == ComparedId ? "true" : "false")"
+                        @onclick="() => PlantSelected.InvokeAsync(plant)">
+                    @if (ShowCapacity && plant.NetSummerCapacityMw is > 0)
+                    {
+                        <span class="fleet-map-column" aria-hidden="true">
+                            @foreach (FleetUnit unit in plant.Units)
+                            {
+                                <span style="@FormattableString.Invariant($"flex-grow:{unit.NetSummerCapacityMw}")"></span>
+                            }
+                        </span>
+                    }
+                    <span class="fleet-map-dot" aria-hidden="true"></span>
+                </button>
+            }
+            else
+            {
+                <span @key="plant.Id" class="@MarkerClass(plant)" style="@MarkerStyle(plant)" aria-hidden="true">
+                    <span class="fleet-map-dot"></span>
+                </span>
+            }
+        }
+    </div>
+}
+else if (PlantSelected.HasDelegate)
+{
+    <div class="fleet-map-placeholder" role="status">
+        @if (_unavailable)
+        {
+            <span>The map is unavailable. Select a plant from the list below.</span>
+        }
+        else
+        {
+            <span>Loading map…</span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<FleetPlant> Plants { get; set; } = [];
+    [Parameter] public int? SelectedId { get; set; }
+    [Parameter] public int? ComparedId { get; set; }
+    [Parameter] public EventCallback<FleetPlant> PlantSelected { get; set; }
+    [Parameter] public bool ShowCapacity { get; set; }
+    [Parameter] public decimal CapacityScaleMw { get; set; } = 5_000;
+
+    readonly CancellationTokenSource _lifetime = new();
+    FleetGeography? _geography;
+    bool _unavailable;
+
+    IEnumerable<FleetPlant> MapPlants => Plants.Where(plant => plant is { Longitude: double lng, Latitude: double lat }
+        && FleetGeography.IsContiguous(lng, lat));
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            JsonElement geometry = await Http.GetFromJsonAsync<JsonElement>("data/fleet-us-states.json", _lifetime.Token);
+            _geography = new FleetGeography(geometry);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException)
+        {
+            Logger.LogWarning(exception, "Unable to load the Fleet Explorer map.");
+            _unavailable = true;
+        }
+    }
+
+    string MarkerStyle(FleetPlant plant)
+    {
+        FleetGeography.Point point = _geography!.Locate(plant.Longitude!.Value, plant.Latitude!.Value);
+        double x = 100 * point.X / FleetGeography.Width;
+        double y = 100 * point.Y / FleetGeography.Height;
+        decimal capacityFraction = Math.Clamp((plant.NetSummerCapacityMw ?? 0) / CapacityScaleMw, 0, 1);
+        return FormattableString.Invariant($"--fleet-x:{x:0.###}%;--fleet-y:{y:0.###}%;--fleet-fraction:{capacityFraction:0.####};--fleet-depth:{(int)point.Y}");
+    }
+
+    string MarkerClass(FleetPlant plant) => plant.Id == SelectedId ? "fleet-map-marker fleet-map-selected"
+        : plant.Id == ComparedId ? "fleet-map-marker fleet-map-compared"
+        : "fleet-map-marker";
+
+    string MarkerLabel(FleetPlant plant) => ShowCapacity && plant.NetSummerCapacityMw is decimal capacity
+        ? $"{plant.Name}, {plant.State}, {capacity:N0} MW net summer capacity"
+        : $"{plant.Name}, {plant.State}";
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

@@ -10,14 +10,20 @@ reusable queries, isotope charts, and spreadsheet processing into one interactiv
 
 ### What to try
 
+- **Fleet Explorer:** select a U.S. nuclear plant from the map or list, view capacity by reactor,
+  and compare two plants' monthly electricity generation. See [the source snapshot](docs/fleet-data.md).
+- **Energy & Emissions:** compare published lifecycle greenhouse gas estimates across six electricity
+  sources and inspect the estimates for each lifecycle phase.
 - **Data Management:** browse and filter series, expand their samples, and inspect matching totals.
 - **Evaluation:** open a project, change its series membership, and explore isotope distributions.
 - **Query Builder:** combine filters across related entities and save reusable presets.
-- **STEM Preview:** upload Excel or delimited text files, inspect their rows, and remove individual files.
+- **STEM Preview:** upload Excel or delimited text files, inspect their rows, and remove individual
+  files. Open **Quality** to profile a file and inspect the rows that match a check.
 
-The demo is shared and anonymous. It contains **generated example data**, and changes are periodically
-reset. Uploads are temporary. See [the calculation model](docs/calculation-notes.md) for decay
-correction, reference dates, and histogram definitions.
+The evaluation workspace is shared and anonymous. It uses **generated example data**, and changes
+are periodically reset. Uploads are temporary. The fleet and emissions sections use published data.
+See [the calculation model](docs/calculation-notes.md) for decay correction, reference dates, and
+histogram definitions.
 
 ### Design choices
 

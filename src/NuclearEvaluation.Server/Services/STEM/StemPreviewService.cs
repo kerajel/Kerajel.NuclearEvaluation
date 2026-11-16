@@ -1,6 +1,7 @@
 using Kerajel.Primitives.Enums;
 using Kerajel.Primitives.Models;
 using NuclearEvaluation.Server.Services.Files;
+using NuclearEvaluation.Shared.Contracts;
 using Polly;
 using Polly.Bulkhead;
 
@@ -15,6 +16,12 @@ public class StemPreviewService(
 
     static readonly AsyncBulkheadPolicy<OperationResult> bulkheadPolicy =
         Policy.BulkheadAsync<OperationResult>(maxParallelization: 4, maxQueuingActions: 128);
+
+    public Task<StemFileProfile?> GetFileProfile(
+        Guid sessionId,
+        Guid fileId,
+        CancellationToken ct
+    ) => stemPreviewEntryService.GetFileProfile(sessionId, fileId, ct);
 
     public async Task<OperationResult> UploadStemPreviewFile(
         Guid sessionId,

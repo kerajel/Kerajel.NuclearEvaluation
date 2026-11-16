@@ -12,6 +12,7 @@ public partial class DataManagementTabs
     NavigationManager Navigation { get; set; } = null!;
 
     protected int _currentTabIndex;
+    bool _startInStemQuality;
 
     protected override void OnInitialized()
     {
@@ -20,6 +21,10 @@ public partial class DataManagementTabs
         );
         _currentTabIndex =
             query.TryGetValue("tab", out StringValues tab) && tab == "stem-preview" ? 1 : 0;
+        _startInStemQuality =
+            _currentTabIndex == 1
+            && query.TryGetValue("view", out StringValues view)
+            && view == "quality";
     }
 
     protected SeriesCountsGrid? _seriesCountsGrid;

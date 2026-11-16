@@ -1,4 +1,5 @@
 using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Server.Services.STEM;
@@ -11,6 +12,14 @@ public class StemPreviewEntryService(
     IStemPreviewParser stemPreviewParser
 ) : IStemPreviewEntryService
 {
+    public Task<StemFileProfile?> GetFileProfile(
+        Guid stemSessionId,
+        Guid fileId,
+        CancellationToken ct
+    ) =>
+        sessionManager.TryGet(stemSessionId)?.GetFileProfileAsync(fileId, ct)
+        ?? Task.FromResult<StemFileProfile?>(null);
+
     public async Task<FetchDataResult<StemPreviewEntryView>> GetStemPreviewEntryViews(
         Guid stemSessionId,
         FetchDataCommand<StemPreviewEntryView> command

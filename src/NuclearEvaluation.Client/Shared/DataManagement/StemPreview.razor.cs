@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Routing;
@@ -11,10 +12,25 @@ using Radzen;
 
 namespace NuclearEvaluation.Client.Shared.DataManagement;
 
-public partial class StemPreview
+public partial class StemPreview : IDisposable
 {
+    const string ExampleFileName = "stem-quality-example.csv";
+    static readonly byte[] ExampleContent = Encoding.UTF8.GetBytes(
+        """
+        Identifier,LaboratoryCode,AnalysisDate,IsNu,U234,ErU234,U235,ErU235
+        101,DEMO-A,2026-08-01,true,0,0.01,1.02,0.02
+        101,DEMO-A,2026-08-02,true,1.01,,1.03,0.02
+        102,DEMO-B,2026-08-03,false,,0.01,1.04,
+        103,,2026-08-04,false,,,1.05,0.03
+        104,DEMO-C,2026-08-05,true,1.02,0.02,,0.03
+        """
+    );
+
     [Parameter]
     public string ComponentId { get; set; } = Guid.NewGuid().ToString();
+
+    [Parameter]
+    public bool StartInQuality { get; set; }
 
     [Inject]
     protected INuclearEvaluationApi Api { get; set; } = null!;
@@ -26,9 +42,15 @@ public partial class StemPreview
     protected DialogService DialogService { get; set; } = null!;
 
     protected readonly Guid sessionId = Guid.NewGuid();
-    protected StemPreviewEntryGrid stemPreviewEntryGrid = null!;
+    StemPreviewEntryGrid? stemPreviewEntryGrid;
 
     List<UploadedFile> files = [];
+    UploadedFile? exampleFile;
+    bool showQuality;
+    Guid? qualityFileId;
+    StemFileProfile? qualityProfile;
+    string? qualityError;
+    CancellationTokenSource? profileCancellation;
 
     static readonly HashSet<FileStatus> inProgressStatuses =
     [
@@ -40,6 +62,8 @@ public partial class StemPreview
     int currentUploadBatchId = 0;
 
     static readonly long maxPreviewFileSize = UploadLimits.MaxStemPreviewFileSizeBytes;
+
+    protected override void OnInitialized() => showQuality = StartInQuality;
 
     private async Task HandleBeforeInternalNavigation(LocationChangingContext context)
     {
@@ -70,21 +94,19 @@ public partial class StemPreview
 
         foreach (IBrowserFile file in newlySelectedFiles)
         {
-            if (file.Size <= maxPreviewFileSize)
-            {
-                files.Add(new UploadedFile { BrowserFile = file, Status = FileStatus.Pending });
-            }
-            else
-            {
-                files.Add(
-                    new UploadedFile
-                    {
-                        BrowserFile = file,
-                        Status = FileStatus.UploadError,
-                        ErrorMessage = $"Size exceeds {maxPreviewFileSize / (1024 * 1024)} MB",
-                    }
-                );
-            }
+            bool exceedsLimit = file.Size > maxPreviewFileSize;
+            files.Add(
+                new UploadedFile
+                {
+                    BrowserFile = file,
+                    Name = file.Name,
+                    Size = file.Size,
+                    Status = exceedsLimit ? FileStatus.UploadError : FileStatus.Pending,
+                    ErrorMessage = exceedsLimit
+                        ? $"Size exceeds {maxPreviewFileSize / (1024 * 1024)} MB"
+                        : null,
+                }
+            );
         }
 
         files = new(files);
@@ -111,45 +133,144 @@ public partial class StemPreview
                 continue;
             }
 
-            IBrowserFile browserFile = file.BrowserFile;
-            file.Status = FileStatus.Uploading;
+            await UploadFile(file, ct => file.BrowserFile!.OpenReadStream(maxPreviewFileSize, ct));
+        }
 
-            await InvokeAsync(StateHasChanged);
-            await Task.Yield();
+        if (showQuality && qualityFileId is null)
+        {
+            await SelectQualityFile(FirstUploadedFileId());
+        }
+        else if (!showQuality && stemPreviewEntryGrid is not null)
+        {
+            await InvokeAsync(stemPreviewEntryGrid.Refresh);
+        }
+    }
 
-            try
+    bool IsExampleStaged => exampleFile is { Status: FileStatus.Uploading or FileStatus.Uploaded };
+
+    async Task LoadExample()
+    {
+        if (IsExampleStaged)
+        {
+            return;
+        }
+
+        if (exampleFile is not null)
+        {
+            files.Remove(exampleFile);
+        }
+        UploadedFile file = new()
+        {
+            Name = ExampleFileName,
+            Size = ExampleContent.LongLength,
+            UploadBatchId = ++currentUploadBatchId,
+        };
+        exampleFile = file;
+        files = [.. files, file];
+        await UploadFile(file, _ => new MemoryStream(ExampleContent, writable: false));
+        if (showQuality && file.Status == FileStatus.Uploaded)
+        {
+            await SelectQualityFile(file.Id);
+        }
+        else if (!showQuality && stemPreviewEntryGrid is not null)
+        {
+            await InvokeAsync(stemPreviewEntryGrid.Refresh);
+        }
+    }
+
+    async Task UploadFile(UploadedFile file, Func<CancellationToken, Stream> openStream)
+    {
+        file.Status = FileStatus.Uploading;
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+
+        CancellationToken ct = file.FileCancellationTokenSource.Token;
+        try
+        {
+            await using Stream stream = openStream(ct);
+            OperationOutcome result = await Api.UploadStemPreviewFile(
+                sessionId,
+                file.Id,
+                file.Name,
+                stream,
+                ct
+            );
+            if (file.Status != FileStatus.Removed)
             {
-                await using Stream stream = browserFile.OpenReadStream(
-                    maxPreviewFileSize,
-                    file.FileCancellationTokenSource.Token
-                );
-                OperationOutcome result = await Api.UploadStemPreviewFile(
-                    sessionId,
-                    file.Id,
-                    browserFile.Name,
-                    stream,
-                    file.FileCancellationTokenSource.Token
-                );
-
                 file.Status = result.IsSuccessful ? FileStatus.Uploaded : FileStatus.UploadError;
-                if (!result.IsSuccessful)
-                {
-                    file.ErrorMessage = result.ErrorMessage;
-                }
+                file.ErrorMessage = result.ErrorMessage;
             }
-            catch (Exception ex)
+        }
+        catch (Exception ex)
+        {
+            if (file.Status != FileStatus.Removed)
             {
                 file.Status = FileStatus.UploadError;
                 file.ErrorMessage = ex.Message;
             }
-            finally
-            {
-                await InvokeAsync(StateHasChanged);
-                await Task.Yield();
-            }
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
+        }
+    }
+
+    Guid? FirstUploadedFileId() =>
+        files.FirstOrDefault(file => file.Status == FileStatus.Uploaded)?.Id;
+
+    Task ToggleQuality()
+    {
+        showQuality = !showQuality;
+        return SelectQualityFile(showQuality ? FirstUploadedFileId() : null);
+    }
+
+    Task OnQualityFileChange(ChangeEventArgs args) =>
+        SelectQualityFile(Guid.TryParse(args.Value?.ToString(), out Guid fileId) ? fileId : null);
+
+    async Task SelectQualityFile(Guid? fileId)
+    {
+        profileCancellation?.Cancel();
+        profileCancellation = null;
+        qualityFileId = fileId;
+        qualityProfile = null;
+        qualityError = null;
+        if (fileId is null)
+        {
+            return;
         }
 
-        await InvokeAsync(stemPreviewEntryGrid.Refresh);
+        using CancellationTokenSource cancellation = new();
+        profileCancellation = cancellation;
+        try
+        {
+            StemFileProfile? profile = await Api.GetStemFileProfile(
+                sessionId,
+                fileId.Value,
+                cancellation.Token
+            );
+            if (profileCancellation == cancellation)
+            {
+                qualityProfile = profile;
+                qualityError = profile is null ? "This upload is no longer available." : null;
+            }
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            if (profileCancellation == cancellation)
+            {
+                Logger.LogWarning(ex, "Could not load the STEM quality profile.");
+                qualityError = "Could not load the quality profile. Please try again.";
+            }
+        }
+        finally
+        {
+            if (profileCancellation == cancellation)
+            {
+                profileCancellation = null;
+            }
+        }
     }
 
     private async Task RemoveFile(UploadedFile file)
@@ -159,7 +280,7 @@ public partial class StemPreview
         if (previousStatus == FileStatus.Uploaded || previousStatus == FileStatus.Uploading)
         {
             bool? confirmDelete = await DialogService.Confirm(
-                $"Are you sure you want to delete '{file.BrowserFile.Name}'?",
+                $"Are you sure you want to delete '{file.Name}'?",
                 "Confirm Delete",
                 Dialogs.YesNoConfirmOptions
             );
@@ -185,6 +306,10 @@ public partial class StemPreview
         await Task.Yield();
 
         _ = CleanupRemovedFileAsync(file);
+        if (qualityFileId == file.Id)
+        {
+            await SelectQualityFile(FirstUploadedFileId());
+        }
     }
 
     async Task CleanupRemovedFileAsync(UploadedFile file)
@@ -193,7 +318,10 @@ public partial class StemPreview
         try
         {
             await Api.DeleteStemPreviewFile(sessionId, file.Id);
-            await InvokeAsync(stemPreviewEntryGrid.Refresh);
+            if (!showQuality && stemPreviewEntryGrid is not null)
+            {
+                await InvokeAsync(stemPreviewEntryGrid.Refresh);
+            }
         }
         catch (Exception ex)
         {
@@ -212,5 +340,11 @@ public partial class StemPreview
                 bool batchHasInProgress = batch.Any(f => inProgressStatuses.Contains(f.Status));
                 return batchHasUploaded && !batchHasInProgress;
             });
+    }
+
+    public void Dispose()
+    {
+        profileCancellation?.Cancel();
+        profileCancellation = null;
     }
 }

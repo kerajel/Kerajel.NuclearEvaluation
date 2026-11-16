@@ -150,7 +150,7 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
         return sequence == _loadSequence;
     }
 
-    void ApplyResult(DataResult<T> result)
+    protected void ApplyResult(DataResult<T> result)
     {
         if (result.IsSuccessful)
         {

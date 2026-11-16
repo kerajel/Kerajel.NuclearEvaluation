@@ -15,6 +15,18 @@ public class StemController(
     StemUploadLog uploadLog
 ) : ControllerBase
 {
+    [HttpGet("{sessionId:guid}/files/{fileId:guid}/profile")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<ActionResult<StemFileProfile>> GetFileProfile(
+        Guid sessionId,
+        Guid fileId,
+        CancellationToken ct
+    )
+    {
+        StemFileProfile? profile = await stemPreviewService.GetFileProfile(sessionId, fileId, ct);
+        return profile is null ? NotFound() : profile;
+    }
+
     [HttpPost("{sessionId:guid}/files")]
     [EnableRateLimiting(RateLimitPolicies.Uploads)]
     [RequestSizeLimit(UploadLimits.MaxStemPreviewFileSizeBytes + 8192)]

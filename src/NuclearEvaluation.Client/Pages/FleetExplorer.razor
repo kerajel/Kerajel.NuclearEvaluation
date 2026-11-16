@@ -1,0 +1,240 @@
+@page "/fleet"
+@using NuclearEvaluation.Client.Shared.Fleet
+
+<PageTitle>Fleet Explorer · Nuclear Evaluation</PageTitle>
+
+<section class="fleet-page" aria-labelledby="fleet-title">
+    <header class="fleet-header">
+        <h1 id="fleet-title">Fleet Explorer</h1>
+        <p>Explore the U.S. nuclear power fleet and compare how much electricity its plants generate.</p>
+    </header>
+
+    @if (_loading)
+    {
+        <p role="status">Loading the fleet snapshot…</p>
+    }
+    else if (_snapshot is null || _selected is not FleetPlant selected)
+    {
+        <p role="alert">The fleet snapshot could not be loaded.</p>
+        <button type="button" class="fleet-control" @onclick="LoadSnapshot">Retry</button>
+    }
+    else
+    {
+        FleetPlant[] visible = FilterPlants();
+        FleetPlant? comparison = Comparison;
+
+        <div class="fleet-overview">
+            <section class="fleet-panel fleet-map-panel" aria-labelledby="fleet-map-title">
+                <header class="fleet-section-header">
+                    <div>
+                        <h2 id="fleet-map-title">U.S. nuclear power plants</h2>
+                        <p>Operating at year-end @_snapshot.Year</p>
+                    </div>
+                    <div class="fleet-map-modes" role="group" aria-label="Map view">
+                        <button type="button" aria-pressed="@(!_showCapacity ? "true" : "false")"
+                                @onclick="() => _showCapacity = false">Locations</button>
+                        <button type="button" aria-pressed="@(_showCapacity ? "true" : "false")"
+                                @onclick="() => _showCapacity = true">3D capacity</button>
+                    </div>
+                </header>
+
+                <div class="fleet-plant-picks" role="group" aria-label="Plant to select on the map">
+                    <button type="button" class="fleet-pick"
+                            aria-pressed="@(!_choosingComparison ? "true" : "false")"
+                            @onclick="() => _choosingComparison = false">
+                        <span class="fleet-pick-dot fleet-series-primary" aria-hidden="true"></span>
+                        <span>First plant <strong>@selected.Name</strong></span>
+                    </button>
+                    <button type="button" class="fleet-pick"
+                            aria-pressed="@(_choosingComparison ? "true" : "false")"
+                            @onclick="() => _choosingComparison = true">
+                        <span class="fleet-pick-dot fleet-series-comparison" aria-hidden="true"></span>
+                        <span>Second plant <strong>@(comparison?.Name ?? "Choose a plant")</strong></span>
+                    </button>
+                    @if (comparison is not null)
+                    {
+                        <button type="button" class="fleet-plant-link" @onclick="ClearComparison">Clear comparison</button>
+                    }
+                </div>
+                <p class="fleet-map-instructions" aria-live="polite">
+                    @(_choosingComparison ? "Choose a different plant on the map to compare." : "Choose the first plant on the map.")
+                </p>
+
+                <FleetMap Plants="visible" SelectedId="selected.Id" ComparedId="comparison?.Id"
+                          PlantSelected="SelectPlant" ShowCapacity="_showCapacity" CapacityScaleMw="_capacityScaleMw" />
+
+                <div class="fleet-map-caption">
+                    @if (_showCapacity)
+                    {
+                        <span>Column height shows plant capacity in MW. Segments show reactor units.</span>
+                    }
+                    <a href="https://github.com/topojson/us-atlas" target="_blank" rel="noopener">Map boundaries</a>
+                </div>
+            </section>
+
+            <section class="fleet-panel fleet-plant" aria-labelledby="fleet-selected-name">
+                <header aria-live="polite">
+                    <p class="fleet-plant-meta">@selected.State <span aria-hidden="true">·</span> EIA plant @selected.Id</p>
+                    <h2 id="fleet-selected-name">@selected.Name</h2>
+                </header>
+
+                <dl class="fleet-metrics">
+                    <div>
+                        <dt>Net summer capacity</dt>
+                        <dd>@FormatMetric(selected.NetSummerCapacityMw, "MW")</dd>
+                    </div>
+                    <div>
+                        <dt>Annual net generation</dt>
+                        <dd>@FormatMetric(selected.AnnualNetGenerationMwh / 1_000, "GWh")</dd>
+                        @if (selected.ReportedMonths < 12)
+                        {
+                            <dd class="fleet-metric-note">@selected.ReportedMonths of 12 months reported</dd>
+                        }
+                    </div>
+                </dl>
+
+                <h3>Capacity by reactor</h3>
+                @if (selected.Units.Length == 0)
+                {
+                    <p class="fleet-plant-meta">No reactor capacity records in this snapshot.</p>
+                }
+                else
+                {
+                    <ul class="fleet-units">
+                        @foreach (FleetUnit unit in selected.Units)
+                        {
+                            <li><span>Unit @unit.Id</span><strong>@FormatMetric(unit.NetSummerCapacityMw, "MW")</strong></li>
+                        }
+                    </ul>
+                }
+
+            </section>
+        </div>
+
+        <section class="fleet-panel fleet-generation" aria-labelledby="fleet-generation-title">
+            <header class="fleet-section-header">
+                <div>
+                    <h2 id="fleet-generation-title">Monthly net generation</h2>
+                    <p>@_snapshot.Year · Gigawatt-hours (GWh)</p>
+                </div>
+                <ul class="fleet-series" aria-label="Chart series">
+                    <li><span class="fleet-series-primary" aria-hidden="true"></span>@selected.Name</li>
+                    @if (comparison is not null)
+                    {
+                        <li><span class="fleet-series-comparison" aria-hidden="true"></span>@comparison.Name</li>
+                    }
+                </ul>
+            </header>
+
+            @if (_primarySeries.Length > 0 || _comparisonSeries.Length > 0)
+            {
+                <div class="fleet-chart">
+                    <RadzenChart @key="(selected.Id, _comparisonId)" Style="height: 19rem; width: 100%;"
+                                 AllowPan="true" ShowScrollbar="false">
+                        <RadzenChartTooltipOptions Shared="true" />
+                        @if (_primarySeries.Length > 0)
+                        {
+                            <RadzenColumnSeries Data="_primarySeries" CategoryProperty="Month" ValueProperty="GenerationGwh"
+                                                Fill="var(--fleet-primary)" Title="@selected.Name" />
+                        }
+                        @if (comparison is not null && _comparisonSeries.Length > 0)
+                        {
+                            <RadzenColumnSeries Data="_comparisonSeries" CategoryProperty="Month" ValueProperty="GenerationGwh"
+                                                Fill="var(--fleet-secondary)" Title="@comparison.Name" />
+                        }
+                        <RadzenCategoryAxis Min="@(new DateTime(_snapshot.Year, 1, 1))"
+                                            Max="@(new DateTime(_snapshot.Year, 12, 1))" FormatString="{0:MMM}" />
+                        <RadzenValueAxis FormatString="{0:N0}"><RadzenGridLines Visible="true" /></RadzenValueAxis>
+                        <RadzenLegend Visible="false" />
+                        <RadzenChartRangeNavigator Height="34" />
+                    </RadzenChart>
+                </div>
+            }
+            else
+            {
+                <p class="fleet-plant-meta">No monthly generation is reported for this selection.</p>
+            }
+
+            <details class="fleet-monthly-data">
+                <summary>View reported monthly values</summary>
+                <table class="fleet-table">
+                    <caption class="fleet-sr-only">Monthly net electricity generation in megawatt-hours</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Month</th>
+                            <th scope="col">@selected.Name (MWh)</th>
+                            @if (comparison is not null)
+                            {
+                                <th scope="col">@comparison.Name (MWh)</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int month = 0; month < 12; month++)
+                        {
+                            <tr>
+                                <th scope="row">@(new DateTime(_snapshot.Year, month + 1, 1).ToString("MMM"))</th>
+                                <td>@FormatGeneration(selected, month)</td>
+                                @if (comparison is not null)
+                                {
+                                    <td>@FormatGeneration(comparison, month)</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </details>
+        </section>
+
+        <section class="fleet-panel fleet-directory" aria-labelledby="fleet-directory-title">
+            <header class="fleet-section-header">
+                <div>
+                    <h2 id="fleet-directory-title">Plant list</h2>
+                    <p aria-live="polite">@visible.Length of @_snapshot.Plants.Length plants</p>
+                </div>
+                <label class="fleet-search">
+                    Filter by plant or state code
+                    <input class="fleet-control" type="search" @bind="_search" @bind:event="oninput" />
+                </label>
+            </header>
+            @if (visible.Length == 0)
+            {
+                <p>No matching plants.</p>
+            }
+            else
+            {
+                <div class="fleet-list" role="region" aria-label="Plant list results" tabindex="0">
+                    <table class="fleet-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Plant</th>
+                                <th scope="col">State</th>
+                                <th scope="col">Net summer MW</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (FleetPlant plant in visible)
+                            {
+                                <tr @key="plant.Id" class="@(selected.Id == plant.Id ? "fleet-row-selected" : comparison?.Id == plant.Id ? "fleet-row-compared" : "")">
+                                    <th scope="row">
+                                        <button type="button" class="fleet-plant-link"
+                                                aria-pressed="@(selected.Id == plant.Id || comparison?.Id == plant.Id ? "true" : "false")"
+                                                @onclick="() => SelectPlant(plant)">@plant.Name</button>
+                                    </th>
+                                    <td>@plant.State</td>
+                                    <td>@(plant.NetSummerCapacityMw?.ToString("N1") ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <footer class="fleet-sources">
+            <a href="https://www.eia.gov/electricity/data/eia860/" target="_blank" rel="noopener">EIA-860 plant inventory and capacity</a>
+            and <a href="https://www.eia.gov/nuclear/generation/index.php" target="_blank" rel="noopener">EIA @_snapshot.Year nuclear generation from EIA-923</a>.
+            Plant generation sums the units that reported each month. Capacity sums the net summer values for all listed units.
+        </footer>
+    }
+</section>

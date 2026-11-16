@@ -53,8 +53,10 @@ services:
     depends_on:
       app:
         condition: service_started
+    # Chromium exposes the cryptography API used by Blazor WASM on loopback HTTP.
+    network_mode: service:app
     environment:
-      E2E_BASE_URL: "http://nuclear-evaluation.test:8080"
+      E2E_BASE_URL: "http://127.0.0.1:8080"
       E2E_WORKERS: "${E2E_WORKERS:-2}"
       CI: "1"
     volumes:

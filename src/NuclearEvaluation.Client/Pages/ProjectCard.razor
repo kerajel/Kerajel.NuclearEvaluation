@@ -110,7 +110,7 @@ else if (_projectView is not null)
             </RadzenColumn>
         </RadzenRow>
 
-        <RadzenTabs RenderMode="@TabRenderMode" @bind-SelectedIndex="tabManager.SelectedTabIndex" Change="OnTabChanged">
+        <RadzenTabs RenderMode="@TabRenderMode" @bind-SelectedIndex="tabManager.SelectedTabIndex" Change="OnTabChanged" Overflow="TabsOverflow.Wrap">
             <Tabs>
                 <RadzenTabsItem Text="Overview" Style="margin-right: 5px;">
                     <ProjectOverview ProjectView="@_projectView" />

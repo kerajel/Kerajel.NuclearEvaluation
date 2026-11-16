@@ -21,9 +21,10 @@ correction, reference dates, and histogram definitions.
 
 ### Design choices
 
-The browser owns component state and calls a typed HTTP API. SQL Server handles filtering,
-pagination, counts, and histogram aggregation so large datasets do not have to move into WASM memory.
-Spreadsheet rows are parsed on demand and bulk-copied into temporary staging tables.
+The browser owns component state and calls a typed HTTP API. SQL Server handles data management,
+evaluation queries, and histogram aggregation. STEM Preview retains the original uploads for the
+session and appends each file to a DuckDB temporary table. DuckDB handles preview filtering,
+sorting, counts, and pagination.
 
 The application runs as a single host with an anonymous shared workspace.
 [Implementation notes](docs/implementation.md) describe query execution, upload processing,
@@ -38,16 +39,17 @@ browser state, and automated test coverage.
 | `NuclearEvaluation.Shared` | Class library | Domain/view models, enums, query-builder filters, and the `INuclearEvaluationApi` contract (referenced by both client and server) |
 | `NuclearEvaluation.Kernel` | Class library | EF Core `DbContext`, migrations, query execution, embedded seed script |
 | `Kerajel.Primitives` | Class library | Vendored helper types (`OperationResult`, `Debouncer`, …) |
-| `Kerajel.TabularDataReader` | Class library | Vendored delimited-text/Excel reader used by STEM preview parsing |
+| `Kerajel.TabularDataReader` | Class library | Compatibility reader for legacy Excel and inputs DuckDB cannot parse with the existing STEM rules |
 
 The client talks to the server only through the typed `INuclearEvaluationApi` (HTTP + JSON).
-Grids translate Radzen `LoadDataArgs` into a serializable `DataQuery`; the server maps that
-onto EF Core queries.
+Grids translate Radzen `LoadDataArgs` into a serializable `DataQuery`; the server runs it against
+SQL Server for evaluation data and embedded DuckDB for STEM Preview.
 
 ```
 Browser ──HTTP/JSON──> NuclearEvaluation.Server (API + WASM host) ──EF Core / linq2db──> SQL Server
    │  (WASM: NuclearEvaluation.Client)                 │
-   └─ proof-of-work captcha gate                       └─ SandboxMaintenanceService (purge + nightly reset)
+   └─ proof-of-work captcha gate                       ├─ embedded DuckDB (STEM Preview)
+                                                       └─ SandboxMaintenanceService (purge + nightly reset)
 ```
 
 ## Running locally with Docker
@@ -101,15 +103,21 @@ nightly reset.
 Because the site is public and anonymous, the `Sandbox` configuration section governs:
 
 - **Rate limiting** — per-IP request window plus a stricter per-IP daily cap on uploads.
-- **Upload caps** — ~64 MB per file (`UploadLimits`) and a global storage ceiling that blocks
-  uploads once exceeded.
+- **Upload caps** — 64 MiB per STEM file (`UploadLimits`). Upload admission checks the global storage
+  threshold against retained uploads and temporary DuckDB spill files before accepting a new file.
+  `Sandbox:StemPreviewMaxConcurrentOperations` bounds simultaneous DuckDB operations (two by default).
 - **Ephemeral data** — a background service purges expired upload folders, evicts idle STEM
-  sessions (dropping their throwaway temp tables), and resets the database to seed once per
+  sessions (closing their DuckDB connections and deleting their uploads), and resets SQL Server to seed once per
   interval (tracked in `DBO.SandboxState` so it survives app-pool recycling).
 
 Set a private `Captcha:Secret` and the connection string on the production host. If no captcha
 secret is configured, the server generates a random key for that process, so verification cookies
 stop working when it restarts. Difficulty and cookie lifetime can also be set under `Captcha`.
+
+When the host blocks writes outside the site directory, set `Sandbox__StorageDirectory` to
+`App_Data/NuclearEvaluationStorage` on the host. Relative paths resolve against the app content
+root, and the IIS worker needs write access. Keep this directory outside `wwwroot` because it
+holds temporary uploads and DuckDB spill files. Docker uses the sibling storage volume by default.
 
 ## Tests
 
@@ -119,7 +127,7 @@ dotnet test
 
 - `NuclearEvaluation.Client.Tests` — bUnit component tests with a mocked API (no database).
 - `Kerajel.TabularDataReader.Tests` — CSV/Excel parsing, culture, error propagation, and resource lifetime.
-- `NuclearEvaluation.Server.Tests` — captcha validation, upload cleanup, and optional SQL Server integration tests.
+- `NuclearEvaluation.Server.Tests` — captcha validation, upload cleanup, embedded DuckDB preview tests, and optional SQL Server integration tests.
 
 The SQL tests create and delete a uniquely named database.
 CI runs them against its disposable SQL Server service. To enable them locally, set `NUCLEAR_TEST_SQL`
@@ -166,10 +174,11 @@ Production is hosted on **smarterasp.net** (shared Windows hosting) and is publi
 Docker is for local development only. Do not deploy the repository root as a Docker build unless
 the hosting account is explicitly configured for containers.
 
-For a direct .NET publish, publish the host project, which bundles the WASM client:
+For a direct publish, build the self-contained Windows x64 host, which bundles the .NET runtime
+and WASM client:
 
 ```bash
-dotnet publish src/NuclearEvaluation.Server -c Release -o ./publish
+dotnet publish src/NuclearEvaluation.Server -c Release -r win-x64 --self-contained true -o ./publish
 ```
 
 Deploy the contents of `./publish` and supply `ConnectionStrings:NuclearEvaluationServerDbConnection`
@@ -198,7 +207,7 @@ Module hosting. It also validates the package with `dotnet restore` followed by
 
 Recommended SmarterASP.NET publish settings for the Auto Build project:
 
-- `RuntimeIdentifier=win-x86`
+- `RuntimeIdentifier=win-x64`
 - `SelfContained=true`
 - `ServerGarbageCollection=false`
 - `IsTransformWebConfigDisabled=true` when supplying a custom `web.config`
@@ -206,6 +215,8 @@ Recommended SmarterASP.NET publish settings for the Auto Build project:
 
 These properties are injected into the generated upload package by
 `scripts/package-smarterasp-autobuild.ps1`; keep the repository itself Docker-first.
+Before publishing this version, [switch the SmarterASP.NET IIS application pool to 64-bit](https://www.smarterasp.net/support/kb/a2249/how-to-change-the-application-pool-to-64-bit-pool.aspx).
+The package uses native DuckDB and must run in a 64-bit process.
 
 On startup the app applies EF Core migrations before accepting traffic. The full sandbox seed and
 reset work runs in the background so shared-hosting startup timeouts do not block the site launch.

@@ -1,0 +1,73 @@
+<Project>
+  <PropertyGroup>
+    <_DuckDbRuntimeIdentifier Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_DuckDbRuntimeIdentifier>
+    <_DuckDbRuntimeIdentifier Condition="'$(_DuckDbRuntimeIdentifier)' == ''">$(NETCoreSdkPortableRuntimeIdentifier)</_DuckDbRuntimeIdentifier>
+    <_DuckDbExcelPlatform Condition="'$(_DuckDbRuntimeIdentifier)' == 'win-x64'">windows_amd64</_DuckDbExcelPlatform>
+    <_DuckDbExcelPlatform Condition="'$(_DuckDbRuntimeIdentifier)' == 'win-arm64'">windows_arm64</_DuckDbExcelPlatform>
+    <_DuckDbExcelPlatform Condition="'$(_DuckDbRuntimeIdentifier)' == 'linux-x64'">linux_amd64</_DuckDbExcelPlatform>
+    <_DuckDbExcelPlatform Condition="'$(_DuckDbRuntimeIdentifier)' == 'linux-arm64'">linux_arm64</_DuckDbExcelPlatform>
+    <_DuckDbExcelPlatform Condition="'$(_DuckDbRuntimeIdentifier)' == 'osx-x64'">osx_amd64</_DuckDbExcelPlatform>
+    <_DuckDbExcelPlatform Condition="'$(_DuckDbRuntimeIdentifier)' == 'osx-arm64'">osx_arm64</_DuckDbExcelPlatform>
+    <_DuckDbExcelCache>$(MSBuildProjectExtensionsPath)duckdb-extensions/v$(DuckDbNativeVersion)/$(_DuckDbExcelPlatform)</_DuckDbExcelCache>
+    <_DuckDbExcelAsset>$(_DuckDbExcelCache)/excel.duckdb_extension</_DuckDbExcelAsset>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(_DuckDbExcelPlatform)' != ''">
+    <Content Include="$(_DuckDbExcelAsset)"
+             Link="duckdb-extensions/excel.duckdb_extension"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="Always" />
+  </ItemGroup>
+
+  <UsingTask TaskName="ExpandDuckDbExcelExtension" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Archive ParameterType="System.String" Required="true" />
+      <Destination ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.IO.Compression" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var tempPath = Destination + "." + Guid.NewGuid().ToString("N");
+        try
+        {
+            using (var input = new GZipStream(File.OpenRead(Archive), CompressionMode.Decompress))
+            using (var output = File.Create(tempPath))
+                input.CopyTo(output);
+            if (!File.Exists(Destination))
+            {
+                try { File.Move(tempPath, Destination); }
+                catch (IOException) when (File.Exists(Destination)) { }
+            }
+        }
+        finally
+        {
+            File.Delete(tempPath);
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <!-- DuckDB verifies the official extension's signature and version when it loads the packaged binary. -->
+  <Target Name="PrepareDuckDbExcelExtension"
+          BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems"
+          Condition="'$(DesignTimeBuild)' != 'true' And !Exists('$(_DuckDbExcelAsset)')">
+    <Error Condition="'$(_DuckDbExcelPlatform)' == ''"
+           Text="The DuckDB Excel extension has no build mapping for runtime '$(_DuckDbRuntimeIdentifier)'." />
+    <PropertyGroup>
+      <_DuckDbDownload>$(_DuckDbExcelCache)/$([System.Guid]::NewGuid())</_DuckDbDownload>
+    </PropertyGroup>
+    <DownloadFile SourceUrl="https://extensions.duckdb.org/v$(DuckDbNativeVersion)/$(_DuckDbExcelPlatform)/excel.duckdb_extension.gz"
+                  DestinationFolder="$(_DuckDbDownload)" Retries="2" RetryDelayMilliseconds="1000">
+      <Output TaskParameter="DownloadedFile" ItemName="_DuckDbExcelArchive" />
+    </DownloadFile>
+    <ExpandDuckDbExcelExtension Archive="@(_DuckDbExcelArchive)" Destination="$(_DuckDbExcelAsset)" />
+    <RemoveDir Directories="$(_DuckDbDownload)" />
+    <OnError ExecuteTargets="CleanDuckDbExcelDownload" />
+  </Target>
+
+  <Target Name="CleanDuckDbExcelDownload" Condition="'$(_DuckDbDownload)' != ''">
+    <RemoveDir Directories="$(_DuckDbDownload)" />
+  </Target>
+</Project>

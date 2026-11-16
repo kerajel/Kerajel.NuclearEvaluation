@@ -74,6 +74,7 @@ public class StemController : ControllerBase
     public async Task<IActionResult> Delete(Guid sessionId, Guid fileId)
     {
         await _stemPreviewService.DeleteFileData(sessionId, fileId);
+        _storageQuotaService.Invalidate();
         return Ok();
     }
 }

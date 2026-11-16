@@ -472,7 +472,7 @@ VALUES
 
 -- Clear existing domain and evaluation data so this script is idempotent
 -- and can be re-run by the nightly sandbox reset. FK-safe deletion order.
--- (STEM preview data lives in throwaway temp tables, not real tables, so it is not touched here.)
+-- STEM preview rows live in session-local DuckDB temporary tables.
 DECLARE @DeleteBatchSize INT = 1000;
 
 WHILE 1 = 1
@@ -908,8 +908,7 @@ END;
 GO
 
 -- Best-effort database tuning. These are environment-specific (and may be disallowed on
--- shared hosting), so they are wrapped so a failure can never abort the rest of the script
--- (which also defines the temp-table index proc the STEM preview feature depends on).
+-- shared hosting), so failures do not abort the rest of the script.
 BEGIN TRY
     IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = DB_NAME() AND snapshot_isolation_state = 1)
         ALTER DATABASE CURRENT SET ALLOW_SNAPSHOT_ISOLATION ON;
@@ -929,57 +928,4 @@ BEGIN TRY
     EXEC sp_executesql @recoverySql;
 END TRY
 BEGIN CATCH END CATCH;
-GO
-
-CREATE OR ALTER PROCEDURE [DBO].EnsureIndexOnTempTableField
-    @tableName NVARCHAR(128),
-    @fieldName NVARCHAR(128)
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @tempIndexName NVARCHAR(128) = 'IDX_' + @fieldName + '_On_' + REPLACE(@tableName, '##', '');
-    DECLARE @dbName NVARCHAR(128) = 'tempdb';
-    DECLARE @sql NVARCHAR(MAX);
-
-    IF NOT EXISTS (
-        SELECT 1
-        FROM [TEMPDB].SYS.TABLES AS t
-        WHERE t.name = @tableName
-          AND t.is_ms_shipped = 0
-    )
-    BEGIN
-        RAISERROR(N'The specified table ''%s'' does not exist in tempdb.', 16, 1, @tableName);
-        RETURN;
-    END
-
-    IF NOT EXISTS (
-        SELECT 1
-        FROM [TEMPDB].SYS.COLUMNS AS c
-        INNER JOIN [TEMPDB].SYS.TABLES AS t ON c.object_id = t.object_id
-        WHERE t.name = @tableName
-          AND c.name = @fieldName
-    )
-    BEGIN
-        RAISERROR(N'The specified field ''%s'' does not exist in the table ''%s''.', 16, 1, @fieldName, @tableName);
-        RETURN;
-    END
-
-    IF NOT EXISTS (
-        SELECT 1
-        FROM [TEMPDB].SYS.INDEXES AS i
-        INNER JOIN [TEMPDB].SYS.INDEX_COLUMNS AS ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
-        INNER JOIN [TEMPDB].SYS.TABLES AS t ON i.object_id = t.object_id
-        INNER JOIN [TEMPDB].SYS.COLUMNS AS c ON ic.column_id = c.column_id AND t.object_id = c.object_id
-        WHERE t.name = @tableName
-          AND c.name = @fieldName
-          AND i.name = @tempIndexName
-    )
-    BEGIN
-        SET @sql = 'CREATE NONCLUSTERED INDEX ' + QUOTENAME(@tempIndexName) +
-                   ' ON [TEMPDB].[DBO].' + QUOTENAME(@tableName) + ' (' + QUOTENAME(@fieldName) + ')';
-        EXEC sp_executesql @sql;
-    END
-END;
-
 GO

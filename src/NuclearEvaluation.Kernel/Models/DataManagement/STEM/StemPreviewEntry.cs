@@ -3,10 +3,8 @@ using LinqToDB.Mapping;
 
 namespace NuclearEvaluation.Kernel.Models.DataManagement.Stem;
 
-/// <summary>
-/// A staged STEM preview row. These live only in per-session global temporary tables
-/// (throwaway, never in the real schema) and are dropped when the session is evicted.
-/// </summary>
+/// <summary>A row in a STEM session's temporary preview table.</summary>
+[Table(Name = "stem_entries", IsColumnAttributeRequired = false)]
 public class StemPreviewEntry
 {
     [Column(DataType = DataType.Decimal, Precision = 10, Scale = 2)]
@@ -31,4 +29,8 @@ public class StemPreviewEntry
     public decimal? ErU235 { get; set; }
 
     public Guid FileId { get; set; }
+
+    public long RowOrdinal { get; set; }
+
+    public string FileName { get; set; } = string.Empty;
 }

@@ -7,7 +7,7 @@ namespace NuclearEvaluation.Shared;
 /// </summary>
 public static class UploadLimits
 {
-    // Generous enough for the bundled STEM preview samples (the 1,048,567-row file is ~52 MB),
+    // Generous enough for the bundled STEM preview samples (the 1,048,575-row file is ~52 MB),
     // which is the whole point of the streaming + throwaway-temp-table showcase.
     public const long MaxStemPreviewFileSizeBytes = 64L * 1024 * 1024; // 64 MB
 }

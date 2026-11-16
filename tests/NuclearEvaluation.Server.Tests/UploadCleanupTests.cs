@@ -1,12 +1,14 @@
 using System.Runtime.CompilerServices;
 using Kerajel.Primitives.Models;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using NSubstitute;
+using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Models.DataManagement.Stem;
-using NuclearEvaluation.Kernel.Models.Files;
-using NuclearEvaluation.Server.Interfaces.EFS;
 using NuclearEvaluation.Server.Interfaces.STEM;
+using NuclearEvaluation.Server.Services.Sandbox;
 using NuclearEvaluation.Server.Services.STEM;
+using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Server.Tests;
 
@@ -15,66 +17,62 @@ public class UploadCleanupTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task FilesAreClosedAndRemovedOnSuccessAndParseFailure(bool fail)
+    public async Task RawWorkbookIsClosedAndOnlySuccessfulImportsAreRetained(bool fail)
     {
-        string path = Path.GetTempFileName();
-        Guid sessionId = Guid.NewGuid(),
-            fileId = Guid.NewGuid();
-        IEfsFileService efs = Substitute.For<IEfsFileService>();
-        efs.Write(Arg.Any<WriteFileCommand>(), Arg.Any<CancellationToken>())
-            .Returns(OperationResult<FileInfo>.Succeeded(new FileInfo(path)));
-        efs.Delete(fileId, Arg.Any<CancellationToken>())
-            .Returns(_ =>
-            {
-                using (File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
-                File.Delete(path);
-                return OperationResult.Succeeded();
-            });
-        IStemPreviewParser parser = Substitute.For<IStemPreviewParser>();
-        parser
-            .Parse(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(_ => Rows(fail));
-        IStemPreviewEntryService entries = Substitute.For<IStemPreviewEntryService>();
-        entries
-            .InsertStemPreviewEntries(
-                sessionId,
-                Arg.Any<IAsyncEnumerable<StemPreviewEntry>>(),
-                Arg.Any<CancellationToken>()
-            )
-            .Returns(async call =>
-            {
-                await foreach (
-                    StemPreviewEntry row in call.Arg<IAsyncEnumerable<StemPreviewEntry>>()
-                )
-                    Assert.Equal(fileId, row.FileId);
-            });
+        DirectoryInfo storage = Directory.CreateTempSubdirectory("stem-raw-cleanup-");
         try
         {
-            StemPreviewService service = new(
-                parser,
-                entries,
-                efs,
-                NullLogger<StemPreviewService>.Instance
+            Guid sessionId = Guid.NewGuid();
+            Guid fileId = Guid.NewGuid();
+            IStemPreviewParser parser = Substitute.For<IStemPreviewParser>();
+            parser
+                .Parse(Arg.Any<Stream>(), "sample.xls", Arg.Any<CancellationToken>())
+                .Returns(call => Rows(fail, call.Arg<CancellationToken>()));
+            await using StemSessionManager sessions = new(
+                Options.Create(new SandboxSettings()),
+                storage
             );
-            using MemoryStream stream = new();
+            StemPreviewEntryService entries = new(sessions, parser);
+            StemPreviewService service = new(entries, NullLogger<StemPreviewService>.Instance);
+            using MemoryStream stream = new([17]);
             OperationResult result = await service.UploadStemPreviewFile(
                 sessionId,
                 stream,
                 fileId,
-                "sample.csv"
+                "sample.xls"
             );
+
             Assert.Equal(!fail, result.IsSuccessful);
-            Assert.False(File.Exists(path));
-            await efs.Received(1).Delete(fileId, Arg.Any<CancellationToken>());
+            string[] retainedFiles = Directory.GetFiles(
+                storage.FullName,
+                "*.xls",
+                SearchOption.AllDirectories
+            );
+            FetchDataResult<StemPreviewEntryView> preview = await entries.GetStemPreviewEntryViews(
+                sessionId,
+                new()
+            );
             if (fail)
             {
-                await entries.Received().DeleteFileData(sessionId, fileId);
-                await entries.DidNotReceive().SetStemPreviewFileAsFullyUploaded(sessionId, fileId);
+                Assert.Empty(retainedFiles);
+                Assert.Empty(preview.Entries);
+            }
+            else
+            {
+                Assert.Equal(fileId, Assert.Single(preview.Entries).FileId);
+                string path = Assert.Single(retainedFiles);
+                using FileStream retained = File.Open(
+                    path,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.None
+                );
+                Assert.Equal(17, retained.ReadByte());
             }
         }
         finally
         {
-            File.Delete(path);
+            storage.Delete(recursive: true);
         }
     }
 
@@ -83,7 +81,7 @@ public class UploadCleanupTests
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        yield return new StemPreviewEntry { Id = 1 };
+        yield return new StemPreviewEntry { Id = 1, AnalysisDate = new(2026, 1, 1) };
         await Task.Yield();
         ct.ThrowIfCancellationRequested();
         if (fail)

@@ -1,3 +1,8 @@
+using System.Data;
+using System.Data.Common;
+using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
+using DuckDB.NET.Data;
 using LinqToDB;
 using LinqToDB.Async;
 using LinqToDB.Data;
@@ -7,141 +12,129 @@ using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Server.Services.STEM;
 
-/// <summary>
-/// One anonymous STEM preview session. It owns a single kept-open linq2db connection on which
-/// it creates SQL Server *global temporary tables* (##...) for the uploaded rows and file
-/// metadata. Because the connection stays open for the session's lifetime, those throwaway
-/// tables survive across separate (stateless) API requests and are dropped when the session is
-/// evicted — demonstrating staging large datasets without ever touching the real schema.
-/// </summary>
+/// <summary>Owns the original uploads and one DuckDB temporary table for a preview session.</summary>
 public sealed class StemSession : IAsyncDisposable
 {
-    const int maxBatchSize = 10_000;
-    const int bulkCopyTimeout = 60 * 5;
-    static readonly TableOptions TempTableOptions = TableOptions.IsGlobalTemporaryStructure;
-
     readonly SemaphoreSlim _gate = new(1, 1);
-    readonly DataConnection _db;
-    readonly string _entryTable;
-    readonly string _fileTable;
+    readonly SemaphoreSlim _operations;
+    readonly ILogger _logger;
+    readonly string _directory;
+    readonly string _uploads;
+    readonly string _connectionString;
+    readonly Dictionary<Guid, StoredFile> _files = [];
+    DataConnection? _database;
+    DateTime _lastAccessUtc = DateTime.UtcNow;
+    bool _disposed;
 
-    ITable<StemPreviewEntry>? _entries;
-    ITable<StemPreviewFileMetadata>? _files;
-
-    public DateTime LastAccessUtc { get; private set; } = DateTime.UtcNow;
-
-    public StemSession(Guid sessionId, string connectionString)
+    internal StemSession(string directory, SemaphoreSlim operations, ILogger logger)
     {
-        _db = new DataConnection(new DataOptions().UseSqlServer(connectionString));
-        _entryTable = $"##stem_entries_{sessionId:N}";
-        _fileTable = $"##stem_files_{sessionId:N}";
+        _directory = directory;
+        _uploads = Path.Combine(directory, "uploads");
+        _operations = operations;
+        _logger = logger;
+        _connectionString = new DbConnectionStringBuilder
+        {
+            ["Data Source"] = ":memory:",
+            ["threads"] = 1,
+            ["memory_limit"] = "128MiB",
+            ["temp_directory"] = Path.Combine(directory, "scratch"),
+            ["max_temp_directory_size"] = "256MiB",
+            ["allow_community_extensions"] = false,
+            ["autoinstall_known_extensions"] = false,
+            ["autoload_known_extensions"] = false,
+            ["default_null_order"] = "NULLS_FIRST_ON_ASC_LAST_ON_DESC",
+            ["default_collation"] = "nocase",
+        }.ConnectionString;
     }
 
-    public async Task InsertFileMetadataAsync(
-        StemPreviewFileMetadata fileMetadata,
-        CancellationToken ct = default
-    )
-    {
-        await RunExclusive(
-            async () =>
+    internal Task AppendFileAsync(
+        Guid fileId,
+        string fileName,
+        Stream content,
+        IStemPreviewParser compatibilityParser,
+        CancellationToken ct
+    ) =>
+        RunExclusive(
+            async db =>
             {
-                await EnsureTablesAsync(ct);
-                await _db.InsertAsync(
-                    fileMetadata,
-                    tableName: _fileTable,
-                    tableOptions: TempTableOptions,
-                    token: ct
+                // A retry after a successful request must not append the same file again.
+                if (_files.ContainsKey(fileId))
+                    return;
+
+                string extension = Path.GetExtension(fileName).ToLowerInvariant();
+                bool legacy = StemRawReader.IsLegacySpreadsheet(extension);
+                string storedExtension =
+                    legacy || StemRawReader.IsXlsx(extension) ? extension : ".csv";
+                string path = Path.Combine(
+                    _uploads,
+                    Guid.NewGuid().ToString("N") + storedExtension
                 );
-            },
-            ct
-        );
-    }
-
-    public async Task BulkCopyEntriesAsync(
-        IAsyncEnumerable<StemPreviewEntry> entries,
-        CancellationToken ct = default
-    )
-    {
-        await RunExclusive(
-            async () =>
-            {
-                await EnsureTablesAsync(ct);
-
-                BulkCopyOptions options = new()
+                StoredFile file = new(fileId, fileName, path, legacy ? compatibilityParser : null);
+                try
                 {
-                    TableName = _entryTable,
-                    TableOptions = TempTableOptions,
-                    BulkCopyTimeout = bulkCopyTimeout,
-                    MaxBatchSize = maxBatchSize,
-                };
+                    await using (
+                        FileStream output = new(
+                            path,
+                            FileMode.CreateNew,
+                            FileAccess.Write,
+                            FileShare.None,
+                            81_920,
+                            FileOptions.Asynchronous | FileOptions.SequentialScan
+                        )
+                    )
+                    {
+                        await content.CopyToAsync(output, ct);
+                    }
 
-                await _db.BulkCopyAsync(options, entries, cancellationToken: ct);
+                    try
+                    {
+                        await AppendRowsAsync(db, file, ct);
+                    }
+                    catch (DuckDBException)
+                        when (file.Parser is null && !ct.IsCancellationRequested)
+                    {
+                        // The previous reader accepts additional date and delimiter variants.
+                        // Retry after the failed native transaction has rolled back.
+                        file = file with { Parser = compatibilityParser };
+                        await AppendRowsAsync(db, file, ct);
+                    }
+
+                    _files.Add(fileId, file);
+                }
+                catch
+                {
+                    DeleteRawFile(path, fileId);
+                    throw;
+                }
             },
             ct
         );
-    }
 
-    public async Task EnsureIndexAsync(CancellationToken ct = default)
-    {
-        await RunExclusive(
-            async () =>
+    internal Task DeleteFileAsync(Guid fileId, CancellationToken ct = default) =>
+        RunExclusive(
+            async db =>
             {
-                await EnsureTablesAsync(ct);
-                await _db.ExecuteProcAsync(
-                    "[DBO].EnsureIndexOnTempTableField",
-                    new { tableName = _entryTable, fieldName = nameof(StemPreviewEntry.Id) }
-                );
+                if (!_files.TryGetValue(fileId, out StoredFile? file))
+                    return;
+
+                await db.GetTable<StemPreviewEntry>()
+                    .Where(row => row.FileId == fileId)
+                    .DeleteAsync(ct);
+                _files.Remove(fileId);
+                DeleteRawFile(file.Path, fileId);
             },
             ct
         );
-    }
 
-    public async Task SetFileFullyUploadedAsync(Guid fileId, CancellationToken ct = default)
-    {
-        await RunExclusive(
-            async () =>
-            {
-                await EnsureTablesAsync(ct);
-                await _files!
-                    .Where(x => x.Id == fileId)
-                    .Set(x => x.IsFullyUploaded, true)
-                    .UpdateAsync(ct);
-            },
-            ct
-        );
-    }
-
-    public async Task MarkFileDeletedAsync(Guid fileId, CancellationToken ct = default)
-    {
-        await RunExclusive(
-            async () =>
-            {
-                await EnsureTablesAsync(ct);
-                await _files!
-                    .Where(x => x.Id == fileId)
-                    .Set(x => x.IsDeleted, true)
-                    .UpdateAsync(ct);
-                await _entries!.Where(x => x.FileId == fileId).DeleteAsync(ct);
-            },
-            ct
-        );
-    }
-
-    public async Task<FetchDataResult<StemPreviewEntryView>> QueryViewsAsync(
+    public Task<FetchDataResult<StemPreviewEntryView>> QueryViewsAsync(
         FetchDataCommand<StemPreviewEntryView> command,
         CancellationToken ct = default
-    )
-    {
-        return await RunExclusive(
-            async () =>
+    ) =>
+        RunExclusive(
+            async db =>
             {
-                await EnsureTablesAsync(ct);
-
-                IQueryable<StemPreviewEntryView> baseQuery =
-                    from entry in _entries!
-                    join file in _files! on entry.FileId equals file.Id
-                    where file.IsFullyUploaded && !file.IsDeleted
-                    select new StemPreviewEntryView
+                IQueryable<PreviewRow> rows = db.GetTable<StemPreviewEntry>()
+                    .Select(entry => new PreviewRow
                     {
                         Id = entry.Id,
                         LabCode = entry.LabCode,
@@ -151,56 +144,164 @@ public sealed class StemSession : IAsyncDisposable
                         ErU234 = entry.ErU234,
                         U235 = entry.U235,
                         ErU235 = entry.ErU235,
-                        FileId = file.Id,
-                        FileName = file.Name,
-                    };
+                        FileId = entry.FileId,
+                        FileName = entry.FileName,
+                        RowOrdinal = entry.RowOrdinal,
+                    });
+                IQueryable<PreviewRow> filtered = FilterRows(rows, command.Query?.Filter);
 
-                IQueryable<StemPreviewEntryView> filtered = baseQuery.FilterWithFallback(
-                    command.Query
-                );
-
-                int[] totals = await AsyncExtensions.ToArrayAsync(
-                    filtered.GroupBy(_ => 1).Select(g => g.Count()),
-                    ct
-                );
-                int total = totals.SingleOrDefault();
-
-                IQueryable<StemPreviewEntryView> dataQuery = filtered
-                    .OrderByWithFallback(command.Query, x => x.Id)
-                    .PageWithFallback(command.Query);
-
-                StemPreviewEntryView[] data = await AsyncExtensions.ToArrayAsync(dataQuery, ct);
+                int total = await filtered.CountAsync(ct);
+                IOrderedQueryable<PreviewRow> ordered =
+                    (IOrderedQueryable<PreviewRow>)
+                        filtered.OrderByWithFallback(command.Query, x => x.Id);
+                PreviewRow[] data = await ordered
+                    .ThenBy(x => x.FileId)
+                    .ThenBy(x => x.RowOrdinal)
+                    .PageWithFallback(command.Query)
+                    .ToArrayAsync(ct);
 
                 FetchDataResult<StemPreviewEntryView> result =
                     FetchDataResult<StemPreviewEntryView>.Succeeded(data);
                 result.TotalCount = total;
                 return result;
             },
+            ct,
+            () => FetchDataResult<StemPreviewEntryView>.Succeeded([])
+        );
+
+    static async Task AppendRowsAsync(DataConnection db, StoredFile file, CancellationToken ct)
+    {
+        await using DataConnectionTransaction transaction = await db.BeginTransactionAsync(ct);
+        if (file.Parser is null)
+        {
+            await StemRawReader.AppendAsync(db, file.Path, file.Id, file.Name, ct);
+        }
+        else
+        {
+            using FileStream input = File.OpenRead(file.Path);
+            await db.BulkCopyAsync(
+                new BulkCopyOptions { BulkCopyType = BulkCopyType.ProviderSpecific },
+                ReadCompatibilityRows(file, input, file.Parser, ct),
+                cancellationToken: ct
+            );
+        }
+
+        // Once committed, publish the file in the session even if the request is canceled.
+        ct.ThrowIfCancellationRequested();
+        await transaction.CommitAsync(CancellationToken.None);
+    }
+
+    static async IAsyncEnumerable<StemPreviewEntry> ReadCompatibilityRows(
+        StoredFile file,
+        Stream input,
+        IStemPreviewParser parser,
+        [EnumeratorCancellation] CancellationToken ct
+    )
+    {
+        long ordinal = 0;
+        await foreach (
+            StemPreviewEntry entry in parser.Parse(input, file.Name, ct).WithCancellation(ct)
+        )
+        {
+            ct.ThrowIfCancellationRequested();
+            entry.FileId = file.Id;
+            entry.FileName = file.Name;
+            entry.RowOrdinal = ordinal++;
+            yield return entry;
+        }
+    }
+
+    async Task<DataConnection> GetDatabaseAsync(CancellationToken ct)
+    {
+        if (_database?.TryGetDbConnection()?.State == ConnectionState.Open)
+            return _database;
+        if (_database is not null)
+        {
+            await _database.DisposeAsync();
+            _database = null;
+        }
+
+        Directory.CreateDirectory(_uploads);
+        DataConnection db = new(new DataOptions().UseDuckDB(_connectionString));
+        try
+        {
+            string excelExtension = Path.Combine(
+                AppContext.BaseDirectory,
+                "duckdb-extensions",
+                "excel.duckdb_extension"
+            );
+            await db.ExecuteAsync($"LOAD {SqlLiteral(excelExtension)}", ct);
+            await db.ExecuteAsync(
+                $"SET allowed_directories = [{SqlLiteral(_uploads + Path.DirectorySeparatorChar)}]",
+                ct
+            );
+            await db.ExecuteAsync("SET enable_external_access = false", ct);
+            await db.ExecuteAsync("SET lock_configuration = true", ct);
+            await db.CreateTableAsync<StemPreviewEntry>(
+                tableOptions: TableOptions.IsTemporary,
+                token: ct
+            );
+
+            foreach (StoredFile file in _files.Values)
+                await AppendRowsAsync(db, file, ct);
+
+            _database = db;
+            return db;
+        }
+        catch
+        {
+            await db.DisposeAsync();
+            throw;
+        }
+    }
+
+    static string SqlLiteral(string value) =>
+        "'" + value.Replace("'", "''", StringComparison.Ordinal) + "'";
+
+    static IQueryable<PreviewRow> FilterRows(IQueryable<PreviewRow> rows, string? filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+            return rows;
+
+        IQueryable<PreviewRow> filtered = rows.FilterWithFallback(filter);
+        return filtered.Provider.CreateQuery<PreviewRow>(
+            new PreviewStringSearch().Visit(filtered.Expression)
+        );
+    }
+
+    Task<bool> RunExclusive(Func<DataConnection, Task> action, CancellationToken ct) =>
+        RunExclusive(
+            async db =>
+            {
+                await action(db);
+                return true;
+            },
             ct
         );
-    }
 
-    async Task EnsureTablesAsync(CancellationToken ct)
-    {
-        _entries ??= await _db.CreateTableAsync<StemPreviewEntry>(
-            tableName: _entryTable,
-            tableOptions: TempTableOptions,
-            token: ct
-        );
-        _files ??= await _db.CreateTableAsync<StemPreviewFileMetadata>(
-            tableName: _fileTable,
-            tableOptions: TempTableOptions,
-            token: ct
-        );
-    }
-
-    async Task RunExclusive(Func<Task> action, CancellationToken ct)
+    async Task<T> RunExclusive<T>(
+        Func<DataConnection, Task<T>> action,
+        CancellationToken ct,
+        Func<T>? whenExpired = null
+    )
     {
         await _gate.WaitAsync(ct);
         try
         {
-            LastAccessUtc = DateTime.UtcNow;
-            await action();
+            if (_disposed && whenExpired is not null)
+                return whenExpired();
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
+            await _operations.WaitAsync(ct);
+            try
+            {
+                return await action(await GetDatabaseAsync(ct));
+            }
+            finally
+            {
+                _lastAccessUtc = DateTime.UtcNow;
+                _operations.Release();
+            }
         }
         finally
         {
@@ -208,13 +309,18 @@ public sealed class StemSession : IAsyncDisposable
         }
     }
 
-    async Task<T> RunExclusive<T>(Func<Task<T>> action, CancellationToken ct)
+    internal bool TryEvictIdle(DateTime cutoff)
     {
-        await _gate.WaitAsync(ct);
+        if (!_gate.Wait(0))
+            return false;
+
         try
         {
-            LastAccessUtc = DateTime.UtcNow;
-            return await action();
+            if (_lastAccessUtc >= cutoff)
+                return false;
+
+            DeleteSession();
+            return true;
         }
         finally
         {
@@ -227,32 +333,74 @@ public sealed class StemSession : IAsyncDisposable
         await _gate.WaitAsync();
         try
         {
-            if (_entries is not null)
-            {
-                await _db.DropTableAsync<StemPreviewEntry>(
-                    tableName: _entryTable,
-                    tableOptions: TempTableOptions,
-                    throwExceptionIfNotExists: false
-                );
-            }
-            if (_files is not null)
-            {
-                await _db.DropTableAsync<StemPreviewFileMetadata>(
-                    tableName: _fileTable,
-                    tableOptions: TempTableOptions,
-                    throwExceptionIfNotExists: false
-                );
-            }
-        }
-        catch
-        {
-            // best effort — the global temp tables vanish when the connection closes anyway
+            DeleteSession();
         }
         finally
         {
-            _db.Dispose();
             _gate.Release();
-            _gate.Dispose();
         }
+    }
+
+    void DeleteSession()
+    {
+        _disposed = true;
+        _database?.Dispose();
+        _database = null;
+        _files.Clear();
+        if (Directory.Exists(_directory))
+            Directory.Delete(_directory, recursive: true);
+    }
+
+    void DeleteRawFile(string path, Guid fileId)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(
+                ex,
+                "Could not remove STEM upload {FileId} before session eviction.",
+                fileId
+            );
+        }
+    }
+
+    sealed record StoredFile(Guid Id, string Name, string Path, IStemPreviewParser? Parser);
+
+    // The ordinal is used for paging but is not part of the public response contract.
+    sealed class PreviewRow : StemPreviewEntryView
+    {
+        public long RowOrdinal { get; init; }
+    }
+
+    // DuckDB's case-insensitive collation applies to equality and sorting, but not LIKE.
+    // Normalize string searches so they behave like the existing SQL Server preview.
+    sealed class PreviewStringSearch : ExpressionVisitor
+    {
+        protected override Expression VisitMethodCall(MethodCallExpression node)
+        {
+            if (
+                node.Object is { Type: var receiverType } receiver
+                && receiverType == typeof(string)
+                && node.Arguments.Count == 1
+                && node.Arguments[0].Type == typeof(string)
+                && node.Method.Name
+                    is nameof(string.Contains)
+                        or nameof(string.StartsWith)
+                        or nameof(string.EndsWith)
+            )
+            {
+                return node.Update(Lower(Visit(receiver)), [Lower(Visit(node.Arguments[0]))]);
+            }
+
+            return base.VisitMethodCall(node);
+        }
+
+        static Expression Lower(Expression expression) =>
+            expression is ConstantExpression { Value: string value }
+                ? Expression.Constant(value.ToLowerInvariant())
+                : Expression.Call(expression, nameof(string.ToLower), Type.EmptyTypes);
     }
 }

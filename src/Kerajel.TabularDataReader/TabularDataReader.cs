@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using CsvHelper;
-using CsvHelper.Configuration;
 using ExcelDataReader;
 
 namespace Kerajel.TabularDataReader;
@@ -19,13 +18,14 @@ public sealed class TabularDataReader : IDisposable
         ".xls",
     };
 
-    static CsvConfiguration CreateCsvConfiguration() =>
-        new(CultureInfo.InvariantCulture)
-        {
-            HasHeaderRecord = true,
-            DetectDelimiter = true,
-            DetectDelimiterValues = [",", "\t", ";", "|"],
-        };
+    static readonly CsvReaderOptions ReaderOptions = new()
+    {
+        DetectSeparatorHint = false,
+        MalformedData = CsvMalformedDataHandling.Throw,
+        MissingField = CsvMissingFieldHandling.Throw,
+    };
+
+    static readonly CsvReaderOptions WorksheetOptions = ReaderOptions with { Separator = ',' };
 
     static TabularDataReader()
     {
@@ -36,10 +36,9 @@ public sealed class TabularDataReader : IDisposable
     public CsvReader GetCsvReader(Stream stream, string fileName, string? sheetName = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        TextReader textReader = SpreadsheetExtensions.Contains(Path.GetExtension(fileName))
-            ? new WorksheetTextReader(stream, sheetName)
-            : new StreamReader(stream);
-        CsvReader reader = new(textReader, CreateCsvConfiguration());
+        CsvReader reader = SpreadsheetExtensions.Contains(Path.GetExtension(fileName))
+            ? CsvReader.Create(new WorksheetTextReader(stream, sheetName), WorksheetOptions)
+            : CsvReader.Create(stream, ReaderOptions);
         _readers.Add(reader);
         return reader;
     }
@@ -84,7 +83,7 @@ public sealed class TabularDataReader : IDisposable
                         }
                     }
                 }
-                _csv = new CsvWriter(_text, CultureInfo.InvariantCulture, leaveOpen: true);
+                _csv = CsvWriter.Create(_text, leaveOpen: true);
             }
             catch
             {
@@ -114,7 +113,7 @@ public sealed class TabularDataReader : IDisposable
                     {
                         _csv.WriteField(_excel.GetValue(column));
                     }
-                    _csv.NextRecord();
+                    _csv.EndRecord();
                     _csv.Flush();
                 }
 

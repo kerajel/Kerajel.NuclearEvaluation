@@ -1,6 +1,9 @@
-﻿namespace Kerajel.TabularDataReader.Tests.Models;
+﻿using CsvHelper;
 
-public class TestRecord
+namespace Kerajel.TabularDataReader.Tests.Models;
+
+[CsvRecord]
+public partial class TestRecord
 {
     public decimal Id { get; set; }
     public string Name { get; set; } = string.Empty;

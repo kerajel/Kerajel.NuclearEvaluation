@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using CsvHelper;
-using Kerajel.TabularDataReader.Tests.Mappings;
 using Kerajel.TabularDataReader.Tests.Models;
 
 namespace Kerajel.TabularDataReader.Tests.Tests;
@@ -50,7 +49,6 @@ public class ReaderLifetimeTests
             using TabularDataReader reader = new();
             using FileStream input = File.OpenRead("TestData/001.SampleExcel.xlsx");
             CsvReader csv = reader.GetCsvReader(input, "sample.XLSX");
-            csv.Context.RegisterClassMap<TestRecordClassMap>();
             List<TestRecord> rows = [];
             await foreach (TestRecord row in csv.GetRecordsAsync<TestRecord>())
                 rows.Add(row);
@@ -62,6 +60,15 @@ public class ReaderLifetimeTests
         {
             CultureInfo.CurrentCulture = previous;
         }
+    }
+
+    [Fact]
+    public void MalformedQuotingIsRejected()
+    {
+        using TabularDataReader reader = new();
+        using MemoryStream input = new("Id,Name,Date\n1.01,O\"IP,12/23/2024\n"u8.ToArray());
+        CsvReader csv = reader.GetCsvReader(input, "malformed.csv");
+        Assert.Throws<CsvFormatException>(() => csv.GetRecords<TestRecord>().ToArray());
     }
 
     [Fact]

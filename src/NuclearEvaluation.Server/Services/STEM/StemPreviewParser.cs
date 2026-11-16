@@ -1,8 +1,6 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using CsvHelper;
-using CsvHelper.Configuration;
-using CsvHelper.TypeConversion;
 using Kerajel.TabularDataReader;
 
 namespace NuclearEvaluation.Server.Services.STEM;
@@ -16,79 +14,110 @@ public class StemPreviewParser : IStemPreviewParser
     )
     {
         using TabularDataReader reader = new();
-        using CsvReader csvReader = reader.GetCsvReader(stream, fileName);
-        csvReader.Context.RegisterClassMap<StemPreviewEntryMap>();
+        CsvReader csv = reader.GetCsvReader(stream, fileName);
+        await csv.ReadHeaderAsync(ct);
+        IReadOnlyList<string> headers = csv.Headers;
+        if (headers.Count == 0)
+            yield break;
 
-        await foreach (StemPreviewEntry entry in csvReader.GetRecordsAsync<StemPreviewEntry>(ct))
+        int identifier = FindColumn(headers, "Identifier");
+        int labCode = FindColumn(headers, "LaboratoryCode");
+        int analysisDate = FindColumn(headers, "AnalysisDate");
+        int isNu = FindColumn(headers, "IsNu");
+        int u234 = FindColumn(headers, "U234", required: false);
+        int erU234 = FindColumn(headers, "ErU234", required: false);
+        int u235 = FindColumn(headers, "U235", required: false);
+        int erU235 = FindColumn(headers, "ErU235", required: false);
+
+        while (await csv.ReadAsync(ct))
         {
-            yield return entry;
+            ct.ThrowIfCancellationRequested();
+            yield return new StemPreviewEntry
+            {
+                Id = ReadDecimal(csv.GetSpan(identifier)),
+                LabCode = csv.GetString(labCode),
+                AnalysisDate = ReadDate(csv.GetString(analysisDate)),
+                IsNu = ReadBoolean(csv.GetString(isNu)),
+                U234 = ReadOptionalDecimal(csv, u234),
+                ErU234 = ReadOptionalDecimal(csv, erU234),
+                U235 = ReadOptionalDecimal(csv, u235),
+                ErU235 = ReadOptionalDecimal(csv, erU235),
+            };
         }
     }
 
-    private sealed class StemPreviewEntryMap : ClassMap<StemPreviewEntry>
+    // Keep the STEM template's exact header names rather than adopting v34's fuzzy fallback.
+    static int FindColumn(IReadOnlyList<string> headers, string name, bool required = true)
     {
-        public StemPreviewEntryMap()
+        for (int index = 0; index < headers.Count; index++)
         {
-            Map(m => m.Id).Name("Identifier");
-            Map(m => m.LabCode).Name("LaboratoryCode");
-            Map(m => m.AnalysisDate).Name("AnalysisDate").TypeConverter<StemDateConverter>();
-            Map(m => m.IsNu).Name("IsNu");
-            Map(m => m.U234).Name("U234").Optional();
-            Map(m => m.ErU234).Name("ErU234").Optional();
-            Map(m => m.U235).Name("U235").Optional();
-            Map(m => m.ErU235).Name("ErU235").Optional();
+            if (headers[index] == name)
+                return index;
         }
+        if (required)
+            throw new FormatException($"Missing required STEM column '{name}'.");
+        return -1;
     }
 
-    private sealed class StemDateConverter : ITypeConverter
+    static decimal ReadDecimal(ReadOnlySpan<byte> value) =>
+        decimal.Parse(value, NumberStyles.Number, CultureInfo.InvariantCulture);
+
+    static decimal? ReadOptionalDecimal(CsvReader csv, int index)
     {
-        public object? ConvertFromString(string? text, IReaderRow row, MemberMapData memberMapData)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                return null;
-            }
+        if (index < 0)
+            return null;
 
-            if (
-                DateTime.TryParse(
-                    text,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.None,
-                    out DateTime date
-                )
-            )
-            {
-                return DateOnly.FromDateTime(date);
-            }
-            else if (
-                double.TryParse(
-                    text,
-                    NumberStyles.Float,
-                    CultureInfo.InvariantCulture,
-                    out double oaDate
-                )
-            )
-            {
-                try
-                {
-                    DateTime validDate = DateTime.FromOADate(oaDate);
-                    return DateOnly.FromDateTime(validDate);
-                }
-                catch
-                {
-                    throw new FormatException($"Invalid OADate value: {text}");
-                }
-            }
-            throw new FormatException($"Invalid date format: {text}");
-        }
+        ReadOnlySpan<byte> value = csv.GetSpan(index);
+        return value.IsEmpty ? null : ReadDecimal(value);
+    }
 
-        public string ConvertToString(object? value, IWriterRow row, MemberMapData memberMapData)
+    static bool ReadBoolean(string text)
+    {
+        if (bool.TryParse(text, out bool value))
+            return value;
+
+        if (
+            int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number)
+            && number is 0 or 1
+        )
+            return number == 1;
+
+        throw new FormatException("Invalid IsNu value.");
+    }
+
+    static DateOnly ReadDate(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            throw new FormatException("AnalysisDate is required.");
+
+        if (
+            DateTime.TryParse(
+                text,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out DateTime date
+            )
+        )
+            return DateOnly.FromDateTime(date);
+
+        if (
+            double.TryParse(
+                text,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out double oaDate
+            )
+        )
         {
-            if (value is DateOnly dateOnly)
+            try
             {
-                return dateOnly.ToString("yyyy-MM-dd");
+                return DateOnly.FromDateTime(DateTime.FromOADate(oaDate));
             }
-            return string.Empty;
+            catch (ArgumentException ex)
+            {
+                throw new FormatException("Invalid Excel serial date for AnalysisDate.", ex);
+            }
         }
+        throw new FormatException("Invalid AnalysisDate value.");
     }
 }

@@ -456,6 +456,58 @@ public class QueryIntegrationTests(SqlFixture database) : IClassFixture<SqlFixtu
     }
 
     [SqlServerFact]
+    public async Task AssistantParticleQueryPreservesScopedFiltersAndAppliesLimitBeforePagingAndCharting()
+    {
+        await using NuclearEvaluationServerDbContext db = database.Open();
+        PresetFilterBox preset = new();
+        preset.Set(PresetFilterEntryType.Sample, "Sample.ExternalCode == \"001\"");
+        DataQuery query = new()
+        {
+            ProjectId = database.ProjectId,
+            DecayCorrected = true,
+            PresetFilterBox = preset,
+            Filter = "U234 < 9",
+            OrderBy = "U234 asc",
+            Skip = 0,
+            Top = 1,
+            AssistantQuery = new(
+                AssistantSurface.Particles,
+                [new(nameof(ParticleView.U234), SeriesComparison.GreaterOrEqual, "1")],
+                nameof(ParticleView.U234),
+                Descending: true,
+                Limit: 2
+            ),
+        };
+        FetchDataCommand<ParticleView> command = new() { Query = query };
+        ParticleService service = new(db, NullLogger<ParticleService>.Instance);
+
+        FetchDataResult<ParticleView> firstPage = await service.GetParticleViews(command);
+        Assert.True(firstPage.IsSuccessful, firstPage.Exception?.ToString());
+        Assert.Equal(2, firstPage.TotalCount);
+        Assert.Equal(8.999m, Assert.Single(firstPage.Entries).U234!.Value, precision: 3);
+
+        query.Skip = 1;
+        FetchDataResult<ParticleView> secondPage = await service.GetParticleViews(command);
+        Assert.True(secondPage.IsSuccessful, secondPage.Exception?.ToString());
+        Assert.Equal(2, secondPage.TotalCount);
+        Assert.Equal(2m, Assert.Single(secondPage.Entries).U234);
+
+        ILookup<string, BinCount> charts = await new ChartService(
+            db
+        ).GetProjectParticleUraniumBinCounts(command);
+        Assert.Equal(
+            ["2-3", "8-9"],
+            charts["U234"].Where(bin => bin.Count > 0).Select(bin => bin.Name)
+        );
+        Assert.Equal(2, charts["U234"].Sum(bin => bin.Count));
+
+        preset.Set(PresetFilterEntryType.Sample, "Sample.ExternalCode == \"002\"");
+        FetchDataResult<ParticleView> excluded = await service.GetParticleViews(command);
+        Assert.True(excluded.NotFound, excluded.Exception?.ToString());
+        Assert.Equal(0, excluded.TotalCount);
+    }
+
+    [SqlServerFact]
     public async Task HistogramUsesConsistentBinsIncludingZeroCountsAndNineBoundary()
     {
         await using NuclearEvaluationServerDbContext db = database.Open();

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Data.Queries;
 using NuclearEvaluation.Kernel.Extensions;
+using NuclearEvaluation.Server.Services.Assistant;
 using NuclearEvaluation.Shared.Enums;
 using NuclearEvaluation.Shared.Extensions;
 
@@ -30,14 +31,26 @@ public class DbServiceBase
     )
         where T : class
     {
-        FetchDataResult<T> result = FetchDataResult<T>.Succeeded(Array.Empty<T>());
-
-        ct = ct == default ? cmd.CancellationToken : ct;
         IQueryable<T> filteredQuery = GetFilteredQuery(
             cmd.AsNoTracking ? query.AsNoTracking() : query,
             cmd
         );
+        IQueryable<T> orderedQuery = GetOrderedQuery(filteredQuery, cmd);
+        if (cmd.Query?.AssistantQuery?.Limit is int limit)
+        {
+            orderedQuery = orderedQuery.Take(limit);
+            filteredQuery = orderedQuery;
+        }
 
+        return await FetchPageAsync(filteredQuery, orderedQuery, cmd, ct);
+    }
+
+    protected static IQueryable<T> GetOrderedQuery<T>(
+        IQueryable<T> filteredQuery,
+        FetchDataCommand<T> cmd
+    )
+        where T : class
+    {
         IQueryable<T> orderedQuery = filteredQuery;
 
         if (cmd.TopLevelOrderExpression is not null)
@@ -54,9 +67,22 @@ public class DbServiceBase
             param
         );
 
-        IQueryable<T> dataQuery = orderedQuery
-            .OrderByWithFallback(cmd.Query, lambdaKeyPropertyAccess)
-            .PageWithFallback(cmd.Query);
+        return cmd.Query?.AssistantQuery is { SortField: not null } assistantQuery
+            ? AssistantGridQueries.ApplyOrder(orderedQuery, assistantQuery, lambdaKeyPropertyAccess)
+            : orderedQuery.OrderByWithFallback(cmd.Query, lambdaKeyPropertyAccess);
+    }
+
+    protected static async Task<FetchDataResult<T>> FetchPageAsync<T>(
+        IQueryable<T> filteredQuery,
+        IQueryable<T> orderedQuery,
+        FetchDataCommand<T> cmd,
+        CancellationToken ct = default
+    )
+        where T : class
+    {
+        FetchDataResult<T> result = FetchDataResult<T>.Succeeded(Array.Empty<T>());
+        ct = ct == default ? cmd.CancellationToken : ct;
+        IQueryable<T> dataQuery = orderedQuery.PageWithFallback(cmd.Query);
 
         foreach (Func<IQueryable<T>, IQueryable<T>> include in cmd.Includes)
         {
@@ -105,7 +131,9 @@ public class DbServiceBase
             .TopLevelFilterExpressionWithFallback(command.TopLevelFilterExpression)
             .FilterWithFallback(command.Query);
 
-        return filteredQuery;
+        return command.Query?.AssistantQuery is { } assistantQuery
+            ? AssistantGridQueries.ApplyFilters(filteredQuery, assistantQuery)
+            : filteredQuery;
     }
 
     protected IQueryable<int> ApplyPresetFilterBox<T>(FetchDataCommand<T> command)
@@ -141,31 +169,28 @@ public class DbServiceBase
     private static PropertyInfo GetKeyProperty<T>()
         where T : class
     {
-        return _keyPropertyCache.GetOrAdd(
-            typeof(T),
-            static t =>
+        return _keyPropertyCache.GetOrAdd(typeof(T), static t =>
+        {
+            PropertyInfo[] keyProperties = t.GetProperties()
+                .Where(prop => Attribute.IsDefined(prop, typeof(KeyAttribute)))
+                .ToArray();
+
+            if (keyProperties.Length > 1)
             {
-                PropertyInfo[] keyProperties = t.GetProperties()
-                    .Where(prop => Attribute.IsDefined(prop, typeof(KeyAttribute)))
-                    .ToArray();
-
-                if (keyProperties.Length > 1)
-                {
-                    throw new InvalidOperationException(
-                        "Entities with composite keys are not supported yet."
-                    );
-                }
-
-                if (keyProperties.Length == 0)
-                {
-                    throw new InvalidOperationException(
-                        "No property is marked with the [Key] attribute."
-                    );
-                }
-
-                return keyProperties.Single();
+                throw new InvalidOperationException(
+                    "Entities with composite keys are not supported yet."
+                );
             }
-        );
+
+            if (keyProperties.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    "No property is marked with the [Key] attribute."
+                );
+            }
+
+            return keyProperties.Single();
+        });
     }
 
     protected IQueryable<PresetFilterQueryObject> GetBasePresetFilterQuery()

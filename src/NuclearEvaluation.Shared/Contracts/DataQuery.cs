@@ -28,6 +28,12 @@ public class DataQuery : IValidatableObject
 
     public PresetFilterBox? PresetFilterBox { get; set; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SeriesGridQuery? SeriesQuery { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public AssistantGridQuery? AssistantQuery { get; set; }
+
     /// <summary>Restricts results to entities belonging to the project.</summary>
     [Range(1, int.MaxValue)]
     public int? ProjectId { get; set; }
@@ -51,6 +57,11 @@ public class DataQuery : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        if (SeriesQuery is not null && AssistantQuery is not null)
+            yield return new(
+                "Only one assistant query can be active.",
+                [nameof(SeriesQuery), nameof(AssistantQuery)]
+            );
         if (DecayCorrected && ProjectId is null)
             yield return new("Decay correction requires a project.", [nameof(ProjectId)]);
         if (PriorityIds?.Any(id => id <= 0) == true)

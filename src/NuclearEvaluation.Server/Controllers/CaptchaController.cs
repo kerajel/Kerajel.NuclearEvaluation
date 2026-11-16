@@ -11,11 +11,17 @@ public class CaptchaController : ControllerBase
 {
     readonly ICaptchaService _captchaService;
     readonly CaptchaSettings _settings;
+    readonly IWebHostEnvironment _environment;
 
-    public CaptchaController(ICaptchaService captchaService, IOptions<CaptchaSettings> settings)
+    public CaptchaController(
+        ICaptchaService captchaService,
+        IOptions<CaptchaSettings> settings,
+        IWebHostEnvironment environment
+    )
     {
         _captchaService = captchaService;
         _settings = settings.Value;
+        _environment = environment;
     }
 
     [HttpGet("challenge")]
@@ -25,7 +31,11 @@ public class CaptchaController : ControllerBase
     public CaptchaStatus Status()
     {
         string? token = Request.Cookies[CaptchaSettings.CookieName];
-        return new CaptchaStatus { Verified = _captchaService.IsVerificationTokenValid(token) };
+        return new CaptchaStatus
+        {
+            Verified =
+                _environment.IsDevelopment() || _captchaService.IsVerificationTokenValid(token),
+        };
     }
 
     [HttpPost("verify")]
@@ -37,15 +47,19 @@ public class CaptchaController : ControllerBase
         }
 
         string token = _captchaService.IssueVerificationToken();
-        Response.Cookies.Append(CaptchaSettings.CookieName, token, new CookieOptions
-        {
-            HttpOnly = true,
-            // Secure only over HTTPS so local HTTP (docker) still works; production is HTTPS.
-            Secure = Request.IsHttps,
-            SameSite = SameSiteMode.Lax,
-            MaxAge = TimeSpan.FromDays(_settings.VerificationTtlDays),
-            IsEssential = true,
-        });
+        Response.Cookies.Append(
+            CaptchaSettings.CookieName,
+            token,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                // Secure only over HTTPS so local HTTP (docker) still works; production is HTTPS.
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                MaxAge = TimeSpan.FromDays(_settings.VerificationTtlDays),
+                IsEssential = true,
+            }
+        );
 
         return new CaptchaStatus { Verified = true };
     }

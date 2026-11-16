@@ -9,23 +9,16 @@ namespace NuclearEvaluation.Server.Controllers;
 
 [ApiController]
 [Route("api/stem")]
-public class StemController : ControllerBase
+public class StemController(
+    IStemPreviewService stemPreviewService,
+    IStorageQuotaService storageQuotaService,
+    StemUploadLog uploadLog
+) : ControllerBase
 {
-    readonly IStemPreviewService _stemPreviewService;
-    readonly IStorageQuotaService _storageQuotaService;
-
-    public StemController(
-        IStemPreviewService stemPreviewService,
-        IStorageQuotaService storageQuotaService
-    )
-    {
-        _stemPreviewService = stemPreviewService;
-        _storageQuotaService = storageQuotaService;
-    }
-
     [HttpPost("{sessionId:guid}/files")]
     [EnableRateLimiting(RateLimitPolicies.Uploads)]
     [RequestSizeLimit(UploadLimits.MaxStemPreviewFileSizeBytes + 8192)]
+    [ServiceFilter<StemUploadLog>]
     public async Task<OperationOutcome> Upload(
         Guid sessionId,
         [FromForm] Guid fileId,
@@ -33,16 +26,21 @@ public class StemController : ControllerBase
         CancellationToken ct
     )
     {
+        uploadLog.FileId = fileId == Guid.Empty ? null : fileId;
+        uploadLog.FileBytes = file?.Length;
         if (file is null || file.Length == 0)
         {
+            uploadLog.Rejection = "missing_file";
             return OperationOutcome.Fail("No file was provided.");
         }
         if (file.Length > UploadLimits.MaxStemPreviewFileSizeBytes)
         {
+            uploadLog.Rejection = "size_limit";
             return OperationOutcome.Fail("File exceeds the size limit.");
         }
-        if (!_storageQuotaService.CanAccept(file.Length))
+        if (!storageQuotaService.CanAccept(file.Length))
         {
+            uploadLog.Rejection = "storage_limit";
             return OperationOutcome.Fail(
                 "The site has reached its storage limit. Please try again later."
             );
@@ -53,9 +51,10 @@ public class StemController : ControllerBase
         {
             fileId = Guid.NewGuid();
         }
+        uploadLog.FileId = fileId;
 
         await using Stream stream = file.OpenReadStream();
-        OperationResult result = await _stemPreviewService.UploadStemPreviewFile(
+        OperationResult result = await stemPreviewService.UploadStemPreviewFile(
             sessionId,
             stream,
             fileId,
@@ -63,7 +62,8 @@ public class StemController : ControllerBase
             ct
         );
 
-        _storageQuotaService.Invalidate();
+        uploadLog.ImportError = result.Exception;
+        storageQuotaService.Invalidate();
 
         return result.IsSuccessful
             ? OperationOutcome.Ok()
@@ -73,8 +73,8 @@ public class StemController : ControllerBase
     [HttpDelete("{sessionId:guid}/files/{fileId:guid}")]
     public async Task<IActionResult> Delete(Guid sessionId, Guid fileId)
     {
-        await _stemPreviewService.DeleteFileData(sessionId, fileId);
-        _storageQuotaService.Invalidate();
+        await stemPreviewService.DeleteFileData(sessionId, fileId);
+        storageQuotaService.Invalidate();
         return Ok();
     }
 }

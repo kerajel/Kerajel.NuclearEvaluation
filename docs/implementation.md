@@ -33,6 +33,10 @@ sweeps older files left by abrupt shutdowns. DuckDB uses one thread per session 
 buffer memory and spill storage. Builds package the signed Excel extension for the target platform.
 The file input supports multiple uploads and includes populated examples and a blank template.
 
+The `STEM upload` log records the application outcome, HTTP status, byte count, file ID,
+and total MVC time including multipart binding. Failures use warning level and report the
+exception type and source when available. Filenames and cell values are excluded.
+
 ## Browser state
 
 Sequence checks ensure that the latest grid request and validation result determine the displayed

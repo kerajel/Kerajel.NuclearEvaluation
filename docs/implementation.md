@@ -1,13 +1,15 @@
 # Implementation
 
-Nuclear Evaluation combines a Blazor WebAssembly interface, a typed ASP.NET Core API, and SQL Server.
+Nuclear Evaluation combines a Blazor WebAssembly interface, a typed ASP.NET Core API, SQL Server
+for evaluation data, and embedded DuckDB for STEM preview.
 The browser manages interaction and component state, while the server executes relational queries,
 processes uploads, and maintains the shared workspace.
 
 ## Query execution
 
 Grid controls produce a `DataQuery` containing filters, ordering, pagination, and project scope.
-The server translates it into an EF Core query and returns a `DataResult` with rows and a total count.
+The server translates it into an EF Core query for evaluation data or a DuckDB query for STEM
+preview, and returns a `DataResult` with rows and a total count.
 Read queries use `AsNoTracking` and typed `Include` expressions. Request cancellation flows through
 to database execution.
 
@@ -18,12 +20,17 @@ and list types.
 
 ## Spreadsheet processing
 
-`TabularDataReader` exposes Excel worksheets and delimited text through a common CSV reader.
-Worksheet conversion pulls one row at a time, and parsed rows are bulk-copied into SQL staging tables.
-Each STEM preview session owns a connection and temporary tables shared across its API requests.
+Each preview session retains its original uploads in private storage and keeps a DuckDB connection
+with one temporary table. DuckDB reads delimited text and `.xlsx` directly. `TabularDataReader`
+handles legacy Excel and compatibility cases. Each upload appends only its own rows in a
+transaction. DuckDB applies filters, ordering, matching counts, and pagination without accessing
+SQL Server. Source file ID and row order break ties in pagination.
 
-The upload lifecycle includes cancellation, cleanup of partial files and staged rows, and deletion
-of rows belonging to a removed file. Idle sessions are evicted by the maintenance service.
+Cancellation and parse failures roll back new rows and remove the failed upload. Deleting a file
+removes its original and its rows. If a live session's connection closes, the table can be rebuilt
+from that session's retained files. Maintenance closes idle sessions, deletes their storage, and
+sweeps older files left by abrupt shutdowns. DuckDB uses one thread per session with bounded
+buffer memory and spill storage. Builds package the signed Excel extension for the target platform.
 The file input supports multiple uploads and includes populated examples and a blank template.
 
 ## Browser state
@@ -68,13 +75,13 @@ each parent, and event dates follow their processing sequence.
 
 ## Automated verification
 
-The .NET test suite contains 90 tests:
+The .NET test suite covers:
 
-| Test project | Tests | Coverage |
-|---|---:|---|
-| TabularDataReader | 12 | CSV and Excel parsing, culture handling, error propagation, and resource lifetime |
-| Client | 42 | Components, HTTP client behavior, query validation, filter serialization, and asynchronous request ordering |
-| Server | 36 | Captcha, upload cleanup, SQL query translation, charts, decay calculations, migrations, and seed consistency |
+| Test project | Coverage |
+|---|---|
+| TabularDataReader | CSV and Excel parsing, culture handling, error propagation, and resource lifetime |
+| Client | Components, HTTP client behavior, query validation, filter serialization, and asynchronous request ordering |
+| Server | Captcha, upload cleanup, DuckDB preview queries and isolation, SQL query translation, charts, decay calculations, migrations, and seed consistency |
 
 SQL integration tests create disposable databases. The seed test executes the full script with
 dataset targets reduced to 20 series and 5 projects, covering both initial seeding and reset. CI runs the SQL tests alongside the component

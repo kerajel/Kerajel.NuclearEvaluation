@@ -65,7 +65,7 @@ public class SandboxMaintenanceService : BackgroundService
         using IServiceScope scope = _scopeFactory.CreateScope();
         IEfsFileService efs = scope.ServiceProvider.GetRequiredService<IEfsFileService>();
 
-        int removedFolders = efs.PurgeOlderThan(cutoff);
+        int removedFolders = efs.PurgeOlderThan(cutoff, _stemSessionManager.StorageDirectory);
         if (removedFolders > 0)
         {
             _logger.LogInformation("Purged {Folders} expired upload folders.", removedFolders);

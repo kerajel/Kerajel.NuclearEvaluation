@@ -10,15 +10,11 @@ public interface IStemPreviewEntryService
         FetchDataCommand<StemPreviewEntryView> command
     );
     Task DeleteFileData(Guid stemSessionId, Guid fileId);
-    Task InsertStemPreviewFileMetadata(
+    Task AppendFileData(
         Guid stemSessionId,
-        StemPreviewFileMetadata fileMetadata,
+        Guid fileId,
+        string fileName,
+        Stream content,
         CancellationToken ct = default
     );
-    Task InsertStemPreviewEntries(
-        Guid stemSessionId,
-        IAsyncEnumerable<StemPreviewEntry> entries,
-        CancellationToken ct = default
-    );
-    Task SetStemPreviewFileAsFullyUploaded(Guid stemSessionId, Guid fileId);
 }

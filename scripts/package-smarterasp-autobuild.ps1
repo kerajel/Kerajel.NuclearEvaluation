@@ -129,7 +129,8 @@ foreach ($projectReference in $projectReferences) {
     [void] $projectReference.ParentNode.RemoveChild($projectReference)
 }
 
-Add-Property $project "RuntimeIdentifier" "win-x86"
+# DuckDB's native Windows library requires a 64-bit application pool.
+Add-Property $project "RuntimeIdentifier" "win-x64"
 Add-Property $project "SelfContained" "true"
 Add-Property $project "ServerGarbageCollection" "false"
 Add-Property $project "IsTransformWebConfigDisabled" "true"
@@ -169,6 +170,12 @@ $webConfig = @"
 if (-not $SkipValidation) {
     Invoke-DotNet @("restore", "--nologo", "--disable-build-servers") $staging
     Invoke-DotNet @("publish", "--no-restore", "-c", $Configuration, "-o", "out", "--nologo", "--disable-build-servers") $staging
+    if (-not (Test-Path -LiteralPath (Join-Path $staging "out\duckdb.dll") -PathType Leaf)) {
+        throw "The win-x64 publish is missing the native DuckDB library (duckdb.dll)."
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $staging "out\duckdb-extensions\excel.duckdb_extension") -PathType Leaf)) {
+        throw "The win-x64 publish is missing the DuckDB Excel extension."
+    }
 }
 
 Remove-BuildOutput $staging

@@ -15,5 +15,5 @@ public interface IEfsFileService
     long GetTotalSizeBytes();
 
     /// <summary>Deletes stored file folders whose last write is older than the cutoff. Returns the count removed.</summary>
-    int PurgeOlderThan(DateTime cutoffUtc);
+    int PurgeOlderThan(DateTime cutoffUtc, string? excludedDirectory = null);
 }

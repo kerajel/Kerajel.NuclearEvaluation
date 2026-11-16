@@ -4,29 +4,19 @@ using NuclearEvaluation.Shared.Models.Views;
 namespace NuclearEvaluation.Server.Services.STEM;
 
 /// <summary>
-/// Routes STEM staging operations to the per-session throwaway temp tables held by the
-/// <see cref="IStemSessionManager"/>.
+/// Routes STEM uploads and queries to their preview session.
 /// </summary>
-public class StemPreviewEntryService : IStemPreviewEntryService
+public class StemPreviewEntryService(
+    IStemSessionManager sessionManager,
+    IStemPreviewParser stemPreviewParser
+) : IStemPreviewEntryService
 {
-    readonly IStemSessionManager _sessionManager;
-    readonly ILogger<StemPreviewEntryService> _logger;
-
-    public StemPreviewEntryService(
-        IStemSessionManager sessionManager,
-        ILogger<StemPreviewEntryService> logger
-    )
-    {
-        _sessionManager = sessionManager;
-        _logger = logger;
-    }
-
     public async Task<FetchDataResult<StemPreviewEntryView>> GetStemPreviewEntryViews(
         Guid stemSessionId,
         FetchDataCommand<StemPreviewEntryView> command
     )
     {
-        StemSession? session = _sessionManager.TryGet(stemSessionId);
+        StemSession? session = sessionManager.TryGet(stemSessionId);
         if (session is null)
         {
             return FetchDataResult<StemPreviewEntryView>.Succeeded([]);
@@ -34,39 +24,17 @@ public class StemPreviewEntryService : IStemPreviewEntryService
         return await session.QueryViewsAsync(command, command.CancellationToken);
     }
 
-    public Task InsertStemPreviewFileMetadata(
+    public Task AppendFileData(
         Guid stemSessionId,
-        StemPreviewFileMetadata fileMetadata,
+        Guid fileId,
+        string fileName,
+        Stream content,
         CancellationToken ct = default
-    ) => _sessionManager.GetOrCreate(stemSessionId).InsertFileMetadataAsync(fileMetadata, ct);
-
-    public async Task InsertStemPreviewEntries(
-        Guid stemSessionId,
-        IAsyncEnumerable<StemPreviewEntry> entries,
-        CancellationToken ct = default
-    )
-    {
-        StemSession session = _sessionManager.GetOrCreate(stemSessionId);
-        await session.BulkCopyEntriesAsync(entries, ct);
-
-        // The index on the throwaway table is a query optimisation; never fail an upload over it.
-        try
-        {
-            await session.EnsureIndexAsync(ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(
-                ex,
-                "Could not create index on STEM preview temp table for session {SessionId}.",
-                stemSessionId
-            );
-        }
-    }
-
-    public Task SetStemPreviewFileAsFullyUploaded(Guid stemSessionId, Guid fileId) =>
-        _sessionManager.GetOrCreate(stemSessionId).SetFileFullyUploadedAsync(fileId);
+    ) =>
+        sessionManager
+            .GetOrCreate(stemSessionId)
+            .AppendFileAsync(fileId, fileName, content, stemPreviewParser, ct);
 
     public Task DeleteFileData(Guid stemSessionId, Guid fileId) =>
-        _sessionManager.TryGet(stemSessionId)?.MarkFileDeletedAsync(fileId) ?? Task.CompletedTask;
+        sessionManager.TryGet(stemSessionId)?.DeleteFileAsync(fileId) ?? Task.CompletedTask;
 }

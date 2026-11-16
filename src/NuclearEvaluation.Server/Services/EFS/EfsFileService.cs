@@ -1,17 +1,22 @@
 ﻿using Kerajel.Primitives.Enums;
 using Kerajel.Primitives.Models;
+using Microsoft.Extensions.Options;
 using NuclearEvaluation.Kernel.Models.Files;
 using NuclearEvaluation.Server.Services.Files;
+using NuclearEvaluation.Server.Services.Sandbox;
 
 namespace NuclearEvaluation.Server.Services.EFS;
 
 /// <summary>
 /// In an ideal world, our files would be hanging out in Amazon EFS, but until the budget improves, local storage will have to do!
 /// </summary>
-public class EfsFileService : IEfsFileService
+public class EfsFileService(IOptions<SandboxSettings> settings, IHostEnvironment environment)
+    : IEfsFileService
 {
-    private const string _subFolder = "NuclearEvaluationStorage";
     private const int _bufferSize = 81920;
+    readonly string _storagePath = settings
+        .Value.ResolveStorageDirectory(environment.ContentRootPath)
+        .FullName;
 
     public async Task<OperationResult<FileInfo>> Write(
         WriteFileCommand command,
@@ -122,13 +127,25 @@ public class EfsFileService : IEfsFileService
         return storageDirectory.EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length);
     }
 
-    public int PurgeOlderThan(DateTime cutoffUtc)
+    public int PurgeOlderThan(DateTime cutoffUtc, string? excludedDirectory = null) =>
+        PurgeOlderThan(GetStorageDirectory(), cutoffUtc, excludedDirectory);
+
+    internal static int PurgeOlderThan(
+        DirectoryInfo storageDirectory,
+        DateTime cutoffUtc,
+        string? excludedDirectory
+    )
     {
-        DirectoryInfo storageDirectory = GetStorageDirectory();
         int removed = 0;
+        StringComparison comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
 
         foreach (DirectoryInfo fileDirectory in storageDirectory.EnumerateDirectories())
         {
+            if (string.Equals(fileDirectory.FullName, excludedDirectory, comparison))
+                continue;
+
             if (fileDirectory.LastWriteTimeUtc < cutoffUtc)
             {
                 try
@@ -146,21 +163,9 @@ public class EfsFileService : IEfsFileService
         return removed;
     }
 
-    static DirectoryInfo GetStorageDirectory()
-    {
-        string currentDirectory = Directory.GetCurrentDirectory();
-        DirectoryInfo parentDirectoryInfo = Directory.GetParent(currentDirectory)!;
-        DirectoryInfo storageDirectory = new(
-            Path.Combine(parentDirectoryInfo.FullName, _subFolder)
-        );
-        if (!storageDirectory.Exists)
-        {
-            storageDirectory.Create();
-        }
-        return storageDirectory;
-    }
+    DirectoryInfo GetStorageDirectory() => Directory.CreateDirectory(_storagePath);
 
-    static DirectoryInfo GetFileDirectory(Guid fileGuid)
+    DirectoryInfo GetFileDirectory(Guid fileGuid)
     {
         DirectoryInfo storageDirectory = GetStorageDirectory();
         DirectoryInfo fileDirectory = new(

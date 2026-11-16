@@ -180,6 +180,27 @@ Production is hosted on **smarterasp.net** (shared Windows hosting) and is publi
 Docker is for local development only. Do not deploy the repository root as a Docker build unless
 the hosting account is explicitly configured for containers.
 
+### GitHub Actions
+
+The CI workflow publishes a self-contained Windows x64 release after `build-and-test` passes. It
+retains the publish output as an artifact for 14 days and uses Web Deploy to sync the release to IIS.
+The release preserves the IIS `web.config`, production `appsettings*.json`, and files that exist
+only on the server. Update production configuration through the host. After the sync, the workflow
+checks the live commit marker and `/api/captcha/status`.
+
+The GitHub `production` environment allows deployments from `master`. Configure
+`SMARTERASP_WEBDEPLOY_URL` and `SMARTERASP_WEBDEPLOY_SITE` as environment variables and
+`SMARTERASP_WEBDEPLOY_USERNAME` and `SMARTERASP_WEBDEPLOY_PASSWORD` as environment secrets. The
+[SmarterASP.NET Web Deploy panel](https://www.smarterasp.net/support/kb/a2097/where-can-i-find-my-web-deploy-login-info.aspx)
+provides the current connection settings.
+
+In **Actions → CI → Run workflow**, choose `master` and `plan` to preview the sync. Choose `deploy`
+to release manually. Set the repository variable `AUTO_DEPLOY_PRODUCTION` to `true` after verifying
+the first deployment to enable releases on subsequent pushes to `master`. Remove the variable to
+pause automatic releases.
+
+### Manual publish
+
 For a direct publish, build the self-contained Windows x64 host, which bundles the .NET runtime
 and WASM client:
 

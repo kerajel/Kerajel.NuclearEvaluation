@@ -332,6 +332,15 @@ public sealed class WorkbenchStore(IConfiguration configuration) : IDisposable
         return new(rows, total, observations);
     }
 
+    internal static void ValidateSeriesColumnFilters(
+        WorkbenchSeriesSort sort,
+        IReadOnlyList<ColumnFilterGroup> groups
+    )
+    {
+        _ = SeriesColumn(sort);
+        _ = SeriesColumnPredicate(groups, []);
+    }
+
     static string SeriesColumn(WorkbenchSeriesSort field) =>
         field switch
         {

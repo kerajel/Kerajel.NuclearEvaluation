@@ -8,24 +8,15 @@ namespace NuclearEvaluation.Server.Services.Workbench;
 
 static class ImportReviewQueryPlan
 {
+    internal static void Validate(ImportReviewQuery query) => _ = Compile(query);
+
     internal static async Task<ImportReviewPage> ReadAsync(
         DuckDBConnection database,
         ImportReviewQuery query,
         CancellationToken ct
     )
     {
-        if (query.Skip < 0 || query.Top < 1 || query.Top > ImportReviewCatalog.MaxPageSize)
-            throw new ArgumentException("Choose a valid import review page.");
-
-        string sortField = string.IsNullOrWhiteSpace(query.SortField)
-            ? "source_row"
-            : Column(FindField(query.SortField));
-        string order = $"{sortField} {(query.Descending ? "DESC" : "ASC")} NULLS LAST";
-        if (sortField != "source_row")
-            order += ", source_row";
-
-        Dictionary<string, object> arguments = [];
-        string where = Filter(query.Filters ?? [], arguments);
+        (string where, string order, Dictionary<string, object> arguments) = Compile(query);
         await using DuckDBCommand countCommand = RadNetSnapshot.Command(
             database,
             "SELECT count(*) FROM review_rows" + where,
@@ -69,6 +60,24 @@ static class ImportReviewQueryPlan
         }
 
         return new(items, count);
+    }
+
+    static (string Where, string Order, Dictionary<string, object> Arguments) Compile(
+        ImportReviewQuery query
+    )
+    {
+        if (query.Skip < 0 || query.Top < 1 || query.Top > ImportReviewCatalog.MaxPageSize)
+            throw new ArgumentException("Choose a valid import review page.");
+
+        string sortField = string.IsNullOrWhiteSpace(query.SortField)
+            ? "source_row"
+            : Column(FindField(query.SortField));
+        string order = $"{sortField} {(query.Descending ? "DESC" : "ASC")} NULLS LAST";
+        if (sortField != "source_row")
+            order += ", source_row";
+
+        Dictionary<string, object> arguments = [];
+        return (Filter(query.Filters ?? [], arguments), order, arguments);
     }
 
     static double? ReadNumber(DbDataReader reader, int ordinal) =>

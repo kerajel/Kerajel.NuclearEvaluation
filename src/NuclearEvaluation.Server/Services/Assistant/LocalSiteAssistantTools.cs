@@ -31,6 +31,27 @@ internal sealed class LocalSiteAssistantTools
             "Open Radiation Monitoring for EPA RadNet observations or Radiochemistry for the European Commission's REMdb radionuclide measurements. Both have a Query Builder and a source-file quality view. The sidebar also links to the U.S. nuclear fleet, generation, and emissions."
         ),
         new(
+            "workbench_overview",
+            AssistantPage.Workbench,
+            null,
+            "How to open Series, Project observations, Query Builder results, or Import Review",
+            "Open Series to manage observation ranges, Projects to see linked observations, or Query Builder to combine Project, Series, file, observation, and channel conditions. Import Review checks staged CSV rows against the RadNet archive. You can filter and sort the active grid from its column headers or with the assistant."
+        ),
+        new(
+            "workbench_project_observations",
+            AssistantPage.Workbench,
+            AssistantSurface.WorkbenchProjectObservations,
+            "How filtering applies to the selected Project observations grid",
+            "Project observations come from the Series linked to the selected Project. Filtering or sorting the grid leaves its membership and coverage chart in place. Use CSV row links to inspect the corresponding source files."
+        ),
+        new(
+            "workbench_query_results",
+            AssistantPage.Workbench,
+            AssistantSurface.WorkbenchQueryResults,
+            "How to refine the current Query Builder results or change the draft",
+            "Use Query Builder's filters and Results dropdown to define and run a draft. Then use the result columns or ask the assistant to refine the current results. An additional column filter applies to the selected result level, and clearing those column filters keeps the draft in place."
+        ),
+        new(
             "radnet_browse",
             AssistantPage.Radiation,
             null,
@@ -211,7 +232,8 @@ internal sealed class LocalSiteAssistantTools
                 .ToArray(),
             Help,
             RadNetCatalog.Fields,
-            RemDbCatalog.Fields
+            RemDbCatalog.Fields,
+            WorkbenchAssistantCatalog.Grids
         );
     }
 
@@ -256,6 +278,9 @@ internal sealed class LocalSiteAssistantTools
                 when action.GridQuery?.ProjectSeriesRanking is not null =>
                 "Ranked the Projects grid by the number of linked series.",
             AssistantActionKind.FilterGrid => "Updated the current grid.",
+            AssistantActionKind.ApplyWorkbenchGridQuery => "Updated the current grid.",
+            AssistantActionKind.ClearGrid when context.Page == AssistantPage.Workbench =>
+                "Cleared the current grid’s column filters.",
             AssistantActionKind.ClearGrid => "Cleared the assistant query.",
             AssistantActionKind.DraftQuery => "Updated the Query Builder draft and results.",
             AssistantActionKind.ShowQueryBuilderExample =>
@@ -303,6 +328,9 @@ internal sealed class LocalSiteAssistantTools
             AssistantPage.FleetGeneration => context.Surface
                 is AssistantSurface.None
                     or AssistantSurface.GenerationCalendar,
+            AssistantPage.Workbench => context.Surface == AssistantSurface.None
+                || WorkbenchAssistantQueries.FindGrid(context, WorkbenchAssistantCatalog.Grids)
+                    is not null,
             AssistantPage.Home
             or AssistantPage.Fleet
             or AssistantPage.Emissions
@@ -313,6 +341,10 @@ internal sealed class LocalSiteAssistantTools
             _ => false,
         };
         return surfaceMatches
+            && (
+                context.WorkbenchResultEntity is null
+                || context.Surface == AssistantSurface.WorkbenchQueryResults
+            )
             && (
                 context.Surface == AssistantSurface.QueryBuilder
                     ? context.ResultGrid
@@ -353,6 +385,10 @@ internal sealed class LocalSiteAssistantTools
                 && action.RadNetQuery is not null
             )
             || (action.Kind != AssistantActionKind.ApplyRemDbQuery && action.RemDbQuery is not null)
+            || (
+                action.Kind != AssistantActionKind.ApplyWorkbenchGridQuery
+                && action.WorkbenchGridQuery is not null
+            )
         )
             return false;
 
@@ -392,6 +428,11 @@ internal sealed class LocalSiteAssistantTools
                 && action.BuilderFilters is null
                 && action.QualityCheck is null
                 && IsRemDbQueryValid(action.RemDbQuery),
+            AssistantActionKind.ApplyWorkbenchGridQuery => action.SeriesQuery is null
+                && action.GridQuery is null
+                && action.BuilderFilters is null
+                && action.QualityCheck is null
+                && WorkbenchAssistantQueries.IsValid(context, action.WorkbenchGridQuery),
             AssistantActionKind.CheckStemQuality => isStem
                 && context.HasUploads
                 && action.QualityCheck is { } check
@@ -414,7 +455,12 @@ internal sealed class LocalSiteAssistantTools
                 && (
                     action.Kind switch
                     {
-                        AssistantActionKind.ClearGrid => CanFilter(context),
+                        AssistantActionKind.ClearGrid => CanFilter(context)
+                            || WorkbenchAssistantQueries.FindGrid(
+                                context,
+                                WorkbenchAssistantCatalog.Grids
+                            )
+                                is not null,
                         AssistantActionKind.ShowStemPreview => isStem,
                         AssistantActionKind.ShowStemQuality => isStem && context.HasUploads,
                         AssistantActionKind.ShowQueryBuilderExample =>
@@ -485,7 +531,8 @@ internal sealed record SiteAssistantCatalog(
     IReadOnlyList<SeriesEntityDescription> Builder,
     IReadOnlyList<SiteAssistantHelp> Help,
     IReadOnlyList<RadNetField>? RadNetFields = null,
-    IReadOnlyList<RemDbField>? RemDbFields = null
+    IReadOnlyList<RemDbField>? RemDbFields = null,
+    IReadOnlyList<WorkbenchAssistantGridSchema>? WorkbenchGrids = null
 );
 
 internal sealed record SiteAssistantGridSchema(

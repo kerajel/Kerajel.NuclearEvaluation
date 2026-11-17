@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
+using NuclearEvaluation.Client.Services;
 using NuclearEvaluation.Shared.Contracts;
 using static NuclearEvaluation.Client.Shared.Radiation.RadNetPresentation;
 
@@ -145,11 +146,15 @@ public partial class WorkbenchQueryResults : IDisposable
     WorkbenchQuery _requested = new();
     DisplayedPage? _page;
     ColumnFilterSelection? _filterEditor;
+    bool _disposed;
     bool _notifySortOnRetry;
     string? _error;
 
     [Inject]
     HttpClient Http { get; set; } = null!;
+
+    [Inject]
+    SiteAssistantWorkspace AssistantWorkspace { get; set; } = null!;
 
     [Parameter, EditorRequired]
     public WorkbenchQuery Query { get; set; } = new();
@@ -168,6 +173,72 @@ public partial class WorkbenchQueryResults : IDisposable
         _page = null;
         _filterEditor = null;
         return LoadAsync(Query);
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (_page is null || _lastQuery is not { } scope)
+        {
+            AssistantWorkspace.Remove(this);
+            return;
+        }
+
+        AssistantWorkspace.Set(
+            this,
+            new(
+                AssistantPage.Workbench,
+                AssistantSurface.WorkbenchQueryResults,
+                WorkbenchResultEntity: scope.Entity
+            ),
+            action => ApplyAssistantActionAsync(action, scope),
+            scope
+        );
+    }
+
+    async Task<bool> ApplyAssistantActionAsync(AssistantAction action, WorkbenchQuery scope)
+    {
+        bool applied = false;
+        await InvokeAsync(async () =>
+        {
+            if (
+                _disposed
+                || scope != _lastQuery
+                || !ReferenceEquals(AssistantWorkspace.Current?.Owner, this)
+                || Loading
+                || _page is not { Query: WorkbenchQuery query }
+            )
+                return;
+
+            WorkbenchQuery next;
+            if (action.Kind == AssistantActionKind.ClearGrid)
+            {
+                _filterEditor = null;
+                next = query with { ResultFilters = null, ResultFilterGroups = null };
+            }
+            else if (
+                action is
+                { Kind: AssistantActionKind.ApplyWorkbenchGridQuery, WorkbenchGridQuery: { } grid }
+            )
+            {
+                next = WithResultFilters(query, grid.Filters) with
+                {
+                    SortField = grid.SortField ?? query.SortField,
+                    Descending = grid.SortField is not null ? grid.Descending : query.Descending,
+                    Top = grid.PageSize ?? query.Top,
+                };
+            }
+            else
+            {
+                return;
+            }
+
+            Task<bool> load = LoadAsync(next with { Skip = 0 });
+            StateHasChanged();
+            applied = await load;
+            if (!_disposed)
+                StateHasChanged();
+        });
+        return applied;
     }
 
     Task SortAsync(string field)
@@ -209,22 +280,31 @@ public partial class WorkbenchQueryResults : IDisposable
         if (Loading || _page is not { Query: WorkbenchQuery query })
             return Task.CompletedTask;
 
-        return LoadAsync(
-            query with
-            {
-                ResultFilters = query
-                    .ResultFilters?.Where(item => !SameField(item.Field, filter.Field))
-                    .ToArray(),
-                ResultFilterGroups =
-                [
-                    .. (query.ResultFilterGroups ?? []).Where(item =>
-                        !SameField(item.Field, filter.Field)
-                    ),
-                    filter,
-                ],
-                Skip = 0,
-            }
-        );
+        return LoadAsync(WithResultFilters(query, [filter]) with { Skip = 0 });
+    }
+
+    static WorkbenchQuery WithResultFilters(
+        WorkbenchQuery query,
+        IReadOnlyList<ColumnFilterGroup> filters
+    )
+    {
+        if (filters.Count == 0)
+            return query;
+
+        HashSet<string> fields = filters
+            .Select(filter => filter.Field)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return query with
+        {
+            ResultFilters = query
+                .ResultFilters?.Where(item => !fields.Contains(item.Field))
+                .ToArray(),
+            ResultFilterGroups =
+            [
+                .. (query.ResultFilterGroups ?? []).Where(item => !fields.Contains(item.Field)),
+                .. filters,
+            ],
+        };
     }
 
     Task ClearFiltersAsync(string? field = null)
@@ -253,7 +333,7 @@ public partial class WorkbenchQueryResults : IDisposable
 
     Task RetryAsync() => LoadAsync(_requested, _notifySortOnRetry);
 
-    async Task LoadAsync(WorkbenchQuery query, bool notifySort = false)
+    async Task<bool> LoadAsync(WorkbenchQuery query, bool notifySort = false)
     {
         _pending?.Cancel();
         using CancellationTokenSource request = new();
@@ -271,7 +351,7 @@ public partial class WorkbenchQueryResults : IDisposable
                 request.Token
             );
             if (!ReferenceEquals(_pending, request))
-                return;
+                return false;
 
             if (!response.IsSuccessStatusCode)
             {
@@ -287,7 +367,7 @@ public partial class WorkbenchQueryResults : IDisposable
                 }
                 if (ReferenceEquals(_pending, request))
                     _error = message;
-                return;
+                return false;
             }
 
             WorkbenchQueryPage page = await response.Content.ReadFromJsonAsync<WorkbenchQueryPage>(
@@ -314,6 +394,7 @@ public partial class WorkbenchQueryResults : IDisposable
 
         if (committed && notifySort && query.SortField is { } sortField)
             await OnSort.InvokeAsync((sortField, query.Descending));
+        return committed;
     }
 
     static IEnumerable<ResultColumn> ResultColumns(WorkbenchQuery query) =>
@@ -380,6 +461,8 @@ public partial class WorkbenchQueryResults : IDisposable
 
     public void Dispose()
     {
+        _disposed = true;
+        AssistantWorkspace.Remove(this);
         _pending?.Cancel();
         _pending = null;
         GC.SuppressFinalize(this);

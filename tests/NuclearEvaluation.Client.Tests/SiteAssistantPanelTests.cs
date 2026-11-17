@@ -8,6 +8,8 @@ using NSubstitute;
 using NuclearEvaluation.Client.Pages;
 using NuclearEvaluation.Client.Services;
 using NuclearEvaluation.Client.Shared;
+using NuclearEvaluation.Client.Shared.Radiation;
+using NuclearEvaluation.Client.Shared.Workbench;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Views;
 
@@ -134,6 +136,187 @@ public class SiteAssistantPanelTests : TestBase
             StringComparison.Ordinal
         );
         Assert.Contains("Loaded the query example.", panel.Markup, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task FiltersWorkbenchResultsWithoutChangingTheAppliedBuilderQuery()
+    {
+        WorkbenchQuery baseQuery = new(
+            WorkbenchQueryEntity.Channel,
+            [
+                new(
+                    WorkbenchQueryEntity.File,
+                    false,
+                    [new(nameof(WorkbenchQueryRow.Year), RadNetOperator.Equal, "2025")]
+                ),
+            ],
+            ResultFilterGroups:
+            [
+                new(
+                    nameof(WorkbenchQueryRow.Station),
+                    false,
+                    [new(RadNetOperator.Equal, "Fresno")]
+                ),
+            ]
+        );
+        List<WorkbenchQuery> gridQueries = [];
+        using AssistantHandler handler = new(
+            gridRequest: async (request, ct) =>
+            {
+                Assert.Equal("/api/workbench/query", request.RequestUri?.AbsolutePath);
+                WorkbenchQuery? query = await request.Content!.ReadFromJsonAsync<WorkbenchQuery>(
+                    ct
+                );
+                Assert.NotNull(query);
+                gridQueries.Add(query);
+                return new(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(new WorkbenchQueryPage([], 0)),
+                };
+            }
+        );
+        handler.Reply.SetResult(
+            new(
+                "Updated the current grid.",
+                new(AssistantActionKind.ApplyWorkbenchGridQuery)
+                {
+                    WorkbenchGridQuery = new(
+                        [
+                            new(
+                                nameof(WorkbenchQueryRow.CountRate),
+                                false,
+                                [new(RadNetOperator.AtLeast, "100")]
+                            ),
+                        ],
+                        nameof(WorkbenchQueryRow.CountRate),
+                        Descending: true
+                    ),
+                }
+            )
+        );
+        using HttpClient http = Register(handler);
+        TestContext
+            .Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/workbench?view=builder");
+        IRenderedComponent<WorkbenchQueryResults> grid = TestContext.Render<WorkbenchQueryResults>(
+            parameters => parameters.Add(component => component.Query, baseQuery)
+        );
+        grid.WaitForElement("table");
+        IRenderedComponent<SiteAssistantPanel> panel = TestContext.Render<SiteAssistantPanel>();
+        panel.WaitForElement("aside button").Click();
+        panel.Find("textarea").Input("Show readings of at least 100 CPM, highest first");
+
+        await panel.Find("form").TriggerEventAsync("onsubmit", EventArgs.Empty);
+
+        SiteAssistantQuestion question = await handler.Sent.Task;
+        Assert.Equal(AssistantPage.Workbench, question.Context.Page);
+        Assert.Equal(AssistantSurface.WorkbenchQueryResults, question.Context.Surface);
+        Assert.Equal(WorkbenchQueryEntity.Channel, question.Context.WorkbenchResultEntity);
+        WorkbenchQuery applied = Assert.Single(gridQueries.Skip(1));
+        Assert.Equal(baseQuery.Entity, applied.Entity);
+        Assert.Equal(
+            Assert.Single(baseQuery.Filters!).Entity,
+            Assert.Single(applied.Filters!).Entity
+        );
+        Assert.Equal("2025", Assert.Single(Assert.Single(applied.Filters!).Conditions).Value);
+        Assert.Equal(nameof(WorkbenchQueryRow.CountRate), applied.SortField);
+        Assert.True(applied.Descending);
+        Assert.Equal(2, applied.ResultFilterGroups!.Count);
+        Assert.Contains(applied.ResultFilterGroups, group =>
+            group.Field == nameof(WorkbenchQueryRow.Station)
+        );
+        Assert.Contains(applied.ResultFilterGroups, group =>
+            group.Field == nameof(WorkbenchQueryRow.CountRate)
+        );
+        Assert.NotNull(
+            grid.Find("button[aria-label='Filter Count rate (CPM)'][data-active-filter='true']")
+        );
+        Assert.Contains("Updated the current grid.", panel.Markup, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task KeepsProjectObservationActionsOnTheCapturedProjectVersion(bool projectChanged)
+    {
+        const string route =
+            "/api/workbench/projects/4eb757e3-b297-45b9-bdd6-ceda50fa5126/observations/query";
+        List<(string Url, RadNetQuery Query)> gridQueries = [];
+        using AssistantHandler handler = new(
+            gridRequest: async (request, ct) =>
+            {
+                Assert.Equal(route, request.RequestUri?.AbsolutePath);
+                RadNetQuery? query = await request.Content!.ReadFromJsonAsync<RadNetQuery>(ct);
+                Assert.NotNull(query);
+                gridQueries.Add((request.RequestUri!.PathAndQuery, query));
+                return new(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(new RadNetQueryResult([], 0)),
+                };
+            }
+        );
+        using HttpClient http = Register(handler);
+        TestContext
+            .Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/workbench?view=projects");
+        IRenderedComponent<RadNetResults> grid = TestContext.Render<RadNetResults>(parameters =>
+            parameters
+                .Add(
+                    component => component.AssistantGrid,
+                    AssistantSurface.WorkbenchProjectObservations
+                )
+                .Add(component => component.Query, new RadNetQuery(RadNetEntity.Observation))
+                .Add(component => component.QueryUrl, route + "?version=4")
+        );
+        grid.WaitForElement("table");
+        IRenderedComponent<SiteAssistantPanel> panel = TestContext.Render<SiteAssistantPanel>();
+        panel.WaitForElement("aside button").Click();
+        panel.Find("textarea").Input("Show only approved observations");
+        Task submission = panel.Find("form").TriggerEventAsync("onsubmit", EventArgs.Empty);
+        SiteAssistantQuestion question = await handler.Sent.Task.WaitAsync(
+            DefaultWaitForStateTimeout
+        );
+        Assert.Equal(AssistantSurface.WorkbenchProjectObservations, question.Context.Surface);
+
+        if (projectChanged)
+            grid.Render(parameters =>
+                parameters.Add(component => component.QueryUrl, route + "?version=5")
+            );
+
+        handler.Reply.SetResult(
+            new(
+                "Updated the current grid.",
+                new(AssistantActionKind.ApplyWorkbenchGridQuery)
+                {
+                    WorkbenchGridQuery = new([
+                        new(
+                            nameof(RadNetRow.Status),
+                            false,
+                            [new(RadNetOperator.Equal, "APPROVED")]
+                        ),
+                    ]),
+                }
+            )
+        );
+        await submission.WaitAsync(DefaultWaitForStateTimeout);
+
+        (string url, RadNetQuery query) = Assert.Single(gridQueries.Skip(1));
+        if (projectChanged)
+        {
+            Assert.Equal(route + "?version=5", url);
+            Assert.Null(query.Filters);
+            Assert.Contains("The active view changed", panel.Markup, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.Equal(route + "?version=4", url);
+            RadNetCondition condition = Assert.Single(Assert.Single(query.Filters!).Conditions);
+            Assert.Equal(nameof(RadNetRow.Status), condition.Field);
+            Assert.Equal("APPROVED", condition.Value);
+            Assert.NotNull(
+                grid.Find("button[aria-label='Filter Status'][data-active-filter='true']")
+            );
+        }
     }
 
     [Fact]
@@ -272,7 +455,8 @@ public class SiteAssistantPanelTests : TestBase
         HttpStatusCode replyStatus = HttpStatusCode.OK,
         int? retryAfterSeconds = null,
         HttpStatusCode availabilityStatus = HttpStatusCode.OK,
-        bool chatAvailable = true
+        bool chatAvailable = true,
+        Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? gridRequest = null
     ) : HttpMessageHandler
     {
         public int StatusRequests { get; private set; }
@@ -286,6 +470,15 @@ public class SiteAssistantPanelTests : TestBase
             CancellationToken ct
         )
         {
+            if (
+                request.RequestUri?.AbsolutePath.StartsWith(
+                    "/api/workbench/",
+                    StringComparison.Ordinal
+                ) == true
+                && gridRequest is not null
+            )
+                return await gridRequest(request, ct);
+
             if (request.Method == HttpMethod.Get)
             {
                 Assert.Equal("/api/assistant/status", request.RequestUri?.AbsolutePath);

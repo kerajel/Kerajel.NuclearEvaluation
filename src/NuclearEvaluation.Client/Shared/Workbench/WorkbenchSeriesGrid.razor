@@ -218,6 +218,10 @@
                         <option value="10">10</option>
                         <option value="20">20</option>
                         <option value="50">50</option>
+                        @if (_displayedQuery.Top is not (10 or 20 or 50))
+                        {
+                            <option value="@_displayedQuery.Top">@_displayedQuery.Top</option>
+                        }
                     </select>
                 </label>
                 <button type="button" class="wb-button" @onclick="() => PageAsync(-1)" aria-disabled="@(_loading ? "true" : null)"

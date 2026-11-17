@@ -11,6 +11,7 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
     internal const int MaxHistory = 4;
     const string HelpTool = "site_help";
     const string GridTool = "filter_current_grid";
+    const string WorkbenchGridTool = "apply_workbench_grid_query";
     const string RankProjectsTool = "rank_projects_by_series_count";
     const string ClearTool = "clear_assistant_query";
     const string BuilderTool = "draft_query_builder_filters";
@@ -30,7 +31,8 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
         example tool for the current page.
         This opens the relevant Query Builder, loads a multi-entity draft, and runs it. An example
         request needs no additional detail. Use site help for questions
-        about how the builder works. For specified filters in Query Builder, use the draft tool.
+        about how the builder works. When a draft tool is available and the user asks to build a draft,
+        use it. Use the current grid tool when the user asks to refine displayed results.
         For a how-to question choose the most relevant documented help topic. For an explicit request
         to change the view, choose one applicable tool. Apply all requested constraints. If the request
         is unrelated, ambiguous, asks for unavailable features, or needs a tool outside this view,
@@ -59,6 +61,10 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
 
         SiteAssistantGridSchema? grid = catalog.Grids.FirstOrDefault(item =>
             item.Grid == context.ActiveGrid && item.Fields.Count > 0
+        );
+        WorkbenchAssistantGridSchema? workbenchGrid = WorkbenchAssistantQueries.FindGrid(
+            context,
+            catalog.WorkbenchGrids
         );
         List<object> tools =
         [
@@ -168,7 +174,19 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
 
         bool isStem =
             context.Surface is AssistantSurface.StemPreview or AssistantSurface.StemQuality;
-        if (context.ActiveGrid == AssistantSurface.Series)
+        if (workbenchGrid is not null)
+        {
+            tools.Add(BuildWorkbenchGridTool(workbenchGrid));
+            tools.Add(
+                Tool(
+                    ClearTool,
+                    "Clear the current Data Workbench grid's column filters. Keep its sort, page size, selected Project, and Query Builder draft.",
+                    ObjectSchema()
+                )
+            );
+            contextNotes.Add(DescribeWorkbenchGrid(workbenchGrid));
+        }
+        else if (context.ActiveGrid == AssistantSurface.Series)
         {
             tools.Add(OpenAiSeriesAssistant.BuildToolDefinition(catalog.Series));
             contextNotes.Add(OpenAiSeriesAssistant.Instructions);
@@ -422,6 +440,8 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
                     grid.Limit
                 ),
             },
+            WorkbenchGridTool when ReadArguments<AssistantWorkbenchGridQuery>(call) is { } grid =>
+                new(AssistantActionKind.ApplyWorkbenchGridQuery) { WorkbenchGridQuery = grid },
             RankProjectsTool
                 when ReadArguments<ProjectRankingArguments>(call)
                     is { ProjectFilters: not null, IndividualSeriesFilters: not null } projects =>
@@ -510,6 +530,84 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
 
     static AssistantTool Tool(string name, string description, JsonObject parameters) =>
         new("function", name, description, true, parameters);
+
+    static AssistantTool BuildWorkbenchGridTool(WorkbenchAssistantGridSchema grid)
+    {
+        JsonObject conditions = ArraySchema(
+            ObjectSchema(
+                ("operator", EnumSchema(Enum.GetNames<RadNetOperator>())),
+                ("value", NullableSchema(new JsonObject { ["type"] = "string" }))
+            ),
+            ColumnFilterGroup.MaxConditions
+        );
+        conditions["minItems"] = 1;
+        return Tool(
+            WorkbenchGridTool,
+            "Apply per-column filters, a sort, or a page size directly to the current Data Workbench grid while keeping its data scope.",
+            ObjectSchema(
+                (
+                    "filters",
+                    ArraySchema(
+                        ObjectSchema(
+                            ("field", EnumSchema(grid.Fields.Select(field => field.Name))),
+                            ("matchAny", new JsonObject { ["type"] = "boolean" }),
+                            ("conditions", conditions)
+                        ),
+                        WorkbenchAssistantQueries.MaxGroups(grid)
+                    )
+                ),
+                ("sortField", NullableSchema(EnumSchema(grid.Fields.Select(field => field.Name)))),
+                ("descending", new JsonObject { ["type"] = "boolean" }),
+                (
+                    "pageSize",
+                    NullableSchema(
+                        new JsonObject
+                        {
+                            ["type"] = "integer",
+                            ["minimum"] = 1,
+                            ["maximum"] = RadNetCatalog.MaxPageSize,
+                        }
+                    )
+                )
+            )
+        );
+    }
+
+    static string DescribeWorkbenchGrid(WorkbenchAssistantGridSchema grid)
+    {
+        string fields = string.Join(
+            ", ",
+            grid.Fields.Select(field =>
+                $"{field.Name} ({field.Label}, {field.Type}{(field.Nullable ? ", optional" : "")}{(field.Values is { Count: > 0 } values ? $", values: {string.Join('|', values)}" : "")})"
+            )
+        );
+        string scope = grid.Surface switch
+        {
+            AssistantSurface.WorkbenchSeries =>
+                "Each row describes a Series of observations. For From and To, use YYYY-MM-DD.",
+            AssistantSurface.WorkbenchProjectObservations =>
+                "Each row is a RadNet observation for the selected Project. Preserve the selected Project and its coverage chart.",
+            AssistantSurface.WorkbenchQueryResults =>
+                $"Each row is a {grid.ResultEntity} result of the current Query Builder draft. Only refine its results with columns listed here.",
+            AssistantSurface.WorkbenchImportRows =>
+                "Each row is a staged CSV record with its archive comparison outcome.",
+            _ => "Each row is a RadNet observation from the retained archive.",
+        };
+        return $"""
+            Current Data Workbench grid fields: {fields}.
+            {scope}
+            Filter only on these columns. Use one group per affected column, with one or two conditions.
+            Combine groups with AND. Within one column, matchAny true means OR and false means AND.
+            Use canonical field and enum value spellings. Use Contains only for free-text fields;
+            compare numbers and dates by range where applicable. Use ISO dates or UTC timestamps.
+            For a year, use an inclusive start and exclusive end on the same date field.
+            Use the two-letter state code for State. IsMissing and IsPresent require an optional
+            column and a null value. To preserve settings, leave sortField or pageSize null.
+            For top or bottom N, supply the sort field, direction, and pageSize N to show the first N rows.
+            Page size sets rows per page and the grid retains pagination. Use clear_assistant_query
+            only for an explicit request to clear the grid's column filters.
+            """;
+    }
 
     static AssistantTool BuildDatasetQueryTool(
         string toolName,

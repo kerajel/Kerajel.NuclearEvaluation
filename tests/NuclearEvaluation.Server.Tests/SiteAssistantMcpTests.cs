@@ -8,6 +8,164 @@ namespace NuclearEvaluation.Server.Tests;
 public class SiteAssistantMcpTests
 {
     [Fact]
+    public void WorkbenchProjectObservationActionsUseThePublishedGridSchema()
+    {
+        LocalSiteAssistantTools tools = new();
+        SiteAssistantContext context = new(
+            AssistantPage.Workbench,
+            AssistantSurface.WorkbenchProjectObservations
+        );
+        WorkbenchAssistantGridSchema grid = Assert.Single(
+            tools.Describe().WorkbenchGrids!,
+            schema => schema.Surface == context.Surface
+        );
+        Assert.Contains(grid.Fields, field =>
+            field.Name == nameof(RadNetRow.DoseNsvH)
+            && field.Type == RadNetFieldType.Number
+            && field.Nullable
+        );
+        Assert.Contains(grid.Fields, field => field.Name == nameof(RadNetRow.State));
+
+        ColumnFilterGroup dose = new(
+            nameof(RadNetRow.DoseNsvH),
+            false,
+            [new(RadNetOperator.AtLeast, "30"), new(RadNetOperator.LessThan, "500")]
+        );
+        AssistantWorkbenchGridQuery query = new(
+            [
+                dose,
+                new(
+                    nameof(RadNetRow.State),
+                    true,
+                    [new(RadNetOperator.Equal, "CA"), new(RadNetOperator.Equal, "OR")]
+                ),
+            ],
+            nameof(RadNetRow.DoseNsvH),
+            Descending: true,
+            PageSize: 10
+        );
+        AssistantAction action = WorkbenchAction(query);
+        AssistantAction clear = new(AssistantActionKind.ClearGrid);
+
+        Assert.Equal(action, tools.Validate(context, action).Action);
+        Assert.Equal(clear, tools.Validate(context, clear).Action);
+        Assert.Throws<McpException>(() =>
+            tools.Validate(new(AssistantPage.Workbench, AssistantSurface.None), action)
+        );
+        Assert.Throws<McpException>(() =>
+            tools.Validate(new(AssistantPage.Radiation, AssistantSurface.None), action)
+        );
+        Assert.Throws<McpException>(() =>
+            tools.Validate(context, action with { RadNetQuery = new() })
+        );
+        Assert.Throws<McpException>(() =>
+            tools.Validate(context, WorkbenchAction(query with { Filters = [dose, dose] }))
+        );
+        Assert.Throws<McpException>(() =>
+            tools.Validate(
+                context,
+                WorkbenchAction(query with { PageSize = RadNetCatalog.MaxPageSize + 1 })
+            )
+        );
+    }
+
+    [Fact]
+    public void WorkbenchQueryResultActionsAreRestrictedToTheSelectedResultEntity()
+    {
+        LocalSiteAssistantTools tools = new();
+        SiteAssistantContext channelResults = new(
+            AssistantPage.Workbench,
+            AssistantSurface.WorkbenchQueryResults,
+            WorkbenchResultEntity: WorkbenchQueryEntity.Channel
+        );
+        WorkbenchAssistantGridSchema grid = Assert.Single(
+            tools.Describe().WorkbenchGrids!,
+            schema =>
+                schema.Surface == channelResults.Surface
+                && schema.ResultEntity == channelResults.WorkbenchResultEntity
+        );
+        Assert.Contains(grid.Fields, field => field.Name == nameof(WorkbenchQueryRow.CountRate));
+
+        ColumnFilterGroup countRate = new(
+            nameof(WorkbenchQueryRow.CountRate),
+            false,
+            [new(RadNetOperator.AtLeast, "100")]
+        );
+        AssistantWorkbenchGridQuery query = new([countRate], nameof(WorkbenchQueryRow.ObservedAt));
+        AssistantAction action = WorkbenchAction(query);
+
+        Assert.Equal(action, tools.Validate(channelResults, action).Action);
+        Assert.Throws<McpException>(() =>
+            tools.Validate(
+                channelResults with
+                {
+                    WorkbenchResultEntity = WorkbenchQueryEntity.Observation,
+                },
+                action
+            )
+        );
+        Assert.Throws<McpException>(() =>
+            tools.Validate(channelResults with { WorkbenchResultEntity = null }, action)
+        );
+        Assert.Throws<McpException>(() =>
+            tools.Validate(
+                channelResults,
+                WorkbenchAction(
+                    query with
+                    {
+                        Filters =
+                        [
+                            countRate with
+                            {
+                                Conditions = [new(RadNetOperator.AtLeast, "NaN")],
+                            },
+                        ],
+                    }
+                )
+            )
+        );
+    }
+
+    [Theory]
+    [InlineData(
+        AssistantSurface.WorkbenchSeries,
+        nameof(WorkbenchSeries.From),
+        "2025-01-01",
+        "2025-02-30"
+    )]
+    [InlineData(
+        AssistantSurface.WorkbenchSeries,
+        nameof(WorkbenchSeries.Review),
+        nameof(WorkbenchReview.Pending),
+        "Ignored"
+    )]
+    [InlineData(
+        AssistantSurface.WorkbenchImportRows,
+        nameof(ImportReviewRow.Disposition),
+        nameof(ImportReviewDisposition.Duplicate),
+        "Duplicate row"
+    )]
+    public void WorkbenchActionsValidateGridSpecificValues(
+        AssistantSurface surface,
+        string field,
+        string valid,
+        string invalid
+    )
+    {
+        LocalSiteAssistantTools tools = new();
+        SiteAssistantContext context = new(AssistantPage.Workbench, surface);
+        AssistantAction Action(string value) =>
+            WorkbenchAction(new([new(field, false, [new(RadNetOperator.Equal, value)])]));
+
+        AssistantAction validAction = Action(valid);
+        Assert.Equal(validAction, tools.Validate(context, validAction).Action);
+        Assert.Throws<McpException>(() => tools.Validate(context, Action(invalid)));
+    }
+
+    static AssistantAction WorkbenchAction(AssistantWorkbenchGridQuery query) =>
+        new(AssistantActionKind.ApplyWorkbenchGridQuery) { WorkbenchGridQuery = query };
+
+    [Fact]
     public void ValidatesRadiochemistryQueriesAndExampleAgainstTheActivePage()
     {
         LocalSiteAssistantTools tools = new();

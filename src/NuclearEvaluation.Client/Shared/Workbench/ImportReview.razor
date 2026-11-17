@@ -22,7 +22,8 @@
                 <h3 id="ir-archive-title">Preloaded archive</h3>
                 <p>Filter and sort @Count(ObservationCount) retained observations. Use Annual CSV to review the original records from a single file.</p>
             </header>
-            <RadNetResults Query="@FullArchiveQuery" OnQuality="OpenFileQuality" />
+            <RadNetResults Query="@FullArchiveQuery" OnQuality="OpenFileQuality" ShowObservationState="true"
+                           AssistantGrid="AssistantSurface.WorkbenchArchiveObservations" />
         </section>
     }
     else

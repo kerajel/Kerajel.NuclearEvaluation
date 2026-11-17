@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
+using NuclearEvaluation.Client.Services;
 using NuclearEvaluation.Shared.Contracts;
 
 namespace NuclearEvaluation.Client.Shared.Workbench;
@@ -35,6 +36,9 @@ public partial class WorkbenchSeriesGrid : IDisposable
     [Inject]
     HttpClient Http { get; set; } = null!;
 
+    [Inject]
+    SiteAssistantWorkspace AssistantWorkspace { get; set; } = null!;
+
     [Parameter, EditorRequired]
     public IReadOnlyList<WorkbenchStation> Stations { get; set; } = [];
 
@@ -46,6 +50,72 @@ public partial class WorkbenchSeriesGrid : IDisposable
         || _displayedQuery.Review.Length > 0;
 
     protected override Task OnInitializedAsync() => ReloadAsync();
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (_page is not null)
+            AssistantWorkspace.Set(
+                this,
+                new(AssistantPage.Workbench, AssistantSurface.WorkbenchSeries),
+                ApplyAssistantActionAsync
+            );
+    }
+
+    async Task<bool> ApplyAssistantActionAsync(AssistantAction action)
+    {
+        bool applied = false;
+        await InvokeAsync(async () =>
+        {
+            if (
+                _lifetime.IsCancellationRequested
+                || !ReferenceEquals(AssistantWorkspace.Current?.Owner, this)
+                || _page is null
+                || _loading
+                || _busy
+                || _draft is not null
+                || _deleting is not null
+            )
+                return;
+
+            GridQuery next = _displayedQuery;
+            if (action.Kind == AssistantActionKind.ClearGrid)
+            {
+                _filterColumn = null;
+                next = next with { ColumnFilters = null };
+            }
+            else if (
+                action is
+                { Kind: AssistantActionKind.ApplyWorkbenchGridQuery, WorkbenchGridQuery: { } query }
+            )
+            {
+                if (query.SortField is { } field)
+                {
+                    WorkbenchSeriesColumn? column = WorkbenchSeriesColumn.All.FirstOrDefault(
+                        column =>
+                            string.Equals(column.Field, field, StringComparison.OrdinalIgnoreCase)
+                    );
+                    if (column is null)
+                        return;
+                    next = next with { Sort = column.Sort, Descending = query.Descending };
+                }
+                next = WithColumnFilters(next, query.Filters) with
+                {
+                    Top = query.PageSize ?? next.Top,
+                };
+            }
+            else
+            {
+                return;
+            }
+
+            Task<bool> load = LoadAsync(next with { Skip = 0 });
+            StateHasChanged();
+            applied = await load;
+            if (!_lifetime.IsCancellationRequested)
+                StateHasChanged();
+        });
+        return applied;
+    }
 
     Task ApplyFiltersAsync() =>
         LoadAsync(
@@ -83,7 +153,9 @@ public partial class WorkbenchSeriesGrid : IDisposable
         : "ascending";
 
     ColumnFilterGroup? FindColumnFilter(string field) =>
-        _displayedQuery.ColumnFilters?.FirstOrDefault(group => group.Field == field);
+        _displayedQuery.ColumnFilters?.FirstOrDefault(group =>
+            string.Equals(group.Field, field, StringComparison.OrdinalIgnoreCase)
+        );
 
     void OpenColumnFilter(WorkbenchSeriesColumn column)
     {
@@ -93,21 +165,36 @@ public partial class WorkbenchSeriesGrid : IDisposable
 
     void CloseColumnFilter() => _filterColumn = null;
 
-    Task ApplyColumnFilterAsync(ColumnFilterGroup filter)
+    Task ApplyColumnFilterAsync(ColumnFilterGroup filter) =>
+        LoadAsync(WithColumnFilters(_displayedQuery, [filter]) with { Skip = 0 });
+
+    static GridQuery WithColumnFilters(GridQuery query, IReadOnlyList<ColumnFilterGroup> filters)
     {
-        IReadOnlyList<ColumnFilterGroup> groups =
-        [
-            .. (_displayedQuery.ColumnFilters ?? []).Where(group => group.Field != filter.Field),
-            filter,
-        ];
-        return LoadAsync(_displayedQuery with { ColumnFilters = groups, Skip = 0 });
+        if (filters.Count == 0)
+            return query;
+
+        HashSet<string> fields = filters
+            .Select(filter => filter.Field)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return query with
+        {
+            ColumnFilters =
+            [
+                .. (query.ColumnFilters ?? []).Where(group => !fields.Contains(group.Field)),
+                .. filters,
+            ],
+        };
     }
 
     Task ClearColumnFiltersAsync(string? field = null)
     {
         IReadOnlyList<ColumnFilterGroup>? groups = field is null
             ? null
-            : _displayedQuery.ColumnFilters?.Where(group => group.Field != field).ToArray();
+            : _displayedQuery
+                .ColumnFilters?.Where(group =>
+                    !string.Equals(group.Field, field, StringComparison.OrdinalIgnoreCase)
+                )
+                .ToArray();
         return LoadAsync(_displayedQuery with { ColumnFilters = groups, Skip = 0 });
     }
 
@@ -125,10 +212,10 @@ public partial class WorkbenchSeriesGrid : IDisposable
 
     Task RetryAsync() => LoadAsync(_requestedQuery);
 
-    async Task LoadAsync(GridQuery query)
+    async Task<bool> LoadAsync(GridQuery query)
     {
         if (_lifetime.IsCancellationRequested)
-            return;
+            return false;
 
         _activeLoad?.Cancel();
         using CancellationTokenSource load = CancellationTokenSource.CreateLinkedTokenSource(
@@ -142,7 +229,7 @@ public partial class WorkbenchSeriesGrid : IDisposable
         {
             WorkbenchSeriesPage page = await ReadPageAsync(query, load.Token);
             if (!ReferenceEquals(load, _activeLoad))
-                return;
+                return false;
 
             if (query.Skip > 0 && query.Skip >= page.TotalCount)
             {
@@ -166,6 +253,7 @@ public partial class WorkbenchSeriesGrid : IDisposable
                 _pageSize = query.Top;
                 _loadFailed = false;
                 _error = null;
+                return true;
             }
         }
         catch (OperationCanceledException) when (load.IsCancellationRequested) { }
@@ -187,6 +275,7 @@ public partial class WorkbenchSeriesGrid : IDisposable
                 _loading = false;
             }
         }
+        return false;
     }
 
     async Task<WorkbenchSeriesPage> ReadPageAsync(GridQuery query, CancellationToken cancellation)
@@ -432,6 +521,7 @@ public partial class WorkbenchSeriesGrid : IDisposable
 
     public void Dispose()
     {
+        AssistantWorkspace.Remove(this);
         _lifetime.Cancel();
         _lifetime.Dispose();
         GC.SuppressFinalize(this);

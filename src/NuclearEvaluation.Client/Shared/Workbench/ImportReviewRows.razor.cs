@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
+using NuclearEvaluation.Client.Services;
 using NuclearEvaluation.Shared.Contracts;
 using static NuclearEvaluation.Client.Shared.Radiation.RadNetPresentation;
 
@@ -37,6 +38,9 @@ public partial class ImportReviewRows : IDisposable
     [Inject]
     HttpClient Http { get; set; } = null!;
 
+    [Inject]
+    SiteAssistantWorkspace AssistantWorkspace { get; set; } = null!;
+
     [Parameter, EditorRequired]
     public Guid StageId { get; set; }
 
@@ -46,10 +50,81 @@ public partial class ImportReviewRows : IDisposable
     {
         if (_lastStageId == StageId)
             return Task.CompletedTask;
+        AssistantWorkspace.Remove(this);
         _lastStageId = StageId;
         _page = null;
         _editor = null;
         return LoadAsync(InitialQuery);
+    }
+
+    void RegisterAssistantTarget()
+    {
+        Guid stageId = StageId;
+        AssistantWorkspace.Set(
+            this,
+            new(AssistantPage.Workbench, AssistantSurface.WorkbenchImportRows),
+            action => ApplyAssistantAsync(action, stageId),
+            stageId
+        );
+    }
+
+    bool HasAssistantScope(Guid stageId) =>
+        StageId == stageId
+        && AssistantWorkspace.Current is { } target
+        && ReferenceEquals(target.Owner, this);
+
+    async Task<bool> ApplyAssistantAsync(AssistantAction action, Guid stageId)
+    {
+        bool applied = false;
+        await InvokeAsync(async () =>
+        {
+            if (
+                Busy
+                || _expired
+                || _page is not { Query: var current }
+                || !HasAssistantScope(stageId)
+            )
+                return;
+
+            ImportReviewQuery? query = action switch
+            {
+                { Kind: AssistantActionKind.ClearGrid } => current with
+                {
+                    Skip = 0,
+                    Filters = null,
+                },
+                {
+                    Kind: AssistantActionKind.ApplyWorkbenchGridQuery,
+                    WorkbenchGridQuery: { } changes
+                } => current with
+                {
+                    SortField = changes.SortField ?? current.SortField,
+                    Descending = changes.SortField is null
+                        ? current.Descending
+                        : changes.Descending,
+                    Skip = 0,
+                    Top = changes.PageSize ?? current.Top,
+                    Filters =
+                    [
+                        .. (current.Filters ?? []).Where(filter =>
+                            !changes.Filters.Any(change => SameField(filter.Field, change.Field))
+                        ),
+                        .. changes.Filters,
+                    ],
+                },
+                _ => null,
+            };
+            if (query is null)
+                return;
+
+            _editor = null;
+            Task load = LoadAsync(query);
+            StateHasChanged();
+            await load;
+            applied = ReferenceEquals(_page?.Query, query) && HasAssistantScope(stageId);
+            StateHasChanged();
+        });
+        return applied;
     }
 
     async Task LoadAsync(ImportReviewQuery query)
@@ -73,6 +148,7 @@ public partial class ImportReviewRows : IDisposable
             {
                 _expired = true;
                 _error = "This review is no longer available. Stage the CSV again.";
+                AssistantWorkspace.Remove(this);
                 return;
             }
             response.EnsureSuccessStatusCode();
@@ -80,7 +156,10 @@ public partial class ImportReviewRows : IDisposable
                 pending.Token
             ) ?? throw new JsonException("Missing staged-record page.");
             if (ReferenceEquals(_pending, pending))
+            {
                 _page = new(query, result);
+                RegisterAssistantTarget();
+            }
         }
         catch (OperationCanceledException) when (pending.IsCancellationRequested) { }
         catch (Exception error)
@@ -109,7 +188,7 @@ public partial class ImportReviewRows : IDisposable
                 page.Query with
                 {
                     SortField = field,
-                    Descending = page.Query.SortField == field && !page.Query.Descending,
+                    Descending = SameField(page.Query.SortField, field) && !page.Query.Descending,
                     Skip = 0,
                 }
             )
@@ -132,12 +211,12 @@ public partial class ImportReviewRows : IDisposable
     }
 
     ColumnFilterGroup? FindFilter(string field) =>
-        _page?.Query.Filters?.FirstOrDefault(group => group.Field == field);
+        _page?.Query.Filters?.FirstOrDefault(group => SameField(group.Field, field));
 
     bool IsSelectedOutcome(ImportReviewDisposition outcome) =>
         FindFilter(nameof(ImportReviewRow.Disposition)) is { Conditions: [var condition] }
         && condition.Operator == RadNetOperator.Equal
-        && condition.Value == outcome.ToString();
+        && string.Equals(condition.Value, outcome.ToString(), StringComparison.OrdinalIgnoreCase);
 
     Task SelectOutcomeAsync(ImportReviewDisposition? outcome)
     {
@@ -156,7 +235,7 @@ public partial class ImportReviewRows : IDisposable
         if (Busy || _expired || _page is not { } page)
             return Task.CompletedTask;
         List<ColumnFilterGroup> filters = (page.Query.Filters ?? [])
-            .Where(filter => filter.Field != field)
+            .Where(filter => !SameField(filter.Field, field))
             .ToList();
         if (replacement is not null)
             filters.Add(replacement);
@@ -174,8 +253,11 @@ public partial class ImportReviewRows : IDisposable
         return LoadAsync(page.Query with { Skip = 0, Filters = null });
     }
 
+    static bool SameField(string? left, string? right) =>
+        string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+
     static string? SortDirection(ImportReviewQuery query, string field) =>
-        query.SortField == field ? (query.Descending ? "descending" : "ascending") : null;
+        SameField(query.SortField, field) ? (query.Descending ? "descending" : "ascending") : null;
 
     static string ColumnWidth(string field) =>
         field switch
@@ -221,6 +303,7 @@ public partial class ImportReviewRows : IDisposable
 
     public void Dispose()
     {
+        AssistantWorkspace.Remove(this);
         _pending?.Cancel();
         _pending = null;
         GC.SuppressFinalize(this);

@@ -267,7 +267,8 @@
 
     ViewSnapshot Capture()
     {
-        string route = new Uri(Navigation.Uri).AbsolutePath.Trim('/');
+        Uri location = new(Navigation.Uri);
+        string route = location.AbsolutePath.Trim('/');
         AssistantPage page = route.ToLowerInvariant() switch
         {
             "" => AssistantPage.Home,
@@ -277,6 +278,7 @@
             "sources" => AssistantPage.Sources,
             "radiation" => AssistantPage.Radiation,
             "radiochemistry" => AssistantPage.Radiochemistry,
+            "workbench" => AssistantPage.Workbench,
             "data-management" => AssistantPage.DataManagement,
             "evaluation" => AssistantPage.Evaluation,
             string path when path.StartsWith("projects/", StringComparison.Ordinal) => AssistantPage.Project,
@@ -285,7 +287,8 @@
         SiteAssistantTarget? target = Workspace.Current is { } current && current.Context.Page == page
             ? current
             : null;
-        return new(route, target, target?.Context ?? new SiteAssistantContext(page, AssistantSurface.None));
+        return new(page == AssistantPage.Workbench ? location.PathAndQuery : route,
+            target, target?.Context ?? new SiteAssistantContext(page, AssistantSurface.None));
     }
 
     static string ExamplePrompt(SiteAssistantContext context) => context.Surface switch
@@ -297,6 +300,11 @@
         AssistantSurface.Apms or AssistantSurface.Particles => "Show the five highest U234 measurements",
         AssistantSurface.QueryBuilder => "Build a query for regular series with QC samples",
         AssistantSurface.GenerationCalendar => "Show Illinois in February as a daily average",
+        AssistantSurface.WorkbenchSeries => "Show Series in California with at least 5,000 observations",
+        AssistantSurface.WorkbenchProjectObservations or AssistantSurface.WorkbenchArchiveObservations =>
+            "Show approved observations with a dose of at least 100 nSv/h, highest dose first",
+        AssistantSurface.WorkbenchQueryResults => WorkbenchExample(context.WorkbenchResultEntity),
+        AssistantSurface.WorkbenchImportRows => "Show duplicate or rejected CSV rows, newest first",
         AssistantSurface.StemPreview or AssistantSurface.StemQuality => context.HasUploads
             ? "Find repeated identifiers in the selected STEM file"
             : "How do I load the synthetic STEM example?",
@@ -308,9 +316,19 @@
             AssistantPage.Sources => "Where do the plant and emissions data come from?",
             AssistantPage.Radiation => "Show approved observations from California in 2025 with an R03 reading",
             AssistantPage.Radiochemistry => "Show Cs-137 results for Austrian cow’s milk in 2023 below the reporting limit",
+            AssistantPage.Workbench => "How do I filter Query Builder results in Data Workbench?",
             AssistantPage.Project => "How do I explore this project's records?",
             _ => "Can you show me an example Query Builder query?",
         },
+    };
+
+    static string WorkbenchExample(WorkbenchQueryEntity? entity) => entity switch
+    {
+        WorkbenchQueryEntity.Project => "Show projects with at least three linked Series",
+        WorkbenchQueryEntity.Series => "Show reviewed Series with at least 1,000 observations",
+        WorkbenchQueryEntity.File => "Show the 2025 files, sorted by station",
+        WorkbenchQueryEntity.Channel => "Show R03 readings above 100 CPM, highest first",
+        _ => "Show approved observations, newest first",
     };
 
     public void Dispose()

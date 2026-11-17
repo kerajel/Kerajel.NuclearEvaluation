@@ -16,6 +16,7 @@ public enum AssistantPage
     Sources,
     Radiation,
     Radiochemistry,
+    Workbench,
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<AssistantSurface>))]
@@ -32,13 +33,20 @@ public enum AssistantSurface
     StemPreview,
     StemQuality,
     GenerationCalendar,
+    WorkbenchSeries,
+    WorkbenchProjectObservations,
+    WorkbenchQueryResults,
+    WorkbenchImportRows,
+    WorkbenchArchiveObservations,
 }
 
 public sealed record SiteAssistantContext(
     AssistantPage Page,
     AssistantSurface Surface,
     AssistantSurface ResultGrid = AssistantSurface.None,
-    bool HasUploads = false
+    bool HasUploads = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        WorkbenchQueryEntity? WorkbenchResultEntity = null
 )
 {
     [JsonIgnore]
@@ -64,6 +72,11 @@ public sealed record SiteAssistantContext(
             AssistantSurface.StemPreview => "STEM Preview",
             AssistantSurface.StemQuality => "STEM Quality",
             AssistantSurface.GenerationCalendar => "Generation Calendar",
+            AssistantSurface.WorkbenchSeries => "Workbench Series",
+            AssistantSurface.WorkbenchProjectObservations => "Project observations",
+            AssistantSurface.WorkbenchQueryResults => "Workbench Query Builder results",
+            AssistantSurface.WorkbenchImportRows => "Import Review records",
+            AssistantSurface.WorkbenchArchiveObservations => "Workbench archive observations",
             _ => Page switch
             {
                 AssistantPage.Fleet => "Fleet Explorer",
@@ -73,6 +86,7 @@ public sealed record SiteAssistantContext(
                 AssistantPage.DataManagement => "Data Management",
                 AssistantPage.Radiation => "Radiation Monitoring",
                 AssistantPage.Radiochemistry => "Radiochemistry",
+                AssistantPage.Workbench => "Data Workbench",
                 AssistantPage.Evaluation => "Evaluation",
                 AssistantPage.Project => "Project overview",
                 _ => "Nuclear Evaluation",
@@ -94,6 +108,7 @@ public enum AssistantActionKind
     ApplyRadNetQuery,
     ApplyRemDbQuery,
     ShowRemDbExample,
+    ApplyWorkbenchGridQuery,
 }
 
 public sealed record AssistantGridQuery(
@@ -134,6 +149,9 @@ public sealed record AssistantAction(AssistantActionKind Kind)
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public RemDbQuery? RemDbQuery { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public AssistantWorkbenchGridQuery? WorkbenchGridQuery { get; init; }
 }
 
 public sealed record SiteAssistantQuestion(

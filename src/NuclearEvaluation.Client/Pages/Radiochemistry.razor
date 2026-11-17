@@ -34,7 +34,7 @@
 
     @if (_loadingSummary)
     {
-        <div class="rem-panel rem-empty" role="status">Reading archive coverage…</div>
+        <GridLoadingPlaceholder Label="Reading archive coverage…" />
     }
     else if (_summary is not { Available: true })
     {

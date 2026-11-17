@@ -24,11 +24,6 @@ public partial class SeriesCountsGrid
     {
         int sequence = ++_sequence;
         string key = CacheKey(query);
-        if (_summaryKey != key)
-        {
-            _summary = null;
-            _summaryKey = key;
-        }
         _isLoading = true;
         _hasError = false;
         await InvokeAsync(StateHasChanged);
@@ -42,6 +37,7 @@ public partial class SeriesCountsGrid
         if (cached.Found && cached.Entries.Count > 0)
         {
             _summary = cached.Entries[0];
+            _summaryKey = key;
             await InvokeAsync(StateHasChanged);
         }
 
@@ -55,6 +51,11 @@ public partial class SeriesCountsGrid
         {
             if (sequence != _sequence)
                 return;
+            if (_summaryKey != key)
+            {
+                _summary = null;
+                _summaryKey = null;
+            }
             _isLoading = false;
             _hasError = true;
             await InvokeAsync(StateHasChanged);
@@ -69,6 +70,7 @@ public partial class SeriesCountsGrid
 
         _hasError = false;
         _summary = fresh;
+        _summaryKey = key;
         _isLoading = false;
         await InvokeAsync(StateHasChanged);
 

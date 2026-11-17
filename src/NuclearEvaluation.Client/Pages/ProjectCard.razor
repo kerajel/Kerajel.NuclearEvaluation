@@ -5,9 +5,7 @@
 
 @if (_isLoading)
 {
-    <section class="project-state" aria-busy="true">
-        <p role="status">Loading project…</p>
-    </section>
+    <GridLoadingPlaceholder Label="Loading project…" />
 }
 else if (_loadError is not null)
 {
@@ -180,7 +178,7 @@ else if (_projectView is not null)
 
                     <RadzenTabsItem Text="Apm">
                         @{ MeasurementGridScope apmScope = _apmGridScope; }
-                        @if (tabManager.SelectedTabIndex == ApmTabIndex && _apmChartQuery is not null)
+                        @if (tabManager.SelectedTabIndex == ApmTabIndex)
                         {
                             <a class="project-distribution-link" href="@DistributionHref(ApmTabName, ApmDistributionId)"
                                @onclick:preventDefault @onclick="() => _apmDistribution.FocusAsync().AsTask()">
@@ -196,7 +194,7 @@ else if (_projectView is not null)
                                  OnLoadStarted="@(() => OnMeasurementLoadStarted(apmScope))"
                                  OnQueryChanged="@(query => OnMeasurementQueryChanged(apmScope, query))" />
 
-                        @if (tabManager.SelectedTabIndex == ApmTabIndex && _apmChartQuery is not null)
+                        @if (tabManager.SelectedTabIndex == ApmTabIndex)
                         {
                             <div id="@ApmDistributionId" class="project-distribution-target" tabindex="-1"
                                  role="region" aria-label="APM isotope distribution" @ref="_apmDistribution">
@@ -212,7 +210,7 @@ else if (_projectView is not null)
 
                     <RadzenTabsItem Text="Particles">
                         @{ MeasurementGridScope particleScope = _particleGridScope; }
-                        @if (tabManager.SelectedTabIndex == ParticleTabIndex && _particleChartQuery is not null)
+                        @if (tabManager.SelectedTabIndex == ParticleTabIndex)
                         {
                             <a class="project-distribution-link" href="@DistributionHref(ParticleTabName, ParticleDistributionId)"
                                @onclick:preventDefault @onclick="() => _particleDistribution.FocusAsync().AsTask()">
@@ -228,7 +226,7 @@ else if (_projectView is not null)
                                       OnLoadStarted="@(() => OnMeasurementLoadStarted(particleScope))"
                                       OnQueryChanged="@(query => OnMeasurementQueryChanged(particleScope, query))" />
 
-                        @if (tabManager.SelectedTabIndex == ParticleTabIndex && _particleChartQuery is not null)
+                        @if (tabManager.SelectedTabIndex == ParticleTabIndex)
                         {
                             <div id="@ParticleDistributionId" class="project-distribution-target" tabindex="-1"
                                  role="region" aria-label="Particle isotope distribution" @ref="_particleDistribution">

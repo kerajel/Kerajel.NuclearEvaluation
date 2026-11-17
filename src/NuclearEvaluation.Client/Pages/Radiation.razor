@@ -32,7 +32,7 @@
 
     @if (_loadingSummary)
     {
-        <div class="radiation-empty" role="status">Reading the RadNet archive…</div>
+        <GridLoadingPlaceholder Label="Reading the RadNet archive…" />
     }
     else if (_summary is not { Available: true })
     {

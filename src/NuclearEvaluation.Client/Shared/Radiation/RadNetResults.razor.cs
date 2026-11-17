@@ -77,6 +77,9 @@ public partial class RadNetResults : IDisposable
     public RadNetQuery Query { get; set; } = new();
 
     [Parameter]
+    public int QueryRevision { get; set; }
+
+    [Parameter]
     public string QueryUrl { get; set; } = "api/radnet/query";
 
     [Parameter]
@@ -135,7 +138,7 @@ public partial class RadNetResults : IDisposable
 
     protected override Task OnParametersSetAsync()
     {
-        ResultScope scope = new(Query, QueryUrl, ProjectId);
+        ResultScope scope = new(Query, QueryUrl, ProjectId, QueryRevision);
         if (scope == _scope)
         {
             if (!_loading || ScopeLoading)
@@ -150,6 +153,7 @@ public partial class RadNetResults : IDisposable
             previousScope is not null
             && scope.Query == previousScope.Query
             && scope.ProjectId == previousScope.ProjectId
+            && scope.QueryRevision == previousScope.QueryRevision
         )
         {
             ResultRequest current =
@@ -497,7 +501,7 @@ public partial class RadNetResults : IDisposable
 
     sealed record ResultRequest(RadNetQuery Query, IReadOnlyList<ColumnFilterGroup> ColumnFilters);
 
-    sealed record ResultScope(RadNetQuery Query, string Url, Guid? ProjectId);
+    sealed record ResultScope(RadNetQuery Query, string Url, Guid? ProjectId, int QueryRevision);
 
     sealed record QueryProblem(string? Title);
 }

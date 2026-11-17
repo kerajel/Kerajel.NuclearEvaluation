@@ -94,8 +94,10 @@ public class SeriesCountsGridTests : TestBase
             .Returns(Task.FromResult(new SeriesCountsView { SeriesCount = 1 }));
         Api.GetSeriesCounts(nextPage)
             .Returns(Task.FromException<SeriesCountsView>(new HttpRequestException()));
-        Api.GetSeriesCounts(second)
-            .Returns(Task.FromException<SeriesCountsView>(new HttpRequestException()));
+        TaskCompletionSource<SeriesCountsView> response = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        Api.GetSeriesCounts(second).Returns(response.Task);
         IRenderedComponent<SeriesCountsGrid> component = TestContext.Render<SeriesCountsGrid>();
 
         await component.InvokeAsync(() => component.Instance.RefreshSummaryData(first));
@@ -104,7 +106,16 @@ public class SeriesCountsGridTests : TestBase
         await component.InvokeAsync(() => component.Instance.RefreshSummaryData(nextPage));
         Assert.Equal("1", component.FindAll("dd")[0].TextContent);
 
-        await component.InvokeAsync(() => component.Instance.RefreshSummaryData(second));
+        Task refresh = null!;
+        await component.InvokeAsync(() =>
+        {
+            refresh = component.Instance.RefreshSummaryData(second);
+        });
+        Assert.Equal("true", component.Find(".ne-series-counts-grid").GetAttribute("aria-busy"));
+        Assert.Equal("1", component.FindAll("dd")[0].TextContent);
+
+        response.SetException(new HttpRequestException());
+        await refresh;
 
         Assert.Contains(
             "Totals could not be refreshed",

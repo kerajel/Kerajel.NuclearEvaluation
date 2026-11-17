@@ -151,7 +151,7 @@ public class ProjectUraniumHistogramTests : TestBase
     }
 
     [Fact]
-    public async Task ProjectHidesThePreviousChartWhileTheMeasurementGridRefreshes()
+    public async Task ProjectKeepsThePreviousChartVisibleWhileTheMeasurementGridRefreshes()
     {
         TestContext
             .Services.GetRequiredService<NavigationManager>()
@@ -192,7 +192,10 @@ public class ProjectUraniumHistogramTests : TestBase
                 "Waiting for the measurement grid…",
                 project.Find("#apm-isotope-distribution [role='status']").TextContent
             );
-            Assert.Empty(project.FindComponents<RadzenLineSeries<BinCount>>());
+            Assert.Equal(4, U234Rows(project));
+            Assert.True(
+                project.Find("#apm-isotope-distribution [aria-busy=true]").HasAttribute("inert")
+            );
         });
         pendingGrid.SetResult(DataResult<ApmView>.Succeeded([], 0));
         await reload;

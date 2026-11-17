@@ -30,22 +30,24 @@
     </section>
 
     <section class="home-archive" aria-label="Archive coverage" aria-busy="@(_summaryLoaded ? "false" : "true")">
-        @if (_summary is { Available: true } summary)
+        @if (!_summaryLoaded || _summary is { Available: true })
         {
             <dl class="home-metrics">
-                <div><dt>Observations</dt><dd>@summary.ObservationCount.ToString("N0")</dd></div>
-                <div><dt>Monitoring stations</dt><dd>@summary.StationCount.ToString("N0")</dd></div>
-                <div><dt>Annual source files</dt><dd>@summary.SourceFileCount.ToString("N0")</dd></div>
-                <div><dt>Coverage</dt><dd>@FormatCoverage(summary.Coverage)</dd></div>
+                <div><dt>Observations</dt><dd>@_summary?.ObservationCount.ToString("N0")</dd></div>
+                <div><dt>Monitoring stations</dt><dd>@_summary?.StationCount.ToString("N0")</dd></div>
+                <div><dt>Annual source files</dt><dd>@_summary?.SourceFileCount.ToString("N0")</dd></div>
+                <div><dt>Coverage</dt><dd>@(_summary is { } summary ? FormatCoverage(summary.Coverage) : null)</dd></div>
             </dl>
         }
         else
         {
-            <p class="home-archive-status" role="status">
-                @(_summaryLoaded ? "Archive snapshot unavailable on this host." : "Loading archive coverage…")
-            </p>
+            <p class="home-archive-status" role="status">Archive snapshot unavailable on this host.</p>
         }
     </section>
+    @if (!_summaryLoaded)
+    {
+        <p class="home-archive-loading-status" role="status">Loading archive coverage…</p>
+    }
 
     <section class="home-tools" aria-labelledby="home-tools-title">
         <h2 id="home-tools-title">Analyze the archive</h2>

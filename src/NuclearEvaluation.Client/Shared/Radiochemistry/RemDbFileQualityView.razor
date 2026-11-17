@@ -12,16 +12,17 @@
         }
     </header>
 
-    @if (_loading)
-    {
-        <p class="rem-empty" role="status">Reading source files…</p>
-    }
-    else if (_error is not null)
+    @if (_error is not null)
     {
         <div class="rem-empty">
             <p role="alert">@_error</p>
-            <button type="button" class="rem-button" @onclick="LoadAsync">Retry</button>
+            <button type="button" class="rem-button" @onclick="RetryAsync">Retry</button>
         </div>
+    }
+
+    @if (_loading && _page is null && _quality is null)
+    {
+        <GridLoadingPlaceholder Label="@(FileId.HasValue ? "Reading file coverage…" : "Loading source files…")" />
     }
     else if (_quality is { } report)
     {
@@ -100,8 +101,8 @@
     else if (_page is { Items.Count: > 0 } page)
     {
         <p class="rem-grid-count" role="status"><strong>@Count(page.TotalCount)</strong> source files</p>
-        <div class="rem-table-scroll" tabindex="0" aria-label="Source files">
-            <table>
+        <div class="rem-table-scroll ne-grid-refresh" tabindex="0" aria-label="Source files" aria-busy="@(_loading ? "true" : "false")">
+            <table inert="@_loading">
                 <thead>
                     <tr>
                         <th scope="col">Source CSV</th>
@@ -136,14 +137,15 @@
             <nav class="rem-pager" aria-label="Source file pages">
                 <span>@Count((long)_skip + 1)–@Count((long)_skip + page.Items.Count) of @Count(page.TotalCount)</span>
                 <div>
-                    <button type="button" class="rem-button" disabled="@(_skip == 0)" @onclick="() => TurnPageAsync(-1)">Previous</button>
-                    <button type="button" class="rem-button" disabled="@((long)_skip + PageSize >= page.TotalCount)"
+                    <button type="button" class="rem-button" disabled="@(_skip == 0)" aria-disabled="@(_loading ? "true" : null)"
+                            @onclick="() => TurnPageAsync(-1)">Previous</button>
+                    <button type="button" class="rem-button" disabled="@((long)_skip + PageSize >= page.TotalCount)" aria-disabled="@(_loading ? "true" : null)"
                             @onclick="() => TurnPageAsync(1)">Next</button>
                 </div>
             </nav>
         }
     }
-    else
+    else if (_error is null)
     {
         <p class="rem-empty">No source files are available.</p>
     }

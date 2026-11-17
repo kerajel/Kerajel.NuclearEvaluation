@@ -53,7 +53,7 @@ public partial class StemPreview : IDisposable
     bool showQuality;
     Guid? qualityFileId;
     StemQualityCheck? qualityCheck;
-    StemFileProfile? qualityProfile;
+    (Guid FileId, StemFileProfile Profile)? qualityProfile;
     string? qualityError;
     CancellationTokenSource? profileCancellation;
     int assistantUploadRevision;
@@ -72,6 +72,11 @@ public partial class StemPreview : IDisposable
 
     protected override void OnInitialized() => showQuality = StartInQuality;
 
+    bool HasCurrentQualityProfile =>
+        profileCancellation is null
+        && qualityProfile is { } profile
+        && profile.FileId == qualityFileId;
+
     internal SiteAssistantContext AssistantContext =>
         new(
             AssistantPage.DataManagement,
@@ -85,7 +90,7 @@ public partial class StemPreview : IDisposable
             showQuality,
             qualityFileId,
             qualityCheck,
-            qualityProfile is not null,
+            HasCurrentQualityProfile,
             assistantUploadRevision,
             ShowStemPreviewEntryGrid()
         );
@@ -127,7 +132,12 @@ public partial class StemPreview : IDisposable
 
     async Task<bool> ApplyGridQuery(AssistantGridQuery? query)
     {
-        if (showQuality && qualityProfile is not null && qualityWorkbench is { } workbench)
+        if (
+            showQuality
+            && HasCurrentQualityProfile
+            && qualityWorkbench is { } workbench
+            && workbench.FileId == qualityFileId
+        )
             return await workbench.ApplyAssistantGridQuery(query);
         if (!showQuality && ShowStemPreviewEntryGrid() && stemPreviewEntryGrid is { } preview)
         {
@@ -144,7 +154,7 @@ public partial class StemPreview : IDisposable
             return false;
 
         await SetQualityView(true);
-        if (!showQuality || qualityFileId != fileId || qualityProfile is null)
+        if (!showQuality || qualityFileId != fileId || !HasCurrentQualityProfile)
             return false;
 
         qualityCheck = check;
@@ -330,11 +340,11 @@ public partial class StemPreview : IDisposable
         profileCancellation?.Cancel();
         profileCancellation = null;
         qualityFileId = fileId;
-        qualityCheck = null;
-        qualityProfile = null;
         qualityError = null;
         if (fileId is null)
         {
+            qualityProfile = null;
+            qualityCheck = null;
             return;
         }
 
@@ -349,7 +359,8 @@ public partial class StemPreview : IDisposable
             );
             if (profileCancellation == cancellation)
             {
-                qualityProfile = profile;
+                qualityProfile = profile is null ? null : (fileId.Value, profile);
+                qualityCheck = null;
                 qualityError = profile is null ? "This upload is no longer available." : null;
             }
         }
@@ -359,6 +370,8 @@ public partial class StemPreview : IDisposable
             if (profileCancellation == cancellation)
             {
                 Logger.LogWarning(ex, "Could not load the STEM quality profile.");
+                qualityProfile = null;
+                qualityCheck = null;
                 qualityError = "Could not load the quality profile. Please try again.";
             }
         }

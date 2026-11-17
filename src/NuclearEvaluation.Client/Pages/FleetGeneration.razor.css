@@ -60,6 +60,7 @@
 }
 
 .generation-mode button { border-color: transparent; }
+.generation-mode button:disabled, .generation-control:disabled { cursor: default; }
 .generation-mode button[aria-pressed="true"] { background: var(--ne-accent-tint); border-color: var(--ne-accent); }
 
 .generation-selectors {
@@ -88,6 +89,15 @@
 .generation-selection span { color: var(--ne-muted); font-size: 0.8rem; }
 .generation-selection strong { font-variant-numeric: tabular-nums; }
 
+.generation-selection[aria-busy="true"] > :empty::before {
+    content: "";
+    display: inline-block;
+    width: 5ch;
+    height: .65em;
+    border-radius: .2rem;
+    background: var(--ne-line);
+}
+
 .generation-viewport {
     max-block-size: min(31rem, 57dvh);
     padding: 0.16rem;
@@ -97,6 +107,8 @@
     border-radius: 0.55rem;
     scrollbar-width: thin;
 }
+
+.generation-viewport-loading { overflow: hidden; }
 
 .generation-heatmap {
     width: 100%;

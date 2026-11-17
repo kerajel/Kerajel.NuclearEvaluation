@@ -2,7 +2,7 @@
 
 @if (_loading)
 {
-    <p class="radnet-quality-state" role="status">Reading file coverage…</p>
+    <GridLoadingPlaceholder Label="Reading file coverage…" />
 }
 else if (_quality is not { } report)
 {

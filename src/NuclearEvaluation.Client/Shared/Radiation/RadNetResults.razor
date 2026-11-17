@@ -1,15 +1,9 @@
-@using NuclearEvaluation.Client.Shared.Workbench
 @using static RadNetPresentation
 
-@{
-    bool showLoadingGrid = _result is null && Busy &&
-        AssistantGrid is (AssistantSurface.WorkbenchProjectObservations or AssistantSurface.WorkbenchArchiveObservations);
-}
-
 <div class="radnet-results" aria-busy="@(Busy ? "true" : "false")">
-    @if (showLoadingGrid)
+    @if (_result is null && Busy)
     {
-        <WorkbenchLoadingGrid Label="Loading observations…" Rows="@Math.Min(12, Query.Top)" />
+        <GridLoadingPlaceholder Label="@($"Loading {EntityName(_requested.Query.Entity).ToLowerInvariant()}…")" Rows="@Math.Min(12, Query.Top)" />
     }
     else
     {

@@ -11,13 +11,16 @@ public partial class WorkbenchSeriesDetails : IDisposable
     readonly CancellationTokenSource _lifetime = new();
     CancellationTokenSource? _activeLoad;
     WorkbenchSeries? _scope;
+    WorkbenchSeries? _displayedScope;
     WorkbenchFilePage? _files;
     RadNetQuery? _observations;
     RadNetQuery? _channels;
     WorkbenchSeriesFile? _file;
     RadNetRow? _observation;
     int _skip;
+    int _requestedSkip;
     bool _loading;
+    bool _filesError;
 
     [Inject]
     HttpClient Http { get; set; } = null!;
@@ -34,9 +37,8 @@ public partial class WorkbenchSeriesDetails : IDisposable
             return Task.CompletedTask;
 
         _scope = Series;
-        _skip = 0;
         ResetDrillDown();
-        return LoadFilesAsync();
+        return LoadFilesAsync(0);
     }
 
     void ResetDrillDown()
@@ -52,40 +54,49 @@ public partial class WorkbenchSeriesDetails : IDisposable
         _observation = null;
     }
 
-    Task PageFilesAsync(int direction)
-    {
-        _skip += direction * PageSize;
-        ResetDrillDown();
-        return LoadFilesAsync();
-    }
+    Task PageFilesAsync(int direction) =>
+        _loading ? Task.CompletedTask : LoadFilesAsync(_skip + direction * PageSize);
 
-    async Task LoadFilesAsync()
+    Task RetryFilesAsync() => LoadFilesAsync(_requestedSkip);
+
+    async Task LoadFilesAsync(int skip)
     {
+        WorkbenchSeries scope = Series;
         _activeLoad?.Cancel();
         using CancellationTokenSource load = CancellationTokenSource.CreateLinkedTokenSource(
             _lifetime.Token
         );
         _activeLoad = load;
+        _requestedSkip = skip;
         _loading = true;
+        _filesError = false;
 
         try
         {
             string url = FormattableString.Invariant(
-                $"api/workbench/series/{Series.Id:D}/files?skip={_skip}&top={PageSize}"
+                $"api/workbench/series/{scope.Id:D}/files?skip={skip}&top={PageSize}"
             );
-            WorkbenchFilePage? page = await Http.GetFromJsonAsync<WorkbenchFilePage>(
-                url,
-                load.Token
-            );
+            WorkbenchFilePage page = await Http.GetFromJsonAsync<WorkbenchFilePage>(url, load.Token)
+                ?? throw new JsonException("Missing annual files page.");
             if (ReferenceEquals(_activeLoad, load))
+            {
+                if (_skip != skip || _displayedScope != scope)
+                    ResetDrillDown();
+                _skip = skip;
+                _displayedScope = scope;
                 _files = page;
+            }
         }
         catch (OperationCanceledException) when (load.IsCancellationRequested) { }
         catch (Exception error)
             when (error is HttpRequestException or JsonException or OperationCanceledException)
         {
             if (ReferenceEquals(_activeLoad, load))
-                _files = null;
+            {
+                if (_displayedScope != scope)
+                    _files = null;
+                _filesError = true;
+            }
         }
         finally
         {

@@ -3,7 +3,7 @@
 @inject ILogger<FleetMap> Logger
 @implements IDisposable
 
-@if (_geography is not null)
+@if (_geography is not null && !LoadingPlants)
 {
     <div class="fleet-map @(ShowCapacity ? "fleet-map-capacity" : "")"
          role="group" aria-label="Map of nuclear power plants in the contiguous United States"
@@ -45,8 +45,12 @@
 }
 else if (PlantSelected.HasDelegate)
 {
-    <div class="fleet-map-placeholder" role="status">
-        @if (_unavailable)
+    <div class="fleet-map fleet-map-placeholder" role="status">
+        @if (LoadingPlants)
+        {
+            <span>Loading the fleet snapshot…</span>
+        }
+        else if (_unavailable)
         {
             <span>The map is unavailable. Select a plant from the list below.</span>
         }
@@ -63,6 +67,7 @@ else if (PlantSelected.HasDelegate)
     [Parameter] public int? ComparedId { get; set; }
     [Parameter] public string? HighlightedStateName { get; set; }
     [Parameter] public EventCallback<FleetPlant> PlantSelected { get; set; }
+    [Parameter] public bool LoadingPlants { get; set; }
     [Parameter] public bool ShowCapacity { get; set; }
     [Parameter] public decimal CapacityScaleMw { get; set; } = 5_000;
 

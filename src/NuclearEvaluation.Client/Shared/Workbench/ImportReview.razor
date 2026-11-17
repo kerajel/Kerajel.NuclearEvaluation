@@ -11,7 +11,7 @@
             <button type="button" aria-pressed="@(!_showArchive ? "true" : "false")"
                     @onclick="() => _showArchive = false">Annual CSV</button>
             <button type="button" aria-pressed="@(_showArchive ? "true" : "false")"
-                    @onclick="() => _showArchive = true">Full archive</button>
+                    @onclick="() => _showArchive = true" disabled="@(!Ready)">Full archive</button>
         </div>
     </header>
 
@@ -47,9 +47,9 @@
                         }
                     </div>
                 }
-                else if (_busy)
+                else if (!Ready || _busy)
                 {
-                    <p role="status">Loading annual source information…</p>
+                    <WorkbenchLoadingGrid Label="Loading annual source information…" Rows="1" />
                 }
                 else
                 {
@@ -61,7 +61,7 @@
             {
                 <div class="ir-intake-controls">
                     <button type="button" class="ir-button ir-primary" @onclick="StageSampleAsync"
-                            disabled="@(_busy || !availability.SampleAvailable)">
+                            disabled="@(!Ready || _busy || !availability.SampleAvailable)">
                         <RadzenIcon Icon="play_arrow" aria-hidden="true" /> Stage EPA sample
                     </button>
                     @if (!availability.SampleAvailable)
@@ -72,9 +72,9 @@
                         <label for="import-review-csv">Choose a RadNet CSV for this station and year</label>
                         <div>
                             <InputFile id="import-review-csv" accept=".csv,text/csv" OnChange="SelectUpload"
-                                       disabled="@_busy" aria-describedby="import-review-size" />
+                                       disabled="@(!Ready || _busy)" aria-describedby="import-review-size" />
                             <button type="button" class="ir-button" @onclick="UploadAsync"
-                                    disabled="@(_busy || _upload is null)">Stage CSV</button>
+                                    disabled="@(!Ready || _busy || _upload is null)">Stage CSV</button>
                         </div>
                         <small id="import-review-size">CSV up to @UploadMegabytes MB</small>
                     </div>
@@ -83,9 +83,21 @@
         </section>
     }
 
-    @if (_busy && _progress is not null)
+    @if (_busy && _progress is { } progress)
     {
-        <p class="ir-message" role="status">@_progress</p>
+        @if (!_showArchive && _stage is null)
+        {
+            <section class="ir-panel ir-review" aria-labelledby="ir-staged-title">
+                <header class="ir-stage-heading">
+                    <h3 id="ir-staged-title">Staged records</h3>
+                </header>
+                <WorkbenchLoadingGrid Label="@progress" />
+            </section>
+        }
+        else
+        {
+            <p class="ir-message" role="status">@progress</p>
+        }
     }
     @if (_error is not null)
     {
@@ -136,7 +148,7 @@
                 <div class="ir-series-controls">
                     <label>
                         Attach to project
-                        <select @bind="_projectChoice" disabled="@_busy">
+                        <select @bind="_projectChoice" disabled="@(!Ready || _busy)">
                             <option value="">Choose later</option>
                             @foreach (WorkbenchProject project in _projects)
                             {
@@ -144,7 +156,7 @@
                             }
                         </select>
                     </label>
-                    <button type="button" class="ir-button ir-primary" @onclick="CreateSeriesAsync" disabled="@_busy">
+                    <button type="button" class="ir-button ir-primary" @onclick="CreateSeriesAsync" disabled="@(!Ready || _busy)">
                         <RadzenIcon Icon="playlist_add" aria-hidden="true" /> Create Series
                     </button>
                 </div>

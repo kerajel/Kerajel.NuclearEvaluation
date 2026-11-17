@@ -29,6 +29,7 @@ public partial class WorkbenchSeriesGrid : IDisposable
     string? _error;
     string? _notice;
     int _pageSize = 20;
+    bool _started;
     bool _loadFailed;
     bool _loading = true;
     bool _busy;
@@ -42,6 +43,10 @@ public partial class WorkbenchSeriesGrid : IDisposable
     [Parameter, EditorRequired]
     public IReadOnlyList<WorkbenchStation> Stations { get; set; } = [];
 
+    [Parameter]
+    public bool Ready { get; set; } = true;
+
+    bool WaitingForInitialPage => _loading && _page is null;
     IEnumerable<string> States => Stations.Select(station => station.State).Distinct().Order();
     GridQuery ActiveQuery => _loading ? _requestedQuery : _displayedQuery;
     bool HasFilters =>
@@ -49,7 +54,14 @@ public partial class WorkbenchSeriesGrid : IDisposable
         || _displayedQuery.State.Length > 0
         || _displayedQuery.Review.Length > 0;
 
-    protected override Task OnInitializedAsync() => ReloadAsync();
+    protected override Task OnParametersSetAsync()
+    {
+        if (!Ready || _started)
+            return Task.CompletedTask;
+
+        _started = true;
+        return ReloadAsync();
+    }
 
     protected override void OnAfterRender(bool firstRender)
     {
@@ -214,7 +226,7 @@ public partial class WorkbenchSeriesGrid : IDisposable
 
     async Task<bool> LoadAsync(GridQuery query)
     {
-        if (_lifetime.IsCancellationRequested)
+        if (!Ready || _lifetime.IsCancellationRequested)
             return false;
 
         _activeLoad?.Cancel();

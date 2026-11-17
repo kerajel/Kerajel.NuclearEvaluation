@@ -12,11 +12,11 @@
     <form class="wb-filters" aria-label="Filter series" @onsubmit="ApplyFiltersAsync" @onsubmit:preventDefault>
         <label>
             <span>Series or station</span>
-            <input type="search" @bind="_search" maxlength="100" placeholder="Search by name" />
+            <input type="search" @bind="_search" maxlength="100" placeholder="Search by name" disabled="@WaitingForInitialPage" />
         </label>
         <label>
             <span>State</span>
-            <select @bind="_state">
+            <select @bind="_state" disabled="@WaitingForInitialPage">
                 <option value="">All states</option>
                 @foreach (string state in States)
                 {
@@ -26,7 +26,7 @@
         </label>
         <label>
             <span>Review</span>
-            <select @bind="_review">
+            <select @bind="_review" disabled="@WaitingForInitialPage">
                 <option value="">Any review status</option>
                 @foreach (WorkbenchReview review in Reviews)
                 {
@@ -35,7 +35,7 @@
             </select>
         </label>
         <div class="wb-filter-actions">
-            <button type="submit" class="wb-button" disabled="@(_draft is not null || _busy)">Apply filters</button>
+            <button type="submit" class="wb-button" disabled="@(_draft is not null || _busy || WaitingForInitialPage)">Apply filters</button>
             @if (HasFilters)
             {
                 <button type="button" class="wb-button wb-plain" @onclick="ResetFiltersAsync" disabled="@(_draft is not null || _busy)">Clear</button>
@@ -72,9 +72,13 @@
     {
         <p class="wb-message" role="status">@_notice</p>
     }
-    @if (_loading)
+    @if (WaitingForInitialPage)
     {
-        <p class="@(_page is null ? "wb-message" : "wb-sr-only")" role="status">Loading series…</p>
+        <WorkbenchLoadingGrid Label="Loading series…" />
+    }
+    else if (_loading)
+    {
+        <p class="wb-sr-only" role="status">Loading series…</p>
     }
 
     @if (_page is not null || _draft is not null)

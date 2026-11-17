@@ -3,26 +3,31 @@
 
 <PageTitle>Data Workbench · Nuclear Evaluation</PageTitle>
 
+@{
+    RadNetSummary? archive = _catalog?.Archive;
+    bool ready = !_loading && archive is { Available: true };
+}
+
 <section class="wb-workbench" aria-labelledby="wb-title">
     <header class="wb-heading">
         <div>
             <h1 id="wb-title">Data Workbench</h1>
             <p>Organize and review EPA RadNet monitoring records.</p>
         </div>
-        @if (_catalog?.Archive is { Available: true } archive)
+        @if (_loading || ready)
         {
-            <dl class="wb-coverage" aria-label="RadNet archive coverage">
+            <dl class="wb-coverage" aria-label="RadNet archive coverage" aria-busy="@(_loading ? "true" : "false")">
                 <div>
                     <dt>Source observations</dt>
-                    <dd>@Count(archive.ObservationCount)</dd>
+                    <dd>@CoverageValue(archive?.ObservationCount)</dd>
                 </div>
                 <div>
                     <dt>Stations</dt>
-                    <dd>@Count(archive.StationCount)</dd>
+                    <dd>@CoverageValue(archive?.StationCount)</dd>
                 </div>
                 <div>
                     <dt>Annual files</dt>
-                    <dd>@Count(archive.SourceFileCount)</dd>
+                    <dd>@CoverageValue(archive?.SourceFileCount)</dd>
                 </div>
             </dl>
         }
@@ -43,11 +48,7 @@
         </a>
     </nav>
 
-    @if (_loading)
-    {
-        <div class="wb-message" role="status">Loading the workbench…</div>
-    }
-    else if (_catalog is not { Archive.Available: true } catalog)
+    @if (!_loading && !ready)
     {
         <div class="wb-message" role="alert">
             <h2>Workbench unavailable</h2>
@@ -57,18 +58,31 @@
     }
     else if (ShowProjects)
     {
-        <WorkbenchProjects />
+        <WorkbenchProjects Ready="ready" />
     }
     else if (ShowBuilder)
     {
-        <WorkbenchQueryBuilder RunExampleOnLoad="@RunBuilderExample" />
+        <WorkbenchQueryBuilder Ready="ready" RunExampleOnLoad="@RunBuilderExample" />
     }
     else if (ShowImportReview)
     {
-        <ImportReview ObservationCount="@catalog.Archive.ObservationCount" />
+        <ImportReview Ready="ready" ObservationCount="@(archive?.ObservationCount ?? 0)" />
     }
     else
     {
-        <WorkbenchSeriesGrid Stations="catalog.Stations" />
+        <WorkbenchSeriesGrid Ready="ready" Stations="@(_catalog?.Stations ?? [])" />
     }
 </section>
+
+@code {
+    RenderFragment CoverageValue(long? count) => @<text>
+        @if (count is long value)
+        {
+            @Count(value)
+        }
+        else
+        {
+            <span class="wb-coverage-placeholder" aria-hidden="true"></span>
+        }
+    </text>;
+}

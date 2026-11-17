@@ -1,20 +1,33 @@
+@using NuclearEvaluation.Client.Shared.Workbench
 @using static RadNetPresentation
 
+@{
+    bool showLoadingGrid = _result is null && Busy &&
+        AssistantGrid is (AssistantSurface.WorkbenchProjectObservations or AssistantSurface.WorkbenchArchiveObservations);
+}
+
 <div class="radnet-results" aria-busy="@(Busy ? "true" : "false")">
-    <div class="radnet-grid-info" role="status">
-        @if (ScopeLoading || (_loading && _displayedScope != _scope))
-        {
-            <span>Loading @EntityName(_requested.Query.Entity).ToLowerInvariant()…</span>
-        }
-        else if (_result is { } result)
-        {
-            <span><strong>@Count(result.TotalCount)</strong> matching @EntityName(DisplayedQuery.Entity).ToLowerInvariant()</span>
-        }
-        @if (_result is not null && _displayed.ColumnFilters.Count > 0)
-        {
-            <button type="button" class="radnet-filter-clear" @onclick="ClearFiltersAsync" disabled="@Busy">Clear column filters</button>
-        }
-    </div>
+    @if (showLoadingGrid)
+    {
+        <WorkbenchLoadingGrid Label="Loading observations…" Rows="@Math.Min(12, Query.Top)" />
+    }
+    else
+    {
+        <div class="radnet-grid-info" role="status">
+            @if (ScopeLoading || (_loading && _displayedScope != _scope))
+            {
+                <span>Loading @EntityName(_requested.Query.Entity).ToLowerInvariant()…</span>
+            }
+            else if (_result is { } result)
+            {
+                <span><strong>@Count(result.TotalCount)</strong> matching @EntityName(DisplayedQuery.Entity).ToLowerInvariant()</span>
+            }
+            @if (_result is not null && _displayed.ColumnFilters.Count > 0)
+            {
+                <button type="button" class="radnet-filter-clear" @onclick="ClearFiltersAsync" disabled="@Busy">Clear column filters</button>
+            }
+        </div>
+    }
 
     @if (_editingColumn is { } editing)
     {

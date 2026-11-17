@@ -22,6 +22,7 @@ public partial class ImportReview : IDisposable
     string? _progress;
     bool _busy;
     bool _showArchive;
+    bool _requestedAvailability;
 
     [Inject]
     HttpClient Http { get; set; } = null!;
@@ -32,9 +33,19 @@ public partial class ImportReview : IDisposable
     [Parameter]
     public long ObservationCount { get; set; }
 
+    [Parameter]
+    public bool Ready { get; set; } = true;
+
     static long UploadMegabytes => ImportReviewCatalog.MaxUploadBytes / 1_048_576;
 
-    protected override Task OnInitializedAsync() => LoadAvailabilityAsync();
+    protected override Task OnParametersSetAsync()
+    {
+        if (!Ready || _requestedAvailability)
+            return Task.CompletedTask;
+
+        _requestedAvailability = true;
+        return LoadAvailabilityAsync();
+    }
 
     Task LoadAvailabilityAsync() => RunAsync(null, async ct =>
         {
@@ -117,7 +128,7 @@ public partial class ImportReview : IDisposable
 
     async Task RunAsync(string? progress, Func<CancellationToken, Task> action)
     {
-        if (_busy)
+        if (!Ready || _busy)
             return;
         _busy = true;
         _progress = progress;

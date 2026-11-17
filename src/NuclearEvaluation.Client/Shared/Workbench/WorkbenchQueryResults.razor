@@ -15,11 +15,16 @@
                 }
             </div>
         }
-        @if (Loading)
+        @if (Loading && _page is not null)
         {
-            <p class="@(_page is null ? null : "wb-query-sr-only")" role="status">Running query…</p>
+            <p class="wb-query-sr-only" role="status">Running query…</p>
         }
     </header>
+
+    @if (Loading && _page is null)
+    {
+        <WorkbenchLoadingGrid Label="Running query…" />
+    }
 
     @if (_filterEditor is { } editor && _page is { } filterPage)
     {

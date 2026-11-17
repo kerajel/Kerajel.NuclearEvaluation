@@ -1,7 +1,7 @@
 @using NuclearEvaluation.Client.Shared.Radiation
 @using static NuclearEvaluation.Client.Shared.Radiation.RadNetPresentation
 
-<div class="wb-project-layout" aria-busy="@(_busy ? "true" : "false")">
+<div class="wb-project-layout" aria-busy="@(Busy ? "true" : "false")">
     <aside class="wb-project-list" aria-labelledby="wb-project-list-heading">
         <h2 id="wb-project-list-heading">Projects</h2>
         @if (_projects.Count > 0)
@@ -12,7 +12,7 @@
                     <li @key="project.Id">
                         <button type="button" class="wb-project-choice"
                                 aria-pressed="@(_selectedId == project.Id ? "true" : "false")"
-                                disabled="@_busy" @onclick="() => OpenAsync(project.Id)">
+                                disabled="@Busy" @onclick="() => OpenAsync(project.Id)">
                             @project.Name
                             <small>@Count(project.SeriesCount) linked series</small>
                         </button>
@@ -20,13 +20,26 @@
                 }
             </ul>
         }
+        else if (Busy)
+        {
+            <ul aria-hidden="true">
+                @for (int index = 0; index < 3; index++)
+                {
+                    <li>
+                        <span class="wb-project-choice" style="background:var(--ne-surface-raised);pointer-events:none">
+                            &nbsp;<small>&nbsp;</small>
+                        </span>
+                    </li>
+                }
+            </ul>
+        }
         <form class="wb-project-form" @onsubmit="CreateAsync" @onsubmit:preventDefault>
             <label>
                 New project name
-                <input @bind="_newProjectName" @bind:event="oninput" maxlength="100" required />
+                <input @bind="_newProjectName" @bind:event="oninput" maxlength="100" required disabled="@(!Ready)" />
             </label>
             <button type="submit" class="wb-project-button is-primary"
-                    disabled="@(_busy || string.IsNullOrWhiteSpace(_newProjectName))">Create project</button>
+                    disabled="@(Busy || string.IsNullOrWhiteSpace(_newProjectName))">Create project</button>
         </form>
     </aside>
 
@@ -37,15 +50,22 @@
                 @_error
                 @if (_project is null)
                 {
-                    <button type="button" class="wb-project-button" disabled="@_busy" @onclick="LoadProjectsAsync">Try again</button>
+                    <button type="button" class="wb-project-button" disabled="@Busy" @onclick="LoadProjectsAsync">Try again</button>
                 }
             </div>
         }
         @if (_project is not { } detail)
         {
-            @if (_error is null)
+            @if (Busy)
             {
-                <p class="wb-project-card" role="status">@(_busy ? "Loading projects…" : "Create a project to group Series and review their observations.")</p>
+                <section class="wb-project-card wb-project-observations" aria-labelledby="wb-project-observations-loading-heading">
+                    <h3 id="wb-project-observations-loading-heading">Project observations</h3>
+                    <WorkbenchLoadingGrid Label="Loading project observations…" Rows="@ObservationQuery.Top" />
+                </section>
+            }
+            else if (_error is null)
+            {
+                <p class="wb-project-card" role="status">Create a project to group Series and review their observations.</p>
             }
         }
         else

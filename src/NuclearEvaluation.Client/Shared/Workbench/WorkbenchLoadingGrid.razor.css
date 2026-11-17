@@ -1,0 +1,37 @@
+.wb-loading-grid {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--ne-line);
+  border-radius: .55rem;
+  background: var(--ne-surface);
+}
+
+.wb-loading-grid p {
+  margin: 0;
+  padding: .63rem .85rem;
+  background: var(--ne-surface-raised);
+  color: var(--ne-muted);
+  font-size: .87rem;
+}
+
+.wb-loading-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.25fr .85fr;
+  align-items: center;
+  gap: clamp(.65rem, 2vw, 1.55rem);
+  min-height: 2rem;
+  padding-inline: .85rem;
+  border-top: 1px solid var(--ne-line);
+}
+
+.wb-loading-row > span {
+  display: block;
+  width: 72%;
+  height: .55rem;
+  border-radius: .18rem;
+  background: var(--ne-line);
+}
+
+.wb-loading-row:nth-child(even) > span:nth-child(odd) {
+  width: 58%;
+}

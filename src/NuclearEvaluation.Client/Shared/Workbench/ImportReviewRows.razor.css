@@ -196,8 +196,7 @@ th[aria-sort],
   background: color-mix(in srgb, var(--rz-danger, #b34339) 15%, var(--ne-surface));
 }
 
-.ir-query-error,
-.ir-loading {
+.ir-query-error {
   margin: 0;
   padding: .5rem .85rem;
   color: var(--ne-muted);

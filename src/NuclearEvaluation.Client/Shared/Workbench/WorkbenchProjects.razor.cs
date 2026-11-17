@@ -30,12 +30,18 @@ public partial class WorkbenchProjects : IDisposable
     int _searchSkip;
     int _chartYear;
     CoverageMetric _chartMetric;
+    bool _started;
     bool _busy;
     bool _refreshingObservations;
     bool _editing;
 
     [Inject]
     HttpClient Http { get; set; } = null!;
+
+    [Parameter]
+    public bool Ready { get; set; } = true;
+
+    bool Busy => !Ready || _busy;
 
     string ChartTitle =>
         _chartMetric switch
@@ -45,7 +51,14 @@ public partial class WorkbenchProjects : IDisposable
             _ => "Observations by period",
         };
 
-    protected override Task OnInitializedAsync() => LoadProjectsAsync();
+    protected override Task OnParametersSetAsync()
+    {
+        if (!Ready || _started)
+            return Task.CompletedTask;
+
+        _started = true;
+        return LoadProjectsAsync();
+    }
 
     Task LoadProjectsAsync() =>
         RunAsync(
@@ -228,7 +241,7 @@ public partial class WorkbenchProjects : IDisposable
 
     async Task RunAsync(Func<CancellationToken, Task> action, bool refreshObservations = false)
     {
-        if (_busy || _lifetime.IsCancellationRequested)
+        if (Busy || _lifetime.IsCancellationRequested)
             return;
 
         _busy = true;

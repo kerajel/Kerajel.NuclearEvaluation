@@ -46,7 +46,14 @@
 
     @if (Busy)
     {
-        <p role="status" class="@(_page is null ? "ir-loading" : "ir-sr-only")">Loading records…</p>
+        @if (_page is null)
+        {
+            <WorkbenchLoadingGrid Label="Loading staged CSV records…" />
+        }
+        else
+        {
+            <p role="status" class="ir-sr-only">Loading records…</p>
+        }
     }
 
     @if (_page is { } current)

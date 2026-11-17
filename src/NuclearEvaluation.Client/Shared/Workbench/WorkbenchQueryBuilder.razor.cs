@@ -32,6 +32,9 @@ public partial class WorkbenchQueryBuilder
     [Parameter]
     public bool RunExampleOnLoad { get; set; }
 
+    [Parameter]
+    public bool Ready { get; set; } = true;
+
     bool CanAddCondition =>
         _groups.Sum(group => group.Conditions.Count) < WorkbenchQueryCatalog.MaxConditions;
 
@@ -39,9 +42,13 @@ public partial class WorkbenchQueryBuilder
 
     protected override void OnParametersSet()
     {
-        if (RunExampleOnLoad && !_openedExample)
+        if (!RunExampleOnLoad)
+            _openedExample = false;
+        else if (Ready && !_openedExample)
+        {
+            _openedExample = true;
             RunExample();
-        _openedExample = RunExampleOnLoad;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -183,6 +190,9 @@ public partial class WorkbenchQueryBuilder
 
     void Run(WorkbenchQuery query)
     {
+        if (!Ready)
+            return;
+
         _notice = null;
         _applied = query with { Skip = 0, ResultFilters = null, ResultFilterGroups = null };
     }

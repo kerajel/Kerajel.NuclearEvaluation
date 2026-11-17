@@ -1,0 +1,17 @@
+<div class="wb-loading-grid">
+    <p role="status">@Label</p>
+    <div class="wb-loading-rows" aria-hidden="true">
+        @for (int row = 0; row < Rows; row++)
+        {
+            <div class="wb-loading-row"><span></span><span></span><span></span><span></span></div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public int Rows { get; set; } = 8;
+}

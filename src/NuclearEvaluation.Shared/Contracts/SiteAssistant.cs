@@ -95,6 +95,15 @@ public sealed record AssistantGridQuery(
     string? SortField,
     bool Descending,
     int? Limit
+)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProjectSeriesRanking? ProjectSeriesRanking { get; init; }
+}
+
+public sealed record ProjectSeriesRanking(
+    IReadOnlyList<SeriesFieldFilter> Filters,
+    bool Descending
 );
 
 public sealed record AssistantBuilderFilter(SeriesQueryEntity Entity, SeriesFieldFilter Filter);

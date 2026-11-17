@@ -7,6 +7,48 @@ namespace NuclearEvaluation.Server.Tests;
 
 public class SiteAssistantMcpTests
 {
+    [Fact]
+    public void ProjectsCatalogAndValidationSupportRankedSeriesFilters()
+    {
+        LocalSiteAssistantTools tools = new();
+        SiteAssistantGridSchema projects = Assert.Single(tools.Describe().Grids, grid =>
+            grid.Grid == AssistantSurface.Projects
+        );
+        Assert.Contains(projects.RelatedSeries!.Fields, field =>
+            field.Name == "SampleCount"
+            && field.Comparisons.Contains(nameof(SeriesComparison.GreaterOrEqual))
+        );
+
+        SiteAssistantContext context = new(AssistantPage.Evaluation, AssistantSurface.Projects);
+        AssistantGridQuery query = new(AssistantSurface.Projects, [], "UpdatedAt", true, 10)
+        {
+            ProjectSeriesRanking = new(
+                [new("SampleCount", SeriesComparison.GreaterOrEqual, "10")],
+                true
+            ),
+        };
+        AssistantAction action = new(AssistantActionKind.FilterGrid) { GridQuery = query };
+        Assert.Equal(action, tools.Validate(context, action).Action);
+        Assert.Throws<McpException>(() =>
+            tools.Validate(context, action with { GridQuery = query with { Limit = null } })
+        );
+        Assert.Throws<McpException>(() =>
+            tools.Validate(
+                context,
+                action with
+                {
+                    GridQuery = query with
+                    {
+                        ProjectSeriesRanking = new(
+                            [new("UpdatedAt", SeriesComparison.Equal, "2025-01-01")],
+                            true
+                        ),
+                    },
+                }
+            )
+        );
+    }
+
     static readonly SiteAssistantContext Calendar = new(
         AssistantPage.FleetGeneration,
         AssistantSurface.GenerationCalendar

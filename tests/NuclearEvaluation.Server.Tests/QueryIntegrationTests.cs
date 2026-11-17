@@ -1,7 +1,9 @@
+using System.Globalization;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
 using NuclearEvaluation.Kernel.Commands;
 using NuclearEvaluation.Kernel.Data.Context;
@@ -384,6 +386,111 @@ public class QueryIntegrationTests(SqlFixture database) : IClassFixture<SqlFixtu
     {
         await using NuclearEvaluationServerDbContext db = database.Open();
         Assert.False(db.Database.HasPendingModelChanges());
+    }
+
+    [SqlServerFact]
+    public async Task ProjectsSelectByQualifiedSeriesCountBeforeApplyingDisplayOrder()
+    {
+        await using NuclearEvaluationServerDbContext db = database.Open();
+        await using IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
+        DateTime createdAt = new(2025, 1, 1);
+        Series SeriesWithSamples(int count) =>
+            new()
+            {
+                SeriesType = SeriesType.Regular,
+                CreatedAt = createdAt,
+                Samples = Enumerable
+                    .Range(1, count)
+                    .Select(sample => new Sample
+                    {
+                        ExternalCode = sample.ToString("D3", CultureInfo.InvariantCulture),
+                        SamplingDate = createdAt,
+                    })
+                    .ToList(),
+            };
+        Project ProjectWithSeries(string name, int days, params Series[] series) =>
+            new()
+            {
+                Name = name,
+                CreatedAt = createdAt,
+                UpdatedAt = createdAt.AddDays(days),
+                ProjectSeries = series.Select(item => new ProjectSeries { Series = item }).ToList(),
+            };
+
+        Series threshold = SeriesWithSamples(10);
+        Series aboveThreshold = SeriesWithSamples(11);
+        Series anotherMatch = SeriesWithSamples(15);
+        Series small = SeriesWithSamples(5);
+        Series otherSmall = SeriesWithSamples(6);
+        Project leader = ProjectWithSeries(
+            "Ranked leader",
+            1,
+            threshold,
+            aboveThreshold,
+            anotherMatch
+        );
+        Project second = ProjectWithSeries("Ranked second", 2, threshold, aboveThreshold, small);
+        Project newer = ProjectWithSeries("Ranked newer", 3, threshold, small, otherSmall);
+        Project noEligibleSeries = ProjectWithSeries("Ranked zero", 4, small, otherSmall);
+        Project belowProjectThreshold = ProjectWithSeries("Ranked below total", 5, small);
+        db.AddRange(leader, second, newer, noEligibleSeries, belowProjectThreshold);
+        await db.SaveChangesAsync();
+
+        AssistantGridQuery ranking = new(
+            AssistantSurface.Projects,
+            [],
+            nameof(ProjectView.UpdatedAt),
+            true,
+            2
+        )
+        {
+            ProjectSeriesRanking = new(
+                [new(nameof(SeriesView.SampleCount), SeriesComparison.GreaterOrEqual, "10")],
+                true
+            ),
+        };
+        DataQuery query = new() { AssistantQuery = ranking, Top = 1 };
+        FetchDataCommand<ProjectView> command = new() { Query = query };
+        command.Include(project => project.ProjectSeries);
+        ProjectService service = new(db, NullLogger<ProjectService>.Instance);
+
+        FetchDataResult<ProjectView> firstPage = await service.GetProjectViews(command);
+        Assert.True(firstPage.IsSuccessful, firstPage.Exception?.ToString());
+        Assert.Equal(2, firstPage.TotalCount);
+        ProjectView project = Assert.Single(firstPage.Entries);
+        Assert.Equal(second.Id, project.Id);
+        Assert.Equal(3, project.ProjectSeries.Count);
+
+        query.Skip = 1;
+        FetchDataResult<ProjectView> secondPage = await service.GetProjectViews(command);
+        Assert.True(secondPage.IsSuccessful, secondPage.Exception?.ToString());
+        Assert.Equal(2, secondPage.TotalCount);
+        Assert.Equal(leader.Id, Assert.Single(secondPage.Entries).Id);
+
+        query.Skip = 0;
+        query.AssistantQuery = ranking with { Limit = 10 };
+        FetchDataResult<ProjectView> includingAllMatches = await service.GetProjectViews(command);
+        Assert.True(includingAllMatches.IsSuccessful, includingAllMatches.Exception?.ToString());
+        Assert.Equal(3, includingAllMatches.TotalCount);
+        Assert.Equal(newer.Id, Assert.Single(includingAllMatches.Entries).Id);
+
+        query.Top = 10;
+        query.AssistantQuery = ranking with
+        {
+            Filters = [new(nameof(ProjectView.SampleCount), SeriesComparison.GreaterOrEqual, "10")],
+            Limit = 10,
+            ProjectSeriesRanking = new([], true),
+        };
+        FetchDataResult<ProjectView> matchingProjectTotals = await service.GetProjectViews(command);
+        Assert.True(
+            matchingProjectTotals.IsSuccessful,
+            matchingProjectTotals.Exception?.ToString()
+        );
+        Assert.Equal(4, matchingProjectTotals.TotalCount);
+        Assert.Equal(
+            [noEligibleSeries.Id, newer.Id, second.Id, leader.Id],
+            matchingProjectTotals.Entries.Select(project => project.Id)
+        );
     }
 
     [SqlServerFact]

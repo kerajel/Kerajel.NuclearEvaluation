@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
+using NuclearEvaluation.Server.Services.RadNet;
+using NuclearEvaluation.Server.Services.RemDb;
 using NuclearEvaluation.Shared.Contracts;
 
 namespace NuclearEvaluation.Server.Services.Assistant;
@@ -26,7 +28,35 @@ internal sealed class LocalSiteAssistantTools
             null,
             null,
             "Where to find the site's main features",
-            "Use the sidebar to open Fleet Explorer, Generation Calendar, or Energy & Emissions. Data Management contains Series and STEM Preview. Evaluation contains Projects and Query Builder."
+            "Open Radiation Monitoring for EPA RadNet observations or Radiochemistry for the European Commission's REMdb radionuclide measurements. Both have a Query Builder and a source-file quality view. The sidebar also links to the U.S. nuclear fleet, generation, and emissions."
+        ),
+        new(
+            "radnet_browse",
+            AssistantPage.Radiation,
+            null,
+            "How to browse stations, source files, observations, or gamma readings, and use Radiation Query Builder",
+            "Open a monitoring station, then an annual source file, an observation in UTC, and its gamma channel readings. In Query Builder you can combine conditions across those levels, choose the results to return, and save a named query in this browser."
+        ),
+        new(
+            "radnet_quality",
+            AssistantPage.Radiation,
+            null,
+            "How to inspect archive quality, gaps, source rows, and published units",
+            "File Quality shows the selected archive member's date range, input and retained records, repeated timestamps, missing hours, and channel coverage. A missing value means the source supplied no usable reading for that field. The archive keeps gamma count rates in counts per minute and dose-equivalent rates in nSv/h."
+        ),
+        new(
+            "remdb_browse",
+            AssistantPage.Radiochemistry,
+            null,
+            "How to browse REMdb sites, sampling windows and measurements or build a query",
+            "Open a site, then a sampling window, then a measurement. The window groups rows by site, medium, treatment, and published timestamps. Query Builder can filter across these levels and save named drafts in your browser."
+        ),
+        new(
+            "remdb_quality",
+            AssistantPage.Radiochemistry,
+            null,
+            "How to interpret published units, reporting limits, missing qualifiers, and source quality metrics",
+            "File Quality reports result counts, missing activity values, less-than qualifiers, and coverage by unit and value type. A less-than sign marks a reported bound. The 1984–2011 exports have no dedicated qualifier column. Compare activity only for compatible units, media, and radionuclides."
         ),
         new(
             "fleet_compare",
@@ -74,8 +104,8 @@ internal sealed class LocalSiteAssistantTools
             "data_sources",
             AssistantPage.Sources,
             null,
-            "Where the public site data, emissions factors, and sandbox records come from",
-            "Sources & Methods links to the EIA inventory and generation data, the published lifecycle emissions estimates, and the map boundaries. The evaluation workspace uses generated example records and temporary STEM uploads."
+            "Where monitoring, radiochemistry, fleet, generation, and emissions data come from",
+            "Sources & Methods links to EPA RadNet, the European Commission JRC REMdb archive and reuse terms, the EIA inventory and generation data, published lifecycle emissions estimates, and map boundaries."
         ),
         new(
             "series_grid",
@@ -179,7 +209,9 @@ internal sealed class LocalSiteAssistantTools
                     }
                 )
                 .ToArray(),
-            Help
+            Help,
+            RadNetCatalog.Fields,
+            RemDbCatalog.Fields
         );
     }
 
@@ -234,6 +266,12 @@ internal sealed class LocalSiteAssistantTools
             AssistantActionKind.CheckStemQuality =>
                 "Showing the rows that match the quality check.",
             AssistantActionKind.SelectGenerationView => "Updated the Generation Calendar.",
+            AssistantActionKind.ApplyRadNetQuery =>
+                "Applied the filters in Radiation Query Builder.",
+            AssistantActionKind.ApplyRemDbQuery =>
+                "Applied the filters in Radiochemistry Query Builder.",
+            AssistantActionKind.ShowRemDbExample =>
+                $"Opened the {RemDbExample.Title} example in Radiochemistry Query Builder.",
             _ => throw new McpException("The action is unavailable."),
         };
         return new(message, action);
@@ -269,6 +307,8 @@ internal sealed class LocalSiteAssistantTools
             or AssistantPage.Fleet
             or AssistantPage.Emissions
             or AssistantPage.Sources
+            or AssistantPage.Radiation
+            or AssistantPage.Radiochemistry
             or AssistantPage.Unknown => context.Surface == AssistantSurface.None,
             _ => false,
         };
@@ -308,6 +348,11 @@ internal sealed class LocalSiteAssistantTools
                 action.Kind != AssistantActionKind.SelectGenerationView
                 && action.GenerationSelection is not null
             )
+            || (
+                action.Kind != AssistantActionKind.ApplyRadNetQuery
+                && action.RadNetQuery is not null
+            )
+            || (action.Kind != AssistantActionKind.ApplyRemDbQuery && action.RemDbQuery is not null)
         )
             return false;
 
@@ -335,6 +380,18 @@ internal sealed class LocalSiteAssistantTools
                 && action.BuilderFilters
                     is { Count: <= AssistantQueryBuilderFields.MaxFilters } filters
                 && filters.All(IsBuilderFilterValid),
+            AssistantActionKind.ApplyRadNetQuery => context.Page == AssistantPage.Radiation
+                && action.SeriesQuery is null
+                && action.GridQuery is null
+                && action.BuilderFilters is null
+                && action.QualityCheck is null
+                && IsRadNetQueryValid(action.RadNetQuery),
+            AssistantActionKind.ApplyRemDbQuery => context.Page == AssistantPage.Radiochemistry
+                && action.SeriesQuery is null
+                && action.GridQuery is null
+                && action.BuilderFilters is null
+                && action.QualityCheck is null
+                && IsRemDbQueryValid(action.RemDbQuery),
             AssistantActionKind.CheckStemQuality => isStem
                 && context.HasUploads
                 && action.QualityCheck is { } check
@@ -362,10 +419,29 @@ internal sealed class LocalSiteAssistantTools
                         AssistantActionKind.ShowStemQuality => isStem && context.HasUploads,
                         AssistantActionKind.ShowQueryBuilderExample =>
                             QueryBuilderExample.Advanced.Filters.All(IsBuilderFilterValid),
+                        AssistantActionKind.ShowRemDbExample => context.Page
+                            is AssistantPage.Home
+                                or AssistantPage.Sources,
                         _ => false,
                     }
                 ),
         };
+    }
+
+    static bool IsRadNetQueryValid(RadNetQuery? query)
+    {
+        if (query is null || query.Skip != 0)
+            return false;
+
+        try
+        {
+            RadNetQueryPlan.Compile(query);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
 
     static bool IsBuilderFilterValid(AssistantBuilderFilter? entry) =>
@@ -373,6 +449,22 @@ internal sealed class LocalSiteAssistantTools
         && AssistantQueryBuilderFields.IsAllowed(entry.Entity, filter.Field)
         && SeriesQuerySchema.FindField(entry.Entity, filter.Field) is { } field
         && SeriesQuerySchema.TryReadValue(field, filter, out _);
+
+    static bool IsRemDbQueryValid(RemDbQuery? query)
+    {
+        if (query is null || query.Skip != 0)
+            return false;
+
+        try
+        {
+            RemDbQueryPlan.Compile(query);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+    }
 
     static bool IsGenerationSelectionValid(AssistantGenerationSelection selection) =>
         (
@@ -391,7 +483,9 @@ internal sealed record SiteAssistantCatalog(
     SeriesSchemaDescription Series,
     IReadOnlyList<SiteAssistantGridSchema> Grids,
     IReadOnlyList<SeriesEntityDescription> Builder,
-    IReadOnlyList<SiteAssistantHelp> Help
+    IReadOnlyList<SiteAssistantHelp> Help,
+    IReadOnlyList<RadNetField>? RadNetFields = null,
+    IReadOnlyList<RemDbField>? RemDbFields = null
 );
 
 internal sealed record SiteAssistantGridSchema(

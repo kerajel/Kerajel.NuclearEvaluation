@@ -1,0 +1,123 @@
+.wb-workbench {
+  min-width: 0;
+}
+
+.wb-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: .85rem 1.5rem;
+  padding: .7rem 0 1.15rem;
+}
+
+.wb-heading h1 {
+  margin: 0 0 .3rem;
+  font-size: clamp(1.9rem, 3.3vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: -.035em;
+}
+
+.wb-heading p,
+.wb-message p {
+  color: var(--ne-muted);
+  margin: 0;
+}
+
+.wb-coverage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 0;
+  margin: 0;
+}
+
+.wb-coverage > div {
+  padding: .15rem clamp(.52rem, 1.4vw, 1.15rem);
+  border-inline-start: 1px solid var(--ne-line);
+}
+
+.wb-coverage dt {
+  color: var(--ne-muted);
+  font-size: .78rem;
+  font-weight: 550;
+}
+
+.wb-coverage dd {
+  margin: .12rem 0 0;
+  font-size: clamp(1.18rem, 2vw, 1.5rem);
+  font-weight: 710;
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  margin-bottom: .9rem;
+  border-bottom: 1px solid var(--ne-line);
+}
+
+.wb-nav a {
+  display: flex;
+  align-items: center;
+  gap: .42rem;
+  padding: .62rem .85rem;
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  color: var(--ne-muted);
+  font-weight: 640;
+}
+
+.wb-nav a:is(:hover, [aria-current="page"]) {
+  color: var(--ne-accent);
+}
+
+.wb-nav a[aria-current="page"] {
+  border-bottom-color: currentColor;
+}
+
+.wb-nav ::deep .rzi {
+  font-size: 1.08rem;
+}
+
+.wb-message {
+  display: grid;
+  justify-items: start;
+  gap: .6rem;
+  padding: 1.2rem;
+  border: 1px solid var(--ne-line);
+  border-radius: .6rem;
+  background: var(--ne-surface);
+}
+
+.wb-message h2 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.wb-message button {
+  cursor: pointer;
+  padding: .35rem .7rem;
+  border: 1px solid var(--ne-line);
+  border-radius: .3rem;
+  background: var(--ne-surface-raised);
+  color: var(--ne-ink);
+  font: inherit;
+}
+
+@media (max-width: 440px) {
+  .wb-nav a {
+    padding-inline: .38rem;
+    gap: .24rem;
+    font-size: .86rem;
+  }
+
+  .wb-coverage dt {
+    font-size: .72rem;
+  }
+
+  .wb-coverage > div:first-child {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+}

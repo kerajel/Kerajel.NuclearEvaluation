@@ -1,0 +1,221 @@
+.radnet-results {
+    min-width: 0;
+}
+
+.radnet-grid-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .25rem .8rem;
+    padding: .5rem 1.15rem;
+    color: var(--radiation-muted);
+    font-size: .845rem;
+    border-top: 1px solid var(--radiation-line);
+}
+
+.radnet-grid-info strong {
+    color: var(--radiation-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.radnet-filter-clear {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--radiation-accent, var(--ne-accent));
+    font: inherit;
+    cursor: pointer;
+}
+
+.radnet-filter-clear:hover:not(:disabled) {
+    text-decoration: underline;
+}
+
+.radnet-filter-editor {
+    padding: 0 1.15rem .65rem;
+}
+
+.radnet-table-scroll {
+    overflow: auto;
+    scrollbar-gutter: stable;
+    max-height: min(36rem, 67vh);
+}
+
+table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: .9rem;
+    text-align: start;
+}
+
+th, td {
+    padding: .44rem .72rem;
+    border-bottom: 1px solid var(--radiation-line);
+    white-space: nowrap;
+}
+
+th:first-child, td:first-child {
+    padding-inline-start: 1.15rem;
+}
+
+th:last-child, td:last-child {
+    padding-inline-end: 1.15rem;
+}
+
+th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--radiation-emphasis);
+    text-align: start;
+    font-size: .81rem;
+    font-weight: 650;
+}
+
+tbody tr:hover {
+    background: var(--radiation-emphasis);
+}
+
+td:not(.radnet-actions) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.radnet-numeric {
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+}
+
+.radnet-file-name {
+    min-width: 10rem;
+    max-width: 20rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.radnet-column-heading {
+    display: flex;
+    align-items: center;
+    gap: .22rem;
+}
+
+.radnet-numeric .radnet-column-heading {
+    justify-content: flex-end;
+}
+
+.radnet-column-sort,
+.radnet-column-filter,
+.radnet-actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: .22rem;
+    color: inherit;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-weight: 650;
+    padding: .2rem 0;
+    cursor: pointer;
+}
+
+.radnet-column-sort {
+    min-width: 0;
+}
+
+.radnet-column-sort > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.radnet-column-filter {
+    flex: 0 0 1.35rem;
+    justify-content: center;
+    border-radius: .22rem;
+    color: var(--radiation-muted, var(--ne-muted));
+}
+
+.radnet-column-sort:hover,
+th[aria-sort],
+.radnet-column-filter:hover,
+.radnet-column-filter[aria-expanded="true"],
+.radnet-column-filter[data-active-filter="true"] {
+    color: var(--radiation-accent, var(--ne-accent));
+}
+
+.radnet-column-filter[data-active-filter="true"],
+.radnet-column-filter[aria-expanded="true"] {
+    background: var(--ne-accent-tint);
+}
+
+.radnet-sort-marker {
+    flex: 0 0 1rem;
+}
+
+.radnet-actions button {
+    color: var(--radiation-accent);
+    margin-inline-end: .75rem;
+}
+
+.radnet-actions button:last-child {
+    margin-inline-end: 0;
+}
+
+.radnet-actions button:hover {
+    text-decoration: underline;
+}
+
+.radnet-actions ::deep .rzi, th ::deep .rzi, .radnet-pager ::deep .rzi {
+    font-size: 1rem;
+}
+
+.radnet-result-empty {
+    padding: 1rem 1.15rem;
+    margin: 0;
+    color: var(--radiation-muted);
+}
+
+.radnet-pager {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .6rem 1.15rem;
+    color: var(--radiation-muted);
+    font-size: .85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.radnet-pager > div {
+    display: flex;
+    gap: .35rem;
+}
+
+.radnet-pager button, .radnet-result-empty button {
+    display: inline-flex;
+    align-items: center;
+    gap: .18rem;
+    padding: .28rem .5rem;
+    color: var(--radiation-text);
+    border: 1px solid var(--radiation-line);
+    border-radius: .38rem;
+    background: var(--radiation-surface);
+    font: inherit;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: .48;
+    cursor: default;
+}
+
+.radnet-results[aria-busy="true"] .radnet-table-scroll button:disabled {
+    opacity: 1;
+}
+
+button:focus-visible {
+    outline: 2px solid var(--radiation-accent);
+    outline-offset: 2px;
+}

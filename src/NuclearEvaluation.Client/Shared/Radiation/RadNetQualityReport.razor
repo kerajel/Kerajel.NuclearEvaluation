@@ -1,0 +1,86 @@
+@using static RadNetPresentation
+
+@if (_loading)
+{
+    <p class="radnet-quality-state" role="status">Reading file coverage…</p>
+}
+else if (_quality is not { } report)
+{
+    <div class="radnet-quality-state">
+        <p role="alert">@_error</p>
+        <a href="radiation?view=quality">Choose a source file</a>
+    </div>
+}
+else
+{
+    <div class="radnet-quality-report">
+        <header class="radnet-quality-heading">
+            <div>
+                <div class="radnet-quality-location">@report.SourceFile.StationName · @report.SourceFile.Year</div>
+                <h3>@report.SourceFile.FileName</h3>
+            </div>
+            <div class="radnet-quality-actions">
+                <button type="button" @onclick="() => OnBrowse.InvokeAsync(report.SourceFile)">
+                    View observations <RadzenIcon Icon="chevron_right" aria-hidden="true" />
+                </button>
+                <a href="radiation?view=quality">Choose another file</a>
+            </div>
+        </header>
+
+        <dl class="radnet-quality-metrics" aria-label="File quality counts">
+            <div><dt>Retained observations</dt><dd>@Count(report.ObservationCount)</dd></div>
+            <div><dt>Unreported hours</dt><dd>@Count(report.MissingHours)</dd></div>
+            <div><dt>Dose rate absent</dt><dd>@Count(report.MissingDoseCount)</dd></div>
+            <div><dt>Approval absent</dt><dd>@Count(report.NonApprovedCount)</dd></div>
+        </dl>
+        <p class="radnet-quality-note">
+            Reported window @Timestamp(report.FirstObservedAt) to @Timestamp(report.LastObservedAt) UTC.
+            Unreported hours are counted within that window.
+        </p>
+
+        <div class="radnet-quality-detail">
+            <section aria-labelledby="channel-coverage-title">
+                <h3 id="channel-coverage-title">Gamma channel coverage</h3>
+                @if (report.Channels.Count == 0)
+                {
+                    <p>No channel counts are reported for this file.</p>
+                }
+                else
+                {
+                    <ul class="radnet-coverage">
+                        @foreach (RadNetChannelCoverage channel in report.Channels)
+                        {
+                            <li>
+                                <strong>@channel.Channel</strong>
+                                <meter min="0" max="@Math.Max(1, report.ObservationCount)" value="@channel.ObservationCount"
+                                       aria-label="@($"{channel.Channel} observations with a count rate")"></meter>
+                                <span>@Count(channel.ObservationCount)</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+            <section aria-labelledby="source-provenance-title">
+                <h3 id="source-provenance-title">Source &amp; import</h3>
+                <dl class="radnet-provenance">
+                    @if (report.SourceFile.InputRows is long input)
+                    {
+                        <div><dt>Source data rows</dt><dd>@Count(input)</dd></div>
+                    }
+                    @if (report.SourceFile.DuplicateRows is long duplicates)
+                    {
+                        <div><dt>Duplicate timestamps removed</dt><dd>@Count(duplicates)</dd></div>
+                    }
+                    @if (report.SourceFile.RejectedRows is long rejected)
+                    {
+                        <div><dt>Rows skipped during import</dt><dd>@Count(rejected)</dd></div>
+                    }
+                </dl>
+                @if (SafeArchiveUrl(report.SourceFile.ArchiveUrl) is { } archive)
+                {
+                    <a href="@archive" target="_blank" rel="noopener">Download EPA source ZIP <RadzenIcon Icon="north_east" aria-hidden="true" /></a>
+                }
+            </section>
+        </div>
+    </div>
+}

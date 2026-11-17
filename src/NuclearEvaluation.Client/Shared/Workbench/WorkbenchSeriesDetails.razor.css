@@ -1,0 +1,128 @@
+.wb-details {
+  display: grid;
+  min-width: 0;
+  gap: .8rem;
+  padding: .7rem clamp(.55rem, 2vw, 1.35rem) .85rem;
+  background: var(--ne-surface);
+}
+
+.wb-level {
+  min-width: 0;
+  border-left: 2px solid var(--ne-line);
+  padding-left: clamp(.55rem, 1.8vw, 1rem);
+}
+
+.wb-level + .wb-level {
+  border-top: 1px solid var(--ne-line);
+  padding-top: .8rem;
+  margin-left: min(1.4rem, 3vw);
+}
+
+.wb-level + .wb-level + .wb-level {
+  margin-left: min(2.8rem, 6vw);
+}
+
+.wb-level h3 {
+  font-size: .94rem;
+  margin: .25rem 0 .15rem;
+  font-weight: 690;
+}
+
+.wb-level header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .2rem .65rem;
+}
+
+.wb-level header span {
+  font-size: .81rem;
+  color: var(--ne-muted);
+}
+
+.wb-level ::deep .radnet-grid-info,
+.wb-level ::deep .radnet-pager {
+  padding-inline: .35rem;
+}
+
+.wb-details {
+  box-sizing: border-box;
+  max-width: 100cqi;
+}
+
+.wb-level > p {
+  color: var(--ne-muted);
+  margin: .4rem 0;
+}
+
+.wb-file-scroll {
+  overflow-x: auto;
+}
+
+.wb-file-grid {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 31rem;
+  font-size: .81rem;
+}
+
+.wb-file-grid :is(td, th) {
+  text-align: start;
+  padding: .28rem .48rem;
+  border-bottom: 1px solid var(--ne-line);
+}
+
+.wb-file-grid thead th {
+  color: var(--ne-muted);
+}
+
+.wb-file-grid a {
+  color: var(--ne-accent);
+}
+
+.wb-file-open {
+  display: flex;
+  align-items: center;
+  gap: .15rem;
+  background: none;
+  border: 0;
+  border-radius: .2rem;
+  color: var(--ne-accent);
+  font: inherit;
+  font-weight: 650;
+  padding: .24rem .28rem;
+  cursor: pointer;
+}
+
+.wb-file-open ::deep .rzi {
+  font-size: .95rem;
+}
+
+.wb-file-open:is(:hover,[aria-expanded="true"]) {
+  background: var(--ne-accent-tint);
+}
+
+.wb-file-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .55rem;
+  padding: .5rem .3rem .1rem;
+  font-size: .8rem;
+  color: var(--ne-muted);
+}
+
+.wb-level :is(.wb-file-pager button, p + button) {
+  border: 1px solid var(--ne-line);
+  border-radius: .25rem;
+  background: var(--ne-surface-raised);
+  font: inherit;
+  color: var(--ne-ink);
+  padding: .3rem .55rem;
+  cursor: pointer;
+}
+
+.wb-level .wb-file-pager button:disabled {
+  opacity: .45;
+  cursor: default;
+}

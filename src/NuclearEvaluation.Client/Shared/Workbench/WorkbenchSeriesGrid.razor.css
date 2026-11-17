@@ -1,0 +1,395 @@
+.wb-series {
+  min-width: 0;
+  padding: .95rem 0 .5rem;
+  border: 1px solid var(--ne-line);
+  border-radius: .65rem;
+  background: var(--ne-surface);
+}
+
+.wb-series-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: start;
+  gap: .65rem 1.2rem;
+  padding: 0 1rem .85rem;
+}
+
+.wb-series-heading h2 {
+  margin: 0 0 .18rem;
+  font-size: 1.28rem;
+  font-weight: 690;
+}
+
+.wb-series-heading p {
+  margin: 0;
+  color: var(--ne-muted);
+  font-size: .87rem;
+}
+
+.wb-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: .58rem .7rem;
+  padding: .6rem 1rem .85rem;
+  border-top: 1px solid var(--ne-line);
+}
+
+.wb-filters label,
+.wb-pager label {
+  display: grid;
+  gap: .22rem;
+  font-size: .78rem;
+  font-weight: 630;
+  color: var(--ne-muted);
+}
+
+.wb-filters label:first-child {
+  flex: 1 1 13rem;
+  max-width: 22rem;
+}
+
+.wb-filters label:has(select) {
+  min-width: 5rem;
+}
+
+.wb-filter-actions,
+.wb-pager > div {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.wb-series :is(input, select, textarea),
+.wb-button {
+  min-height: 2.2rem;
+  border: 1px solid var(--ne-line);
+  border-radius: .34rem;
+  padding: .34rem .56rem;
+  font: inherit;
+  color: var(--ne-ink);
+}
+
+.wb-series :is(input, select, textarea) {
+  background: var(--rz-body-background-color, var(--ne-surface));
+}
+
+.wb-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .28rem;
+  background: var(--ne-surface-raised);
+  font-size: .83rem;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.wb-button ::deep .rzi {
+  font-size: 1.03rem;
+}
+
+.wb-primary {
+  background: var(--ne-accent-tint);
+  border-color: var(--ne-accent);
+  color: var(--ne-ink);
+}
+
+.wb-plain {
+  background: transparent;
+  border-color: transparent;
+}
+
+.wb-danger {
+  color: var(--rz-danger, #ac2a36);
+}
+
+.wb-button:hover:not(:disabled),
+.wb-icon-button:hover:not(:disabled),
+.wb-sort:hover:not(:disabled) {
+  background: var(--ne-accent-tint);
+}
+
+.wb-series button:disabled {
+  cursor: default;
+  opacity: .48;
+}
+
+.wb-table-scroll {
+  container-type: inline-size;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  border-block: 1px solid var(--ne-line);
+}
+
+.wb-grid {
+  width: 100%;
+  min-width: 77rem;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+
+.wb-expand-track { width: 2.4rem; }
+.wb-name-track { width: 11rem; }
+.wb-state-track { width: 4.75rem; }
+.wb-station-track { width: 10.75rem; }
+.wb-date-track { width: 8rem; }
+.wb-review-track { width: 7rem; }
+.wb-count-track { width: 8.75rem; }
+.wb-actions-track { width: 9rem; }
+
+.wb-grid :is(th, td) {
+  padding: .46rem .65rem;
+  border-bottom: 1px solid var(--ne-line);
+  text-align: start;
+}
+
+.wb-grid thead,
+.wb-grid tfoot {
+  background: var(--ne-surface-raised);
+}
+
+.wb-grid thead th {
+  font-weight: 680;
+  white-space: nowrap;
+}
+
+.wb-grid tr:nth-child(even).wb-row {
+  background: color-mix(in srgb, var(--ne-surface-raised) 45%, var(--ne-surface));
+}
+
+.wb-grid .wb-row:hover,
+.wb-grid .wb-edit {
+  background: var(--ne-accent-tint);
+}
+
+.wb-grid .wb-expander {
+  padding-inline: .2rem .05rem;
+}
+
+.wb-sort,
+.wb-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: start;
+  gap: .25rem;
+  border: 0;
+  border-radius: .25rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.wb-sort {
+  padding: .16rem .22rem;
+  margin-inline-start: -.22rem;
+}
+
+.wb-column-heading {
+  display: flex;
+  align-items: center;
+  gap: .2rem;
+  min-width: 0;
+}
+
+.wb-column-heading .wb-sort {
+  min-width: 0;
+}
+
+.wb-sort > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wb-column-filter {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: .18rem 0;
+  border: 0;
+  border-radius: .2rem;
+  color: var(--ne-muted);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.wb-column-filter:is(:hover, [aria-expanded="true"], [data-active-filter]) {
+  color: var(--ne-accent);
+  background: var(--ne-accent-tint);
+}
+
+.wb-sort ::deep .rzi,
+.wb-column-filter ::deep .rzi {
+  font-size: .9rem;
+}
+
+.wb-sort-icon {
+  display: inline-flex;
+  flex: 0 0 .9rem;
+  align-items: center;
+  width: .9rem;
+}
+
+.wb-icon-button {
+  min-width: 2rem;
+  min-height: 2rem;
+  justify-content: center;
+  padding: .1rem;
+}
+
+.wb-icon-button ::deep .rzi {
+  font-size: 1.14rem;
+}
+
+.wb-grid .wb-name {
+  font-weight: 640;
+}
+
+.wb-grid time,
+.wb-grid .wb-number {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-grid .wb-number {
+  text-align: end;
+}
+
+.wb-grid .wb-actions {
+  white-space: nowrap;
+}
+
+.wb-actions .wb-button {
+  padding-inline: .38rem;
+}
+
+.wb-grid :is(.wb-actions, .wb-actions-column) {
+  position: sticky;
+  inset-inline-end: 0;
+  z-index: 1;
+  border-inline-start: 1px solid var(--ne-line);
+  background: var(--ne-surface);
+}
+
+.wb-grid .wb-actions-column {
+  background: var(--ne-surface-raised);
+}
+
+.wb-grid .wb-edit .wb-actions {
+  background: color-mix(in srgb, var(--ne-accent) 13%, var(--rz-body-background-color, var(--ne-surface)));
+}
+
+.wb-clipped {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wb-review {
+  display: inline-block;
+  padding: .08rem .36rem;
+  border-radius: .23rem;
+  background: var(--ne-surface-raised);
+  color: var(--ne-muted);
+  white-space: nowrap;
+}
+
+.wb-review-active {
+  color: var(--ne-ink);
+  background: color-mix(in srgb, #e4b244 26%, var(--ne-surface));
+}
+
+.wb-review-done {
+  color: var(--ne-ink);
+  background: var(--ne-accent-tint);
+}
+
+.wb-grid tr.wb-detail-row > td {
+  padding: 0;
+}
+
+.wb-grid .wb-edit :is(input, select, textarea) {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.wb-grid .wb-edit input[type="date"] {
+  padding-inline: .25rem;
+}
+
+.wb-grid .wb-edit textarea {
+  resize: vertical;
+}
+
+.wb-grid tfoot tr:last-child > * {
+  border: 0;
+  font-size: .78rem;
+}
+
+.wb-grid tfoot .wb-number {
+  font-size: .87rem;
+  font-weight: 700;
+}
+
+.wb-grid .wb-empty,
+.wb-message {
+  padding: .65rem 1rem;
+  margin: 0;
+  color: var(--ne-muted);
+}
+
+.wb-message.wb-error {
+  color: var(--rz-danger, #ac2a36);
+}
+
+.wb-error .wb-button {
+  margin-inline-start: .5rem;
+}
+
+.wb-pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: .5rem .85rem;
+  padding: .7rem 1rem .35rem;
+  font-size: .82rem;
+  color: var(--ne-muted);
+}
+
+.wb-pager > span {
+  padding-block: .4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-sr-only {
+  position: absolute;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .wb-series-heading,
+  .wb-filters,
+  .wb-pager {
+    padding-inline: .65rem;
+  }
+
+  .wb-filters label:first-child {
+    flex-basis: 100%;
+    max-width: none;
+  }
+}

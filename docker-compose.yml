@@ -31,6 +31,7 @@ services:
       ConnectionStrings__NuclearEvaluationServerDbConnection: "Server=db;Database=NuclearEvaluation;User Id=sa;Password=Local_Dev_Pass_123;TrustServerCertificate=True;Encrypt=False"
       Sandbox__ResetIntervalHours: "24"
       Sandbox__SweepIntervalMinutes: "30"
+      Sandbox__UseTestFixtures: "${NUCLEAR_TEST_FIXTURES:-false}"
       Sandbox__RateLimitPermitPerWindow: "${NUCLEAR_RATE_LIMIT_PER_MINUTE:-300}"
     ports:
       - "${NUCLEAR_APP_PORT:-8080}:8080"

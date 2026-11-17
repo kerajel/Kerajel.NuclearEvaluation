@@ -1,0 +1,134 @@
+<section class="ir-rows" aria-label="Review staged CSV records">
+    <div class="ir-grid-toolbar" aria-busy="@(Busy ? "true" : "false")">
+        <div class="ir-outcomes" role="group" aria-label="Review outcome">
+            <button type="button" @onclick="() => SelectOutcomeAsync(null)" aria-disabled="@(Busy ? "true" : null)"
+                    aria-pressed="@(FindFilter(nameof(ImportReviewRow.Disposition)) is null ? "true" : "false")">
+                All outcomes
+            </button>
+            @foreach (ImportReviewDisposition outcome in Outcomes)
+            {
+                <button type="button" @onclick="() => SelectOutcomeAsync(outcome)" aria-disabled="@(Busy ? "true" : null)"
+                        aria-pressed="@(IsSelectedOutcome(outcome) ? "true" : "false")">
+                    @OutcomeLabel(outcome)
+                </button>
+            }
+        </div>
+        @if (_page?.Query.Filters is { Count: > 0 })
+        {
+            <button type="button" class="ir-clear" @onclick="ClearFiltersAsync"
+                    aria-disabled="@(Busy ? "true" : null)">Clear filters</button>
+        }
+    </div>
+
+    @if (_editor is { } field)
+    {
+        <div id="ir-column-filter" class="ir-column-filter">
+            <ColumnFilterEditor @key="field.Name"
+                                Field="@field.Name" Label="@field.Label"
+                                Type="@field.Type" Nullable="@field.Nullable"
+                                Values="@(field.Name == nameof(ImportReviewRow.Disposition) ? OutcomeValues : null)"
+                                Busy="@Busy" Filter="@FindFilter(field.Name)"
+                                OnApply="ApplyFilterAsync" OnRemove="@(() => RemoveFilterAsync(field.Name))"
+                                OnClose="@(() => _editor = null)" />
+        </div>
+    }
+
+    @if (_error is not null)
+    {
+        <div class="ir-query-error" role="alert">
+            <span>@_error</span>
+            @if (!_expired)
+            {
+                <button type="button" @onclick="RetryAsync">Retry</button>
+            }
+        </div>
+    }
+
+    @if (Busy)
+    {
+        <p role="status" class="@(_page is null ? "ir-loading" : "ir-sr-only")">Loading records…</p>
+    }
+
+    @if (_page is { } current)
+    {
+        <div class="ir-scroll" tabindex="0" role="region" aria-label="Staged CSV records"
+             aria-busy="@(Busy ? "true" : "false")">
+            <table>
+                <colgroup>
+                    @foreach (ImportReviewField column in Columns)
+                    {
+                        <col class="@ColumnWidth(column.Name)" />
+                    }
+                </colgroup>
+                <thead>
+                    <tr>
+                        @foreach (ImportReviewField column in Columns)
+                        {
+                            string? direction = SortDirection(current.Query, column.Name);
+                            bool editorOpen = _editor?.Name == column.Name;
+                            bool hasFilter = FindFilter(column.Name) is not null;
+                            string filterLabel = $"Filter {column.Label}";
+                            <th scope="col" aria-sort="@direction">
+                                <div class="ir-column-heading">
+                                    <button type="button" class="ir-sort" @onclick="() => SortAsync(column.Name)"
+                                            title="@column.Label" aria-disabled="@(Busy ? "true" : null)">
+                                        <span>@column.Label</span>
+                                        <span class="ir-sort-marker" aria-hidden="true">
+                                            @if (direction is not null)
+                                            {
+                                                <RadzenIcon Icon="@(current.Query.Descending ? "arrow_downward" : "arrow_upward")" />
+                                            }
+                                        </span>
+                                    </button>
+                                    <button type="button" class="ir-filter" @onclick="() => ToggleEditor(column)"
+                                            aria-label="@filterLabel" title="@(hasFilter ? $"{filterLabel} (active)" : filterLabel)"
+                                            data-active="@(hasFilter ? "true" : null)" aria-expanded="@(editorOpen ? "true" : "false")"
+                                            aria-controls="@(editorOpen ? "ir-column-filter" : null)" aria-disabled="@(Busy ? "true" : null)">
+                                        <RadzenIcon Icon="filter_alt" aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (current.Result.Items.Count == 0)
+                    {
+                        <tr><td colspan="@Columns.Count">No CSV records match these filters.</td></tr>
+                    }
+                    @foreach (ImportReviewRow row in current.Result.Items)
+                    {
+                        <tr @key="row.SourceRow">
+                            @foreach (ImportReviewField column in Columns)
+                            {
+                                string value = CellText(row, column.Name);
+                                <td class="@(column.Type == RadNetFieldType.Text ? null : "ir-number")" title="@value">
+                                    @if (column.Name == nameof(ImportReviewRow.Disposition))
+                                    {
+                                        <span class="ir-outcome" data-outcome="@row.Disposition">@value</span>
+                                    }
+                                    else
+                                    {
+                                        @value
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <nav class="ir-pager" aria-label="Staged CSV record pages">
+            <span role="status">@PageLabel(current)</span>
+            @if (current.Query.Skip > 0 || current.Result.TotalCount > current.Query.Top)
+            {
+                <div>
+                    <button type="button" @onclick="() => MoveAsync(-1)"
+                            disabled="@(Busy || current.Query.Skip == 0)">Previous</button>
+                    <button type="button" @onclick="() => MoveAsync(1)"
+                            disabled="@(Busy || current.Query.Skip + current.Query.Top >= current.Result.TotalCount)">Next</button>
+                </div>
+            }
+        </nav>
+    }
+</section>

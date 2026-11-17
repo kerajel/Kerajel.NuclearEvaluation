@@ -1,0 +1,144 @@
+@using static NuclearEvaluation.Client.Shared.Radiation.RadNetPresentation
+
+<div class="wbq-builder">
+    <section class="wbq-editor" aria-labelledby="wbq-heading">
+        <header class="wbq-heading">
+            <h2 id="wbq-heading">Query Builder</h2>
+            <p>Filters at different levels must match along the same project → series → file → observation → channel path.</p>
+        </header>
+
+        <button type="button" class="wbq-example" @onclick="RunExample">
+            <RadzenIcon Icon="play_arrow" aria-hidden="true" />
+            <span class="wbq-example-copy">
+                <small>Run preset</small>
+                <strong>@WorkbenchQueryExample.Title</strong>
+                <span>Find series with at least 8,000 approved 2025 observations where exposure is unreported and R03 exceeds 100 CPM.</span>
+            </span>
+        </button>
+
+        <details class="wbq-presets">
+            <summary>Saved presets</summary>
+            <div class="wbq-presets-body">
+                <label for="wbq-preset">Presets in this browser</label>
+                <div class="wbq-line">
+                    <select id="wbq-preset" value="@_selectedPreset" @onchange="LoadPreset">
+                        <option value="">Choose a preset</option>
+                        @foreach (SavedPreset preset in _presets)
+                        {
+                            <option value="@preset.Name">@preset.Name</option>
+                        }
+                    </select>
+                    @if (_selectedPreset.Length > 0)
+                    {
+                        <button type="button" @onclick="RemovePresetAsync">Delete</button>
+                    }
+                </div>
+                <div class="wbq-line">
+                    <input aria-label="Preset name" maxlength="80" placeholder="Name this query" @bind="_presetName" @bind:event="oninput" />
+                    <button type="button" @onclick="SavePresetAsync">Save</button>
+                </div>
+            </div>
+        </details>
+
+        <form aria-label="Workbench query filters" @onsubmit="ApplyQuery" @onsubmit:preventDefault>
+            @foreach (WorkbenchQueryEntity level in Entities)
+            {
+                <fieldset class="wbq-level" @key="level">
+                    <legend>@LevelName(level)</legend>
+                    @foreach (GroupDraft group in _groups.Where(group => group.Entity == level))
+                    {
+                        <div class="wbq-group" @key="group">
+                            @if (group.Conditions.Count > 1)
+                            {
+                                <label class="wbq-match">
+                                    <span>Match</span>
+                                    <select aria-label="@($"Match mode for {LevelName(level)}")" @bind="group.MatchMode">
+                                        <option value="all">All conditions</option>
+                                        <option value="any">Any condition</option>
+                                    </select>
+                                </label>
+                            }
+                            @foreach (ConditionDraft condition in group.Conditions)
+                            {
+                                WorkbenchQueryField field = condition.Field;
+                                <div class="wbq-condition" @key="condition">
+                                    <select aria-label="@($"{LevelName(level)} field")" value="@field.Name"
+                                            @onchange="args => ChangeField(condition, args.Value?.ToString())">
+                                        @foreach (WorkbenchQueryField option in Fields(level))
+                                        {
+                                            <option value="@option.Name">@option.Label</option>
+                                        }
+                                    </select>
+                                    <select aria-label="@($"Comparison for {field.Label}")" @bind="condition.Operator">
+                                        @foreach (RadNetOperator op in Operators.Where(op => WorkbenchQueryCatalog.CanCompare(field, op)))
+                                        {
+                                            <option value="@op">@OperatorName(op)</option>
+                                        }
+                                    </select>
+                                    <button type="button" class="wbq-quiet wbq-remove"
+                                            aria-label="@($"Remove {field.Label} condition")" title="Remove condition"
+                                            @onclick="() => RemoveCondition(group, condition)">
+                                        <RadzenIcon Icon="close" aria-hidden="true" />
+                                    </button>
+                                    @if (TakesValue(condition.Operator))
+                                    {
+                                        <input type="@InputType(field)" step="@InputStep(field)"
+                                               aria-label="@($"Value for {field.Label}")" placeholder="Value"
+                                               @bind="condition.Value" @bind:event="oninput" maxlength="160" />
+                                    }
+                                </div>
+                            }
+                            <button type="button" class="wbq-quiet" disabled="@(!CanAddCondition)"
+                                    @onclick="() => AddCondition(group)">Add condition</button>
+                        </div>
+                    }
+                    @if (!_groups.Any(group => group.Entity == level))
+                    {
+                        <div class="wbq-any">
+                            <span>No conditions</span>
+                            <button type="button" class="wbq-quiet" disabled="@(!CanAddGroup)"
+                                    aria-label="@($"Add {LevelName(level)} filter")"
+                                    @onclick="() => AddGroup(level)">Add filter</button>
+                        </div>
+                    }
+                </fieldset>
+            }
+
+            <div class="wbq-run">
+                <label class="wbq-minimum">
+                    Minimum distinct matching observations per series
+                    <input type="number" min="1" step="1" placeholder="No minimum" @bind="_minimum" />
+                </label>
+                <div class="wbq-line wbq-results-controls">
+                    <label>
+                        Show results as
+                        <select @bind="_entity" @bind:after="ResetSort">
+                            @foreach (WorkbenchQueryEntity level in Entities)
+                            {
+                                <option value="@level">@ResultName(level)</option>
+                            }
+                        </select>
+                    </label>
+                    <button type="submit" class="wbq-primary">Run query</button>
+                </div>
+            </div>
+        </form>
+
+        @if (_notice is not null)
+        {
+            <p class="wbq-notice" role="status">@_notice</p>
+        }
+    </section>
+
+    @if (_applied is { } query)
+    {
+        <WorkbenchQueryResults @key="_revision" Query="query" OnSort="SetSort" />
+    }
+    else
+    {
+        <section class="wbq-empty" aria-labelledby="wbq-results-heading">
+            <h2 id="wbq-results-heading">Results</h2>
+            <p>Run a query or choose the preset to see matching records.</p>
+        </section>
+    }
+</div>

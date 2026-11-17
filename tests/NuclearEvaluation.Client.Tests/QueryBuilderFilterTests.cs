@@ -49,6 +49,54 @@ public class QueryBuilderFilterTests : TestBase
     }
 
     [Fact]
+    public async Task RestoredPresetFilter_ShowsLegacyEnumValueInNestedGroup()
+    {
+        IRenderedComponent<SampleQueryBuilderFilter> component =
+            TestContext.Render<SampleQueryBuilderFilter>(parameters =>
+                parameters.Add(p => p.Visible, true)
+            );
+        PresetFilterEntry preset = PresetFilterEntry.Create(
+            PresetFilterEntryType.Sample,
+            [
+                new CompositeFilterDescriptor
+                {
+                    Filters =
+                    [
+                        new CompositeFilterDescriptor
+                        {
+                            Property = "Sample.SampleType",
+                            FilterOperator = FilterOperator.Equals,
+                            FilterValue = SampleType.Qc,
+                        },
+                    ],
+                },
+            ]
+        );
+        PresetFilterEntry restored = new()
+        {
+            PresetFilterEntryType = PresetFilterEntryType.Sample,
+            SerializedDescriptors = preset.SerializedDescriptors,
+        };
+        string expectedPredicate = preset.Descriptors.ToFilterString<SampleViewPresetFilter>(
+            LogicalFilterOperator.And,
+            FilterCaseSensitivity.Default
+        );
+
+        await component.InvokeAsync(() => component.Instance.PresetFilterEntry = restored);
+
+        component
+            .Find(".rz-datafilter-editor .rz-dropdown-label")
+            .TextContent.Trim()
+            .ShouldBe("Qc");
+        component.Instance.FilterString.ShouldBe(expectedPredicate);
+        PresetFilterEntry saved = new()
+        {
+            SerializedDescriptors = component.Instance.PresetFilterEntry.SerializedDescriptors,
+        };
+        saved.Descriptors.Single().Filters!.Single().FilterValue.ShouldBe((int)SampleType.Qc);
+    }
+
+    [Fact]
     public async Task QueryBuilderCard_WhenPresetSelected_ShouldIncludeFilterInPresetBox()
     {
         IRenderedComponent<QueryBuilderCard> component = TestContext.Render<QueryBuilderCard>();
@@ -164,7 +212,7 @@ public class QueryBuilderFilterTests : TestBase
         PresetFilterEntry sample = component
             .FindComponent<SampleQueryBuilderFilter>()
             .Instance.PresetFilterEntry;
-        sample.Descriptors.Single().FilterValue.ShouldBe(SampleType.Qc);
+        sample.Descriptors.Single().FilterValue.ShouldBe((int)SampleType.Qc);
         savedFilter.Instance.Value.ShouldBeNull();
         saved
             .Entries.Single(entry => entry.PresetFilterEntryType == PresetFilterEntryType.Series)
@@ -209,11 +257,11 @@ public class QueryBuilderFilterTests : TestBase
         builder
             .FindComponent<SeriesQueryBuilderFilter>()
             .Instance.PresetFilterEntry.Descriptors.Single()
-            .FilterValue.ShouldBe(SeriesType.Regular);
+            .FilterValue.ShouldBe((int)SeriesType.Regular);
         builder
             .FindComponent<SampleQueryBuilderFilter>()
             .Instance.PresetFilterEntry.Descriptors.Single()
-            .FilterValue.ShouldBe(SampleType.Qc);
+            .FilterValue.ShouldBe((int)SampleType.Qc);
         workspace.Current!.Context.ResultGrid.ShouldBe(AssistantSurface.Series);
         workspace.Current.ShouldNotBeSameAs(pending);
         await builder.InvokeAsync(async () =>

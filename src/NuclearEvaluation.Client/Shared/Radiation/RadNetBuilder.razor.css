@@ -1,0 +1,241 @@
+.radnet-builder {
+    display: grid;
+    grid-template-columns: minmax(17rem, .72fr) minmax(0, 1.55fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.radnet-editor, .radnet-builder-results {
+    min-width: 0;
+    border: 1px solid var(--radiation-line);
+    border-radius: .8rem;
+    background: var(--radiation-surface);
+}
+
+.radnet-editor {
+    padding: .9rem;
+}
+
+.radnet-editor-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    justify-content: space-between;
+    gap: .55rem;
+    margin-bottom: .75rem;
+}
+
+h2 {
+    margin: 0;
+    font-size: 1.18rem;
+    line-height: 1.25;
+}
+
+header p, .radnet-group-tools p {
+    color: var(--radiation-muted);
+    font-size: .83rem;
+    margin: .24rem 0 0;
+}
+
+.radnet-builder-results > header {
+    padding: .85rem 1rem;
+}
+
+.radnet-preset-tools,
+.radnet-group-tools,
+.radnet-run {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .34rem;
+    padding-block: .58rem;
+}
+
+.radnet-preset-tools,
+.radnet-run {
+    border-top: 1px solid var(--radiation-line);
+}
+
+label {
+    color: var(--radiation-muted);
+    font-weight: 630;
+    font-size: .82rem;
+}
+
+label span {
+    font-weight: 470;
+}
+
+.radnet-line {
+    display: flex;
+    gap: .36rem;
+}
+
+.radnet-line > input, .radnet-line > select {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+input, select,
+.radnet-secondary, .radnet-primary {
+    min-width: 0;
+    min-height: 2rem;
+    padding: .31rem .45rem;
+    border: 1px solid var(--radiation-line);
+    border-radius: .36rem;
+    background: var(--radiation-emphasis);
+    color: var(--radiation-text);
+    font: inherit;
+    font-size: .875rem;
+}
+
+.radnet-secondary, .radnet-primary {
+    cursor: pointer;
+    flex: none;
+    font-weight: 650;
+}
+
+.radnet-primary {
+    border-color: var(--radiation-accent);
+    background: var(--radiation-accent-surface);
+}
+
+.radnet-secondary:hover, .radnet-primary:hover,
+input:focus-visible, select:focus-visible {
+    border-color: var(--radiation-accent);
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--radiation-accent);
+    outline-offset: 2px;
+}
+
+.radnet-filter-group {
+    min-width: 0;
+    margin: .42rem 0 .68rem;
+    padding: .4rem .53rem .25rem;
+    border: 1px solid var(--radiation-line);
+    border-radius: .52rem;
+}
+
+.radnet-filter-group legend {
+    font-size: .92rem;
+    padding: 0 .25rem;
+    font-weight: 690;
+}
+
+.radnet-group-header {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .35rem;
+    align-items: center;
+    margin-bottom: .33rem;
+}
+
+.radnet-match-mode {
+    display: inline-flex;
+    align-items: center;
+    gap: .27rem;
+}
+
+.radnet-match-mode select {
+    min-height: 1.72rem;
+    padding-block: .15rem;
+}
+
+.radnet-filter-condition {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 1.25rem;
+    gap: .32rem;
+    margin-bottom: .42rem;
+    align-items: center;
+}
+
+.radnet-filter-condition select {
+    width: 100%;
+}
+
+.radnet-filter-condition input {
+    grid-column: 1 / span 2;
+    grid-row: 2;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.radnet-remove {
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.radnet-quiet {
+    padding: .12rem .08rem;
+    border: 0;
+    color: var(--radiation-accent);
+    background: transparent;
+    font: inherit;
+    font-size: .825rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.radnet-quiet ::deep .rzi {
+    font-size: .98rem;
+    vertical-align: middle;
+}
+
+.radnet-quiet:hover {
+    text-decoration: underline;
+}
+
+button:disabled {
+    opacity: .5;
+    cursor: default;
+}
+
+.radnet-builder-notice {
+    margin: .34rem 0 0;
+    color: var(--radiation-accent);
+    font-size: .875rem;
+}
+
+.radnet-result-prompt {
+    min-height: 10rem;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    padding: 1rem;
+    color: var(--radiation-muted);
+    border-top: 1px solid var(--radiation-line);
+}
+
+.radnet-result-prompt ::deep .rzi {
+    font-size: 1.6rem;
+    color: var(--radiation-accent);
+}
+
+.radnet-result-prompt p {
+    margin: .45rem 0 0;
+}
+
+@media (max-width: 1000px) {
+    .radnet-builder { grid-template-columns: minmax(0, 1fr); }
+    .radnet-filter-condition {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr) 1.25rem;
+    }
+    .radnet-filter-condition input {
+        grid-column: auto;
+        grid-row: auto;
+    }
+    .radnet-remove { grid-column: 4; }
+}
+
+@media (max-width: 520px) {
+    .radnet-filter-condition {
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 1.25rem;
+    }
+    .radnet-filter-condition input {
+        grid-column: 1 / span 2;
+        grid-row: 2;
+    }
+    .radnet-remove { grid-column: 3; }
+}

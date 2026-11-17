@@ -1,0 +1,299 @@
+.ir-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .85rem;
+  min-width: 0;
+}
+
+.ir-heading,
+.ir-intake,
+.ir-stage-heading,
+.ir-series,
+.ir-series-controls,
+.ir-upload > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .65rem 1.15rem;
+}
+
+.ir-heading {
+  padding: .15rem 0;
+}
+
+h2, h3 {
+  margin: 0 0 .22rem;
+  font-weight: 690;
+}
+
+h2 {
+  font-size: 1.3rem;
+}
+
+h3 {
+  font-size: 1.05rem;
+}
+
+p {
+  margin: 0;
+  color: var(--ne-muted);
+  font-size: .89rem;
+}
+
+.ir-view {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: .22rem;
+  padding: .18rem;
+  border: 1px solid var(--ne-line);
+  border-radius: .55rem;
+  background: var(--ne-surface);
+}
+
+.ir-view button,
+.ir-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .3rem;
+  padding: .38rem .7rem;
+  border: 1px solid var(--ne-line);
+  border-radius: .36rem;
+  background: var(--ne-surface-raised);
+  color: var(--ne-ink);
+  font: inherit;
+  font-size: .84rem;
+  font-weight: 630;
+  cursor: pointer;
+}
+
+.ir-view button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ne-muted);
+}
+
+.ir-view button[aria-pressed="true"],
+.ir-primary {
+  border-color: color-mix(in srgb, var(--ne-accent) 30%, var(--ne-line));
+  background: var(--ne-accent-tint);
+  color: var(--ne-accent);
+}
+
+.ir-view button:hover,
+.ir-button:hover:not(:disabled) {
+  border-color: var(--ne-accent);
+}
+
+.ir-button:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--ne-accent);
+  outline-offset: 2px;
+}
+
+.ir-button ::deep .rzi {
+  font-size: 1.05rem;
+}
+
+.ir-panel {
+  min-width: 0;
+  border: 1px solid var(--ne-line);
+  border-radius: .6rem;
+  background: var(--ne-surface);
+}
+
+.ir-intake,
+.ir-series {
+  padding: .85rem 1rem;
+}
+
+.ir-source,
+.ir-stage-heading > div,
+.ir-intake-controls {
+  min-width: 0;
+}
+
+.ir-intake-controls {
+  display: grid;
+  justify-items: start;
+  gap: .38rem;
+}
+
+.ir-source strong,
+.ir-series-notice strong {
+  color: var(--ne-ink);
+}
+
+.ir-separator {
+  margin-inline: .35rem;
+}
+
+.ir-filename {
+  overflow-wrap: anywhere;
+}
+
+.ir-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .2rem .85rem;
+  margin-top: .45rem;
+  font-size: .83rem;
+}
+
+a {
+  color: var(--ne-accent);
+  text-decoration: underline;
+  text-underline-offset: .15em;
+}
+
+.ir-upload {
+  display: grid;
+  gap: .22rem;
+}
+
+.ir-upload label,
+.ir-series-controls label {
+  color: var(--ne-ink);
+  font-size: .83rem;
+  font-weight: 600;
+}
+
+.ir-upload > div {
+  justify-content: start;
+  gap: .32rem;
+}
+
+.ir-upload ::deep input {
+  width: min(100%, 15.5rem);
+  color: var(--ne-muted);
+  font: inherit;
+  font-size: .81rem;
+}
+
+.ir-upload ::deep input::file-selector-button {
+  margin-inline-end: .45rem;
+  padding: .32rem .48rem;
+  border: 1px solid var(--ne-line);
+  border-radius: .32rem;
+  background: var(--ne-surface-raised);
+  color: var(--ne-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+small {
+  color: var(--ne-muted);
+  font-size: .78rem;
+}
+
+.ir-stage-heading,
+.ir-archive > header {
+  padding: .85rem 1rem .65rem;
+}
+
+.ir-checksum {
+  max-width: min(100%, 23rem);
+  color: var(--ne-muted);
+  font-size: .78rem;
+}
+
+.ir-checksum summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.ir-checksum code {
+  display: block;
+  max-width: 100%;
+  margin-top: .22rem;
+  color: var(--ne-ink);
+  overflow-wrap: anywhere;
+}
+
+.ir-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.2rem), 1fr));
+  gap: 1px;
+  margin: 0;
+  border-block: 1px solid var(--ne-line);
+  background: var(--ne-line);
+}
+
+.ir-summary > div {
+  padding: .58rem .8rem;
+  background: var(--ne-surface);
+}
+
+.ir-summary dt {
+  color: var(--ne-muted);
+  font-size: .76rem;
+}
+
+.ir-summary dd {
+  margin: .14rem 0 0;
+  font-size: 1.13rem;
+  font-weight: 690;
+  font-variant-numeric: tabular-nums;
+}
+
+.ir-series-controls {
+  justify-content: start;
+  align-items: end;
+  gap: .45rem;
+  max-width: 100%;
+}
+
+.ir-series-controls label {
+  display: grid;
+  gap: .22rem;
+  min-width: 0;
+}
+
+.ir-series-controls select {
+  width: min(14rem, 100%);
+  padding: .35rem .45rem;
+  border: 1px solid var(--ne-line);
+  border-radius: .34rem;
+  background: var(--ne-surface-raised);
+  color: var(--ne-ink);
+  font: inherit;
+}
+
+.ir-series-notice {
+  flex: 1 0 100%;
+  padding-top: .55rem;
+  border-top: 1px solid var(--ne-line);
+}
+
+.ir-series-notice a:last-child {
+  margin-inline-start: .42rem;
+}
+
+.ir-message {
+  padding: .52rem .8rem;
+  border: 1px solid var(--ne-line);
+  border-radius: .35rem;
+  background: var(--ne-surface);
+}
+
+.ir-error {
+  border-color: color-mix(in srgb, var(--rz-danger, #b34339) 48%, var(--ne-line));
+  color: var(--ne-ink);
+}
+
+.ir-archive {
+  --radiation-accent: var(--ne-accent);
+  --radiation-emphasis: var(--ne-surface-raised);
+  --radiation-line: var(--ne-line);
+  --radiation-muted: var(--ne-muted);
+  --radiation-surface: var(--ne-surface);
+  --radiation-text: var(--ne-ink);
+}

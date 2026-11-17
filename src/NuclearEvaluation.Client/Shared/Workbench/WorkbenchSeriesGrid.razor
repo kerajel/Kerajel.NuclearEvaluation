@@ -1,0 +1,267 @@
+<section class="wb-series" aria-labelledby="wb-series-title">
+    <header class="wb-series-heading">
+        <div>
+            <h2 id="wb-series-title">Series</h2>
+            <p>Each Series defines a station and an inclusive date range in UTC.</p>
+        </div>
+        <button type="button" class="wb-button wb-primary" @onclick="StartCreate" disabled="@(_draft is not null || _busy || Stations.Count == 0)"
+                aria-disabled="@(_loading ? "true" : null)">
+            <RadzenIcon Icon="add" aria-hidden="true" /> New series
+        </button>
+    </header>
+    <form class="wb-filters" aria-label="Filter series" @onsubmit="ApplyFiltersAsync" @onsubmit:preventDefault>
+        <label>
+            <span>Series or station</span>
+            <input type="search" @bind="_search" maxlength="100" placeholder="Search by name" />
+        </label>
+        <label>
+            <span>State</span>
+            <select @bind="_state">
+                <option value="">All states</option>
+                @foreach (string state in States)
+                {
+                    <option value="@state">@state</option>
+                }
+            </select>
+        </label>
+        <label>
+            <span>Review</span>
+            <select @bind="_review">
+                <option value="">Any review status</option>
+                @foreach (WorkbenchReview review in Reviews)
+                {
+                    <option value="@review">@ReviewLabel(review)</option>
+                }
+            </select>
+        </label>
+        <div class="wb-filter-actions">
+            <button type="submit" class="wb-button" disabled="@(_draft is not null || _busy)">Apply filters</button>
+            @if (HasFilters)
+            {
+                <button type="button" class="wb-button wb-plain" @onclick="ResetFiltersAsync" disabled="@(_draft is not null || _busy)">Clear</button>
+            }
+            @if (_displayedQuery.ColumnFilters is { Count: > 0 })
+            {
+                <button type="button" class="wb-button wb-plain" @onclick="() => ClearColumnFiltersAsync()"
+                        disabled="@(_draft is not null || _busy || _loading)">Clear column filters</button>
+            }
+        </div>
+    </form>
+
+    @if (_filterColumn is { } filterColumn)
+    {
+        <ColumnFilterEditor @key="filterColumn.Field" Field="@filterColumn.Field" Label="@filterColumn.Label" Type="@filterColumn.Type"
+                            DateOnlyInput="@(filterColumn.Type == RadNetFieldType.DateTime)"
+                            Values="@(filterColumn.Sort == WorkbenchSeriesSort.Review ? ReviewValues : null)"
+                            Filter="@FindColumnFilter(filterColumn.Field)" Busy="@(_loading || _busy || _draft is not null)"
+                            OnApply="ApplyColumnFilterAsync" OnRemove="() => ClearColumnFiltersAsync(filterColumn.Field)"
+                            OnClose="CloseColumnFilter" />
+    }
+
+    @if (_error is not null)
+    {
+        <div class="wb-message wb-error" role="alert">
+            @_error
+            @if (_loadFailed)
+            {
+                <button type="button" class="wb-button" disabled="@_loading" @onclick="RetryAsync">Retry</button>
+            }
+        </div>
+    }
+    @if (_notice is not null)
+    {
+        <p class="wb-message" role="status">@_notice</p>
+    }
+    @if (_loading)
+    {
+        <p class="@(_page is null ? "wb-message" : "wb-sr-only")" role="status">Loading series…</p>
+    }
+
+    @if (_page is not null || _draft is not null)
+    {
+        <div class="wb-table-scroll" tabindex="0" aria-label="Series grid" aria-busy="@_loading.ToString().ToLowerInvariant()">
+            <table class="wb-grid">
+                <colgroup>
+                    <col class="wb-expand-track" />
+                    <col class="wb-name-track" />
+                    <col class="wb-state-track" />
+                    <col class="wb-station-track" />
+                    <col class="wb-date-track" />
+                    <col class="wb-date-track" />
+                    <col class="wb-review-track" />
+                    <col class="wb-count-track" />
+                    <col />
+                    <col class="wb-actions-track" />
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th scope="col" class="wb-expander"><span class="wb-sr-only">Source records</span></th>
+                        @foreach (WorkbenchSeriesColumn column in WorkbenchSeriesColumn.All)
+                        {
+                            <th scope="col" aria-sort="@SortDirection(column.Sort)" class="@(column.Sort == WorkbenchSeriesSort.ObservationCount ? "wb-number" : null)">
+                                <div class="wb-column-heading">
+                                    <button type="button" class="wb-sort" title="@column.Label" @onclick="() => SortAsync(column.Sort)" disabled="@(_draft is not null || _busy)">
+                                        <span>@column.Label</span>
+                                        <span class="wb-sort-icon" aria-hidden="true">
+                                            @if (SortDirection(column.Sort) is { } direction)
+                                            {
+                                                <RadzenIcon Icon="@(direction == "descending" ? "arrow_downward" : "arrow_upward")" />
+                                            }
+                                        </span>
+                                    </button>
+                                    <button type="button" class="wb-column-filter" aria-label="@($"Filter {column.Label}")"
+                                            aria-expanded="@(_filterColumn == column ? "true" : "false")"
+                                            data-active-filter="@(FindColumnFilter(column.Field) is not null ? "true" : null)"
+                                            aria-disabled="@(_loading ? "true" : null)"
+                                            disabled="@(_draft is not null || _busy)"
+                                            @onclick="() => OpenColumnFilter(column)">
+                                        <RadzenIcon Icon="filter_alt" aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </th>
+                        }
+                        <th scope="col" class="wb-actions-column">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_draft is { Id: null })
+                    {
+                        @EditRow
+                    }
+                    @if (_page is not null)
+                    {
+                        @foreach (WorkbenchSeries series in _page.Items)
+                        {
+                            @if (_draft?.Id == series.Id)
+                            {
+                                @EditRow
+                            }
+                            else
+                            {
+                                bool expanded = _expanded.Contains(series.Id);
+                                <tr @key="series.Id" class="wb-row">
+                                    <td class="wb-expander">
+                                        <button type="button" class="wb-icon-button" disabled="@(series.ObservationCount == 0)"
+                                                aria-label="@($"{(expanded ? "Collapse" : "Expand")} {series.Name}")"
+                                                aria-expanded="@expanded.ToString().ToLowerInvariant()"
+                                                @onclick="() => ToggleSeries(series.Id)">
+                                            <RadzenIcon Icon="@(expanded ? "expand_more" : "chevron_right")" aria-hidden="true" />
+                                        </button>
+                                    </td>
+                                    <th scope="row" class="wb-name"><span class="wb-clipped" title="@series.Name">@series.Name</span></th>
+                                    <td>@series.State</td>
+                                    <td><span class="wb-clipped" title="@series.Station">@series.Station</span></td>
+                                    <td><time datetime="@Day(series.From)">@Day(series.From)</time></td>
+                                    <td><time datetime="@Day(series.To)">@Day(series.To)</time></td>
+                                    <td><span class="@ReviewClass(series.Review)">@ReviewLabel(series.Review)</span></td>
+                                    <td class="wb-number">@Count(series.ObservationCount)</td>
+                                    <td><span class="wb-clipped" title="@series.Notes">@(string.IsNullOrEmpty(series.Notes) ? "—" : series.Notes)</span></td>
+                                    <td class="wb-actions">
+                                        @if (_deleting == series.Id)
+                                        {
+                                            <button type="button" class="wb-button wb-danger" @onclick="() => DeleteAsync(series)" disabled="@_busy"
+                                                    aria-disabled="@(_loading ? "true" : null)">Confirm delete</button>
+                                            <button type="button" class="wb-button wb-plain" @onclick="CancelDelete" disabled="@_busy">Cancel</button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="wb-icon-button" disabled="@(_draft is not null || _busy)"
+                                                    aria-disabled="@(_loading ? "true" : null)"
+                                                    @onclick="() => StartEdit(series)" aria-label="@($"Edit {series.Name}")" title="Edit">
+                                                <RadzenIcon Icon="edit" aria-hidden="true" />
+                                            </button>
+                                            <button type="button" class="wb-icon-button wb-danger" disabled="@(_draft is not null || _busy)"
+                                                    aria-disabled="@(_loading ? "true" : null)"
+                                                    @onclick="() => StartDelete(series)" aria-label="@($"Delete {series.Name}")" title="Delete">
+                                                <RadzenIcon Icon="delete_outline" aria-hidden="true" />
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                                @if (expanded)
+                                {
+                                    <tr @key="@((series.Id, true))" class="wb-detail-row">
+                                        <td colspan="10">
+                                            <WorkbenchSeriesDetails Series="series" />
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        }
+                        @if (_page.TotalCount == 0 && _draft is null)
+                        {
+                            <tr><td colspan="10" class="wb-empty">No series match these filters.</td></tr>
+                        }
+                    }
+                </tbody>
+                @if (_page is not null)
+                {
+                    <tfoot>
+                        <tr>
+                            <th scope="row" colspan="7">@Count(_page.TotalCount) matching series</th>
+                            <td class="wb-number">@Count(_page.ObservationCount)</td>
+                            <td colspan="2">Observations summed across series</td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    }
+
+    @if (_page is { TotalCount: > 0 } page)
+    {
+        <nav class="wb-pager" aria-label="Series pages">
+            <span>@Count(_displayedQuery.Skip + 1)–@Count(_displayedQuery.Skip + page.Items.Count) of @Count(page.TotalCount)</span>
+            <div>
+                <label><span>Rows</span>
+                    <select @bind="_pageSize" @bind:after="ChangePageSizeAsync" disabled="@(_draft is not null || _busy)">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </label>
+                <button type="button" class="wb-button" @onclick="() => PageAsync(-1)" aria-disabled="@(_loading ? "true" : null)"
+                        disabled="@(_displayedQuery.Skip == 0 || _draft is not null || _busy)">Previous</button>
+                <button type="button" class="wb-button" @onclick="() => PageAsync(1)" aria-disabled="@(_loading ? "true" : null)"
+                        disabled="@(_displayedQuery.Skip + _displayedQuery.Top >= page.TotalCount || _draft is not null || _busy)">Next</button>
+            </div>
+        </nav>
+    }
+</section>
+
+@code {
+    RenderFragment EditRow => @<tr class="wb-edit">
+        @{
+            SeriesEditor draft = _draft!;
+            WorkbenchStation station = Stations[draft.StationIndex];
+        }
+        <td class="wb-expander"></td>
+        <td><input type="text" aria-label="Series name" minlength="1" maxlength="100" @bind="draft.Name" @bind:event="oninput" /></td>
+        <td>@station.State</td>
+        <td>
+            <select aria-label="Station" @bind="draft.StationIndex" @bind:after="UseStationDateRange">
+                @for (int index = 0; index < Stations.Count; index++)
+                {
+                    WorkbenchStation option = Stations[index];
+                    <option value="@index">@option.State · @option.Name</option>
+                }
+            </select>
+        </td>
+        <td><input type="date" aria-label="From date" min="@Day(station.FirstDay)" max="@Day(station.LastDay)" @bind="draft.From" /></td>
+        <td><input type="date" aria-label="To date" min="@Day(station.FirstDay)" max="@Day(station.LastDay)" @bind="draft.To" /></td>
+        <td>
+            <select aria-label="Review status" @bind="draft.Review">
+                @foreach (WorkbenchReview review in Reviews)
+                {
+                    <option value="@review">@ReviewLabel(review)</option>
+                }
+            </select>
+        </td>
+        <td class="wb-number">@(draft.Id.HasValue ? Count(draft.ObservationCount) : "—")</td>
+        <td><textarea aria-label="Notes" rows="1" maxlength="1000" @bind="draft.Notes" @bind:event="oninput"></textarea></td>
+        <td class="wb-actions">
+            <button type="button" class="wb-button wb-primary" @onclick="SaveAsync" disabled="@_busy">Save</button>
+            <button type="button" class="wb-button wb-plain" @onclick="CancelEdit" disabled="@_busy">Cancel</button>
+        </td>
+    </tr>;
+}

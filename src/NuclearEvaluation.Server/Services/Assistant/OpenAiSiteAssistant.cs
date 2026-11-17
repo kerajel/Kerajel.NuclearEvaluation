@@ -15,6 +15,10 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
     const string ClearTool = "clear_assistant_query";
     const string BuilderTool = "draft_query_builder_filters";
     const string BuilderExampleTool = "show_query_builder_example";
+    const string RadNetTool = "apply_radnet_query";
+    const string RadNetExampleTool = "show_radnet_query_example";
+    const string RemDbTool = "apply_remdb_query";
+    const string RemDbExampleTool = "show_remdb_query_example";
     const string StemPreviewTool = "open_stem_preview";
     const string StemQualityTool = "open_stem_quality";
     const string StemCheckTool = "show_stem_quality_check";
@@ -22,14 +26,15 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
 
     const string Instructions = """
         You are the Nuclear Evaluation site assistant. Work within the current page and visible view.
-        When asked to show or demonstrate an example of a Query Builder query without specific filters,
-        call show_query_builder_example. This opens Query Builder if needed, loads a named multi-entity
-        draft, and runs it. An example request needs no additional detail. Use site help for questions
+        When asked to demonstrate a Query Builder query without specific filters, call the available
+        example tool for the current page.
+        This opens the relevant Query Builder, loads a multi-entity draft, and runs it. An example
+        request needs no additional detail. Use site help for questions
         about how the builder works. For specified filters in Query Builder, use the draft tool.
         For a how-to question choose the most relevant documented help topic. For an explicit request
         to change the view, choose one applicable tool. Apply all requested constraints. If the request
         is unrelated, ambiguous, asks for unavailable features, or needs a tool outside this view,
-        do not call a tool. The built-in example is available from any page.
+        do not call a tool.
 
         Grid filters are joined by AND. Values are strings, booleans are true or false, dates are
         ISO format, and null comparisons use a null operand. Top or bottom N needs a field or metric.
@@ -62,17 +67,104 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
                 "Answer a how-to question about the current page or site navigation using a documented help topic.",
                 ObjectSchema(("topic", EnumSchema(help.Select(topic => topic.Topic))))
             ),
-            Tool(
-                BuilderExampleTool,
-                "Show a working Query Builder example, including requests for a complex or intricate query. Load the named demo draft and run it. Available from any page.",
-                ObjectSchema()
-            ),
         ];
         List<string> contextNotes =
         [
             $"Current page: {context.Page}. Current view: {context.DisplayName}. Active grid: {context.ActiveGrid}.",
             $"Help topics: {string.Join("; ", help.Select(topic => $"{topic.Topic} = {topic.Description}"))}",
         ];
+
+        if (
+            context.Page == AssistantPage.Radiation
+            && catalog.RadNetFields is { Count: > 0 } radNet
+        )
+        {
+            tools.Add(
+                BuildDatasetQueryTool(
+                    RadNetTool,
+                    "Fill and run Radiation Query Builder. Choose a sort field on the result entity or one of its parents.",
+                    radNet.Select(field => (field.Entity.ToString(), field.Name)).ToArray(),
+                    RadNetCatalog.MaxGroups,
+                    RadNetCatalog.MaxConditions,
+                    RadNetCatalog.MaxPageSize
+                )
+            );
+            tools.Add(
+                Tool(
+                    RadNetExampleTool,
+                    "Open and run an example query across RadNet stations, observations, and gamma readings.",
+                    ObjectSchema()
+                )
+            );
+            contextNotes.Add(
+                "RadNet hierarchy: Station > annual SourceFile > timestamped Observation > gamma Channel reading. State uses the two-letter postal code. Group conditions on one record using matchAny false for AND. For a channel threshold, put Channel and CountRate conditions in the same Channel group. CountRate is CPM. ObservedAt is UTC. Use ISO dates and strings for values. Use 50 rows per page by default. RadNet Query Builder supports filtering and sorting."
+            );
+            contextNotes.AddRange(
+                radNet
+                    .GroupBy(field => field.Entity)
+                    .Select(group =>
+                        $"RadNet {group.Key}: {string.Join(", ", group.Select(field => $"{field.Name} ({field.Label}, {field.Type})"))}."
+                    )
+            );
+        }
+        else if (
+            context.Page
+            is AssistantPage.Radiochemistry
+                or AssistantPage.Home
+                or AssistantPage.Sources
+        )
+        {
+            tools.Add(
+                Tool(
+                    RemDbExampleTool,
+                    "Open and run a named example across REMdb sites, sampling windows, and radionuclide measurements.",
+                    ObjectSchema()
+                )
+            );
+            if (
+                context.Page == AssistantPage.Radiochemistry
+                && catalog.RemDbFields is { Count: > 0 } remDb
+            )
+            {
+                tools.Add(
+                    BuildDatasetQueryTool(
+                        RemDbTool,
+                        "Fill and run Radiochemistry Query Builder. Choose a sort field on the result entity or one of its parents.",
+                        remDb.Select(field => (field.Entity.ToString(), field.Key)).ToArray(),
+                        RemDbCatalog.MaxGroups,
+                        RemDbCatalog.MaxConditions,
+                        RemDbCatalog.MaxPageSize
+                    )
+                );
+                contextNotes.Add(
+                    """
+                    REMdb hierarchy: Site > SamplingWindow > Measurement. Use published date strings YYYY-MM-DD. SourceYear is the annual file label. Country uses names (Austria), Medium is a published phrase (use Contains for MILK COW), Nuclide uses codes such as CS-137, Unit uses labels like BQ/M3, and Qualifier '<' is a reported upper bound. Group conditions on one result using matchAny false for AND. Scope activity comparisons to compatible units, media and radionuclides. Do not treat bounds as detected activity. Use 50 rows per page by default.
+                    """
+                );
+                contextNotes.AddRange(
+                    remDb
+                        .GroupBy(field => field.Entity)
+                        .Select(group =>
+                            $"REMdb {group.Key}: {string.Join(", ", group.Select(field => $"{field.Key} ({field.Label}, {field.Type})"))}."
+                        )
+                );
+            }
+        }
+        else if (
+            context.Page
+            is AssistantPage.Evaluation
+                or AssistantPage.DataManagement
+                or AssistantPage.Project
+        )
+        {
+            tools.Add(
+                Tool(
+                    BuilderExampleTool,
+                    "Show a working isotope-lab Query Builder example, including requests for a complex or intricate query. Load the named demo draft and run it.",
+                    ObjectSchema()
+                )
+            );
+        }
 
         bool isStem =
             context.Surface is AssistantSurface.StemPreview or AssistantSurface.StemQuality;
@@ -344,6 +436,29 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
                 BuilderFilters = draft.Filters,
             },
             BuilderExampleTool => new(AssistantActionKind.ShowQueryBuilderExample),
+            RadNetTool when ReadArguments<RadNetQuery>(call) is { } query => new(
+                AssistantActionKind.ApplyRadNetQuery
+            )
+            {
+                RadNetQuery = query,
+            },
+            RadNetExampleTool => new(AssistantActionKind.ApplyRadNetQuery)
+            {
+                RadNetQuery = RadNetExample.Query,
+            },
+            RemDbTool when ReadArguments<RemDbQuery>(call) is { } query => new(
+                AssistantActionKind.ApplyRemDbQuery
+            )
+            {
+                RemDbQuery = query,
+            },
+            RemDbExampleTool when context.Page == AssistantPage.Radiochemistry => new(
+                AssistantActionKind.ApplyRemDbQuery
+            )
+            {
+                RemDbQuery = RemDbExample.Query,
+            },
+            RemDbExampleTool => new(AssistantActionKind.ShowRemDbExample),
             ClearTool => new(AssistantActionKind.ClearGrid),
             StemPreviewTool => new(AssistantActionKind.ShowStemPreview),
             StemQualityTool => new(AssistantActionKind.ShowStemQuality),
@@ -395,6 +510,57 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
 
     static AssistantTool Tool(string name, string description, JsonObject parameters) =>
         new("function", name, description, true, parameters);
+
+    static AssistantTool BuildDatasetQueryTool(
+        string toolName,
+        string description,
+        IReadOnlyList<(string Entity, string Name)> fields,
+        int maxGroups,
+        int maxConditions,
+        int maxPageSize
+    ) =>
+        Tool(
+            toolName,
+            description,
+            ObjectSchema(
+                ("entity", EnumSchema(fields.Select(field => field.Entity))),
+                (
+                    "filters",
+                    ArraySchema(
+                        ObjectSchema(
+                            ("entity", EnumSchema(fields.Select(field => field.Entity))),
+                            ("matchAny", new JsonObject { ["type"] = "boolean" }),
+                            (
+                                "conditions",
+                                ArraySchema(
+                                    ObjectSchema(
+                                        ("field", EnumSchema(fields.Select(field => field.Name))),
+                                        ("operator", EnumSchema(Enum.GetNames<RadNetOperator>())),
+                                        (
+                                            "value",
+                                            NullableSchema(new JsonObject { ["type"] = "string" })
+                                        )
+                                    ),
+                                    maxConditions
+                                )
+                            )
+                        ),
+                        maxGroups
+                    )
+                ),
+                ("sortField", NullableSchema(EnumSchema(fields.Select(field => field.Name)))),
+                ("descending", new JsonObject { ["type"] = "boolean" }),
+                (
+                    "top",
+                    new JsonObject
+                    {
+                        ["type"] = "integer",
+                        ["minimum"] = 1,
+                        ["maximum"] = maxPageSize,
+                    }
+                )
+            )
+        );
 
     static readonly string[] IndividualSeriesQualifiers =
     [

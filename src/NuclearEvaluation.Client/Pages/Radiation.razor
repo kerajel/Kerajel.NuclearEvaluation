@@ -1,0 +1,114 @@
+@page "/radiation"
+@using NuclearEvaluation.Client.Shared.Radiation
+
+<PageTitle>Radiation Monitoring · Nuclear Evaluation</PageTitle>
+
+<section class="radiation-workspace" aria-labelledby="radiation-title">
+    <header class="radiation-header">
+        <div>
+            <a class="radiation-source" href="https://www.epa.gov/radnet/radnet-csv-file-downloads"
+               target="_blank" rel="noopener">U.S. EPA RadNet <RadzenIcon Icon="north_east" aria-hidden="true" /></a>
+            <h1 id="radiation-title">Radiation monitoring</h1>
+            <p>Explore historical air-monitoring observations from stations across the United States.</p>
+        </div>
+        @if (_summary is { Available: true } summary)
+        {
+            <dl class="radiation-overview" aria-label="Archive coverage">
+                <div><dt>Observations</dt><dd>@Count(summary.ObservationCount)</dd></div>
+                <div><dt>Stations</dt><dd>@Count(summary.StationCount)</dd></div>
+                <div><dt>Years in archive</dt><dd>@Coverage(summary)</dd></div>
+            </dl>
+        }
+    </header>
+
+    <nav class="radiation-tabs" aria-label="Radiation workspace">
+        @foreach ((string view, string name, string icon) in Views)
+        {
+            <a href="@ViewUrl(view)" aria-current="@(ActiveView == view ? "page" : null)">
+                <RadzenIcon Icon="@icon" aria-hidden="true" /> @name
+            </a>
+        }
+    </nav>
+
+    @if (_loadingSummary)
+    {
+        <div class="radiation-empty" role="status">Reading the RadNet archive…</div>
+    }
+    else if (_summary is not { Available: true })
+    {
+        <div class="radiation-empty">
+            <h2>RadNet archive unavailable</h2>
+            <p>@(_summaryError ?? "The historical snapshot has not been installed on this host.")</p>
+            <button type="button" class="radiation-button" @onclick="LoadDataAsync">Retry</button>
+        </div>
+    }
+    else if (ActiveView == "builder")
+    {
+        <RadNetBuilder @ref="_builder" OnOpen="BrowseQueryResult" OnQuality="OpenQuality" />
+    }
+    else if (ActiveView == "quality")
+    {
+        <div class="radiation-panel">
+            <header class="radiation-panel-heading">
+                <div>
+                    <h2>File quality</h2>
+                    <p>Review coverage and missing fields for an annual station file.</p>
+                </div>
+            </header>
+            @if (FileId.HasValue)
+            {
+                <RadNetQualityReport @key="FileId" FileId="FileId.Value" OnBrowse="BrowseQualityFile" />
+            }
+            else
+            {
+                <RadNetResults Query="_qualityQuery"
+                               EmptyText="No annual source files match those filters."
+                               OnOpen="OpenQuality" OpenQuality="true" />
+            }
+        </div>
+    }
+    else
+    {
+        <div class="radiation-panel">
+            <header class="radiation-panel-heading">
+                <div>
+                    @if (_path.Count > 1)
+                    {
+                        <nav class="radiation-breadcrumbs" aria-label="Station drilldown">
+                            @foreach (BrowseStep step in _path)
+                            {
+                                if (step == _path[^1])
+                                {
+                                    <span aria-current="page">@step.Label</span>
+                                }
+                                else
+                                {
+                                    <button type="button" @onclick="() => OpenStep(step)">@step.Label</button>
+                                    <RadzenIcon Icon="chevron_right" aria-hidden="true" />
+                                }
+                            }
+                        </nav>
+                    }
+                    <h2>@EntityName(_browseQuery.Entity)</h2>
+                    @if (_path.Count == 1)
+                    {
+                        <p>Select a station to open its annual files, observations, and gamma channel readings.</p>
+                    }
+                </div>
+                @if (_browseQuery.Entity == RadNetEntity.Station)
+                {
+                    <form class="radiation-search" @onsubmit="SearchStations" @onsubmit:preventDefault>
+                        <label for="radnet-station-search">Station or state</label>
+                        <div>
+                            <input id="radnet-station-search" @bind="_stationSearch" @bind:event="oninput"
+                                   type="search" placeholder="e.g. Birmingham" maxlength="80" />
+                            <button type="submit" class="radiation-button">Search</button>
+                        </div>
+                    </form>
+                }
+            </header>
+            <RadNetResults Query="_browseQuery" EmptyText="No records match this selection."
+                           OnOpen="DrillDown" OnQuality="OpenQuality" />
+        </div>
+    }
+</section>

@@ -5,8 +5,98 @@
 <div class="sources-page">
     <header class="sources-header">
         <h1>Sources &amp; Methods</h1>
-        <p>Where the fleet and emissions figures come from and how they differ from the workspace data.</p>
+        <p>Where the radiation observations, radionuclide measurements, fleet figures, and emissions estimates come from.</p>
     </header>
+
+    <section id="radnet" class="sources-card sources-archive" aria-labelledby="sources-radnet-title">
+        <header class="sources-card-header">
+            <span class="sources-icon" aria-hidden="true"><RadzenIcon Icon="sensors" /></span>
+            <h2 id="sources-radnet-title">U.S. EPA RadNet archive</h2>
+            <p>The Radiation Monitoring workspace uses historical observations from EPA’s fixed air monitoring stations. Explore by station, annual source file, observation, and reported gamma channel.</p>
+        </header>
+
+        <dl class="sources-definitions sources-archive-definitions">
+            <div>
+                <dt>Gamma count rate <span>CPM</span></dt>
+                <dd>Counts per minute measured from particles collected on a station’s air filter. The archive reports separate gamma channel ranges.</dd>
+            </div>
+            <div>
+                <dt>Gamma exposure rate <span>mR/h</span></dt>
+                <dd>Exposure to gamma radiation in air around the station, reported in milliroentgens per hour.</dd>
+            </div>
+            <div>
+                <dt>Dose equivalent rate <span>nSv/h</span></dt>
+                <dd>EPA’s dose equivalent rate in nanosieverts per hour, available in some station files.</dd>
+            </div>
+        </dl>
+
+        <p class="sources-method">
+            Observation timestamps use UTC. Missing measurements stay blank. File quality counts hours with no reported observation within the file’s covered period and shows how often each channel was reported.
+            The workspace keeps count rates, exposure rates, and dose equivalent rates in their published units.
+        </p>
+        <p class="sources-method">
+            Import checks exclude rows with invalid timestamps, timestamps outside the source year, or no usable measurement.
+            For repeated station timestamps, the import prefers an approved row, then the row with the most measurements, then the first source row.
+            Retained records carry their source file and original row number.
+        </p>
+
+        <ul class="sources-references" aria-label="EPA RadNet sources" role="list">
+            <li><a href="https://www.epa.gov/radnet/radnet-csv-file-downloads">Historical station archives <span>Annual CSVs</span></a></li>
+            <li><a href="https://www.epa.gov/radnet/how-use-radnet-near-real-time-air-data-dashboard">Monitoring definitions <span>U.S. EPA</span></a></li>
+            <li><a href="https://edg.epa.gov/EPA_Data_License.html">EPA data license <span>U.S. public domain</span></a></li>
+            <li><a href="https://www.epa.gov/office-inspector-general/follow-report-epa-improves-management-its-radiation-monitoring-system">Montgomery monitor cover photograph <span>EPA OIG, 2014</span></a></li>
+        </ul>
+
+        <div class="sources-actions">
+            <a class="sources-action" href="radiation">Explore radiation monitoring <span aria-hidden="true">→</span></a>
+        </div>
+    </section>
+
+    <section id="remdb" class="sources-card sources-archive" aria-labelledby="sources-remdb-title">
+        <header class="sources-card-header">
+            <span class="sources-icon" aria-hidden="true"><RadzenIcon Icon="science" /></span>
+            <h2 id="sources-remdb-title">European Commission REMdb archive</h2>
+            <p>Radiochemistry uses measurements reported by national monitoring programs and published by the European Commission’s Joint Research Centre in its Radioactivity Environmental Monitoring data bank.</p>
+        </header>
+
+        <dl class="sources-definitions sources-archive-definitions">
+            <div>
+                <dt>Sampling locations</dt>
+                <dd>Locations are grouped by the reported country, place, and coordinates.</dd>
+            </div>
+            <div>
+                <dt>Sampling windows</dt>
+                <dd>Measurements are grouped by location, medium, treatment, and sampling timestamps. A window may contain results from several physical samples.</dd>
+            </div>
+            <div>
+                <dt>Measurements</dt>
+                <dd>Each result keeps its reported activity and unit, along with its source file and row number.</dd>
+            </div>
+        </dl>
+
+        <p class="sources-method">
+            This snapshot covers 40 annual releases from 1984 through 2023, drawn from the 1984–2006 and 2007–2011 bundles and the 2012–2023 annual archives.
+            Sampling dates can differ from release years. Files from 2012 onward publish a separate detection qualifier field.
+            File quality reports show the sampling dates covered, missing values, and explicit less-than qualifiers in each file.
+        </p>
+        <p class="sources-method">
+            The 1986 file splits some measurements across consecutive CSV rows. The import rejoins recognized pairs and cites the first row.
+        </p>
+        <p class="sources-method">
+            Data © European Union. Nuclear Evaluation adapts the public files by parsing them into searchable fields and grouping the reported records. The source data are published under Creative Commons Attribution 4.0.
+        </p>
+
+        <ul class="sources-references" aria-label="European Commission REMdb sources" role="list">
+            <li><a href="https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/REMDB/datasets/">REMdb archive <span>Public releases</span></a></li>
+            <li><a href="https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/REMDB/datasets/copyright.txt">REMdb reuse terms <span>CC BY 4.0</span></a></li>
+            <li><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 <span>License</span></a></li>
+            <li><a href="https://essd.copernicus.org/articles/11/589/2019/">REMdb methods and data description <span>Joint Research Centre</span></a></li>
+        </ul>
+
+        <div class="sources-actions">
+            <a class="sources-action" href="radiochemistry">Explore radiochemistry <span aria-hidden="true">→</span></a>
+        </div>
+    </section>
 
     <div class="sources-published">
         <section class="sources-card" aria-labelledby="sources-fleet-title">
@@ -93,24 +183,4 @@
             </div>
         </section>
     </div>
-
-    <section class="sources-card sources-workspace" aria-labelledby="sources-workspace-title">
-        <header class="sources-card-header">
-            <span class="sources-icon" aria-hidden="true"><RadzenIcon Icon="science" /></span>
-            <h2 id="sources-workspace-title">Evaluation workspace</h2>
-            <p>The shared workspace uses example data for testing analysis workflows.</p>
-        </header>
-        <div class="sources-workspace-details">
-            <div>
-                <h3>Generated records</h3>
-                <p>Series, samples, measurements, and projects start with generated examples. The sandbox restores them periodically.</p>
-                <a class="sources-action" href="evaluation">Open Evaluation <span aria-hidden="true">→</span></a>
-            </div>
-            <div>
-                <h3>STEM files</h3>
-                <p>STEM Preview stages uploaded files for temporary analysis. Idle sessions expire, and the quality workbench includes a synthetic example.</p>
-                <a class="sources-action" href="data-management?tab=stem-preview&amp;view=quality">Open STEM Quality <span aria-hidden="true">→</span></a>
-            </div>
-        </div>
-    </section>
 </div>

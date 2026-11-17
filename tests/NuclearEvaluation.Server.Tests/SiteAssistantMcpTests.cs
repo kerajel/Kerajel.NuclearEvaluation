@@ -8,6 +8,66 @@ namespace NuclearEvaluation.Server.Tests;
 public class SiteAssistantMcpTests
 {
     [Fact]
+    public void ValidatesRadiochemistryQueriesAndExampleAgainstTheActivePage()
+    {
+        LocalSiteAssistantTools tools = new();
+        SiteAssistantContext radiochemistry = new(
+            AssistantPage.Radiochemistry,
+            AssistantSurface.None
+        );
+        SiteAssistantContext home = new(AssistantPage.Home, AssistantSurface.None);
+        AssistantAction action = new(AssistantActionKind.ApplyRemDbQuery)
+        {
+            RemDbQuery = RemDbExample.Query,
+        };
+        AssistantAction example = new(AssistantActionKind.ShowRemDbExample);
+
+        Assert.Contains(tools.Describe().RemDbFields!, field =>
+            field.Key == nameof(RemDbRow.Qualifier)
+        );
+        Assert.Equal(action, tools.Validate(radiochemistry, action).Action);
+        Assert.Equal(example, tools.Validate(home, example).Action);
+        Assert.Throws<McpException>(() => tools.Validate(home, action));
+        Assert.Throws<McpException>(() =>
+            tools.Validate(
+                radiochemistry,
+                action with
+                {
+                    RemDbQuery = RemDbExample.Query with { SortField = "Unknown" },
+                }
+            )
+        );
+    }
+
+    [Fact]
+    public void ValidatesRadNetQueriesAgainstTheRadiationCatalog()
+    {
+        LocalSiteAssistantTools tools = new();
+        SiteAssistantContext radiation = new(AssistantPage.Radiation, AssistantSurface.None);
+        AssistantAction example = new(AssistantActionKind.ApplyRadNetQuery)
+        {
+            RadNetQuery = RadNetExample.Query,
+        };
+
+        Assert.Contains(tools.Describe().RadNetFields!, field =>
+            field.Name == nameof(RadNetRow.Channel)
+        );
+        Assert.Equal(example, tools.Validate(radiation, example).Action);
+        Assert.Throws<McpException>(() =>
+            tools.Validate(new(AssistantPage.Evaluation, AssistantSurface.Projects), example)
+        );
+        Assert.Throws<McpException>(() =>
+            tools.Validate(
+                radiation,
+                example with
+                {
+                    RadNetQuery = RadNetExample.Query with { SortField = "UnknownField" },
+                }
+            )
+        );
+    }
+
+    [Fact]
     public void ProjectsCatalogAndValidationSupportRankedSeriesFilters()
     {
         LocalSiteAssistantTools tools = new();

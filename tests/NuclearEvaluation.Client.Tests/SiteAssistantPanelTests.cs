@@ -105,7 +105,10 @@ public class SiteAssistantPanelTests : TestBase
         navigation.NavigateTo("/evaluation");
         SiteAssistantWorkspace workspace =
             TestContext.Services.GetRequiredService<SiteAssistantWorkspace>();
-        IRenderedComponent<Evaluation> evaluation = TestContext.Render<Evaluation>();
+        IRenderedComponent<RetiredIsotopeRoute> evaluation =
+            TestContext.Render<RetiredIsotopeRoute>(parameters =>
+                parameters.AddCascadingValue(new SiteFeatures(true))
+            );
         evaluation.WaitForAssertion(() => Assert.Equal(Projects, workspace.Current?.Context));
 
         IRenderedComponent<SiteAssistantPanel> panel = TestContext.Render<SiteAssistantPanel>();

@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject ILogger<MainLayout> Logger
+@inject HttpClient Http
 
 <RadzenComponents />
 <RadzenMediaQuery Query="(max-width: 768px)" Change="@PhoneLayoutChanged" />
@@ -21,6 +22,10 @@
                         @onclick="TogglePhoneNavigation" @ref="_phoneToggle">
                     <RadzenIcon Icon="menu" aria-hidden="true" />
                 </button>
+                <a class="ne-topbar-brand" href="" aria-label="Nuclear Evaluation home"
+                   @onclick="ClosePhoneNavigation">
+                    <img src="favicon-32x32.png" width="28" height="28" alt="" />
+                </a>
                 <span>@PageLabel</span>
             </div>
             <RadzenAppearanceToggle />
@@ -33,11 +38,26 @@
             <span>Nuclear Evaluation</span>
         </a>
         <nav class="ne-navigation" aria-label="Primary">
-            <div class="ne-nav-group" aria-label="Explore" role="group">
-                <p aria-hidden="true">Explore</p>
+            <div class="ne-nav-group" aria-label="Monitoring" role="group">
+                <p aria-hidden="true">Monitoring</p>
                 <NavLink href="" Match="NavLinkMatch.All" class="ne-nav-link" @onclick="ClosePhoneNavigation">
                     <RadzenIcon Icon="home" aria-hidden="true" /> Home
                 </NavLink>
+                <NavLink href="workbench" class="ne-nav-link" @onclick="ClosePhoneNavigation">
+                    <RadzenIcon Icon="dataset" aria-hidden="true" /> Data Workbench
+                </NavLink>
+                <NavLink href="radiation" class="ne-nav-link" @onclick="ClosePhoneNavigation">
+                    <RadzenIcon Icon="sensors" aria-hidden="true" /> Radiation Monitoring
+                </NavLink>
+                <NavLink href="radiochemistry" class="ne-nav-link" @onclick="ClosePhoneNavigation">
+                    <RadzenIcon Icon="science" aria-hidden="true" /> Radiochemistry
+                </NavLink>
+                <NavLink href="sources" class="ne-nav-link" @onclick="ClosePhoneNavigation">
+                    <RadzenIcon Icon="source" aria-hidden="true" /> Sources &amp; Methods
+                </NavLink>
+            </div>
+            <div class="ne-nav-group" aria-label="Nuclear power" role="group">
+                <p aria-hidden="true">Nuclear power</p>
                 <NavLink href="fleet" class="ne-nav-link" @onclick="ClosePhoneNavigation">
                     <RadzenIcon Icon="map" aria-hidden="true" /> Fleet Explorer
                 </NavLink>
@@ -47,24 +67,26 @@
                 <NavLink href="energy-emissions" class="ne-nav-link" @onclick="ClosePhoneNavigation">
                     <RadzenIcon Icon="bar_chart" aria-hidden="true" /> Energy &amp; Emissions
                 </NavLink>
-                <NavLink href="sources" class="ne-nav-link" @onclick="ClosePhoneNavigation">
-                    <RadzenIcon Icon="source" aria-hidden="true" /> Sources &amp; Methods
-                </NavLink>
             </div>
-            <div class="ne-nav-group" aria-label="Workspace" role="group">
-                <p aria-hidden="true">Workspace</p>
-                <NavLink href="data-management" class="ne-nav-link" @onclick="ClosePhoneNavigation">
-                    <RadzenIcon Icon="dataset" aria-hidden="true" /> Data Management
-                </NavLink>
-                <NavLink href="evaluation" class="@EvaluationNavClass" @onclick="ClosePhoneNavigation">
-                    <RadzenIcon Icon="query_stats" aria-hidden="true" /> Evaluation
-                </NavLink>
-            </div>
+            @if (_features?.IsotopeFixturesAvailable == true)
+            {
+                <div class="ne-nav-group" aria-label="Test fixtures" role="group">
+                    <p aria-hidden="true">Test fixtures</p>
+                    <NavLink href="data-management" class="ne-nav-link" @onclick="ClosePhoneNavigation">
+                        <RadzenIcon Icon="dataset" aria-hidden="true" /> Data Management
+                    </NavLink>
+                    <NavLink href="evaluation" class="@EvaluationNavClass" @onclick="ClosePhoneNavigation">
+                        <RadzenIcon Icon="query_stats" aria-hidden="true" /> Evaluation
+                    </NavLink>
+                </div>
+            }
         </nav>
     </aside>
     <main class="ne-shell-body" id="site-content" tabindex="-1" inert="@_phoneNavigation" @ref="_mainContent">
         <div class="ne-content">
-            @Body
+            <CascadingValue Value="_features">
+                @Body
+            </CascadingValue>
         </div>
     </main>
     @if (_phoneNavigation)

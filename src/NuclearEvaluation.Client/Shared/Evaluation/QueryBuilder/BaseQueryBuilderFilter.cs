@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using System.Globalization;
+using Microsoft.AspNetCore.Components;
 using NuclearEvaluation.Client.Services;
 using NuclearEvaluation.Shared.Enums;
 using NuclearEvaluation.Shared.Extensions;
@@ -41,6 +42,7 @@ public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilt
         {
             presetFilterEntry = value;
             currentFilters = value.Descriptors?.ToArray() ?? [];
+            NormalizeEnumValues(currentFilters);
             logicalFilterOperator = value.LogicalFilterOperator;
             RefreshFilter();
             StateHasChanged();
@@ -85,6 +87,18 @@ public abstract class BaseQueryBuilderFilter<TItem> : ComponentBase, IPresetFilt
         }
 
         return currentFilters;
+    }
+
+    static void NormalizeEnumValues(IEnumerable<CompositeFilterDescriptor> descriptors)
+    {
+        foreach (CompositeFilterDescriptor descriptor in descriptors)
+        {
+            // Radzen matches selections to boxed integer keys, including for enum properties.
+            if (descriptor.FilterValue is Enum enumValue)
+                descriptor.FilterValue = Convert.ToInt32(enumValue, CultureInfo.InvariantCulture);
+            if (descriptor.Filters is { } children)
+                NormalizeEnumValues(children);
+        }
     }
 
     void RefreshFilter()

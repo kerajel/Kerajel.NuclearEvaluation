@@ -1,0 +1,625 @@
+.rem-workspace {
+    --rem-accent: var(--ne-accent, #176c64);
+    --rem-line: var(--ne-line, #d6e1e3);
+    --rem-ink: var(--ne-ink, #182d35);
+    --rem-muted: var(--ne-muted, #475f65);
+    --rem-surface: var(--ne-surface, #f1f6f6);
+    --rem-raised: var(--ne-surface-raised, #e6efef);
+    --rem-tint: var(--ne-accent-tint, #d9f1eb);
+    min-width: 0;
+    color: var(--rem-ink);
+}
+
+.rem-hero {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem 1.65rem;
+    padding: 1rem 0 1.55rem;
+}
+
+.rem-hero-heading {
+    max-width: 34rem;
+}
+
+.rem-hero h1 {
+    margin: .25rem 0 .48rem;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    line-height: 1.04;
+    letter-spacing: -.036em;
+}
+
+.rem-hero p,
+.rem-coverage p,
+.rem-workspace ::deep .rem-panel-heading p {
+    margin: 0;
+    color: var(--rem-muted);
+}
+
+.rem-source {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    color: var(--rem-accent);
+    font-size: .875rem;
+    font-weight: 670;
+    text-decoration: none;
+}
+
+.rem-source:hover {
+    text-decoration: underline;
+}
+
+.rem-source ::deep .rzi,
+.rem-breadcrumbs ::deep .rzi {
+    font-size: .9rem;
+}
+
+.rem-overview,
+.rem-workspace ::deep .rem-quality-metrics {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: .75rem;
+    margin: 0;
+}
+
+.rem-overview div,
+.rem-workspace ::deep .rem-quality-metrics > div {
+    padding-inline-start: .8rem;
+    border-inline-start: 1px solid var(--rem-line);
+}
+
+.rem-overview dt,
+.rem-workspace ::deep .rem-quality-metrics dt {
+    color: var(--rem-muted);
+    font-size: .77rem;
+}
+
+.rem-overview dd,
+.rem-workspace ::deep .rem-quality-metrics dd {
+    margin: .15rem 0 0;
+    font-size: clamp(1.1rem, 2vw, 1.62rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.rem-tabs {
+    display: flex;
+    align-items: center;
+    gap: .2rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--rem-line);
+    margin-bottom: 1rem;
+}
+
+.rem-tabs a {
+    display: inline-flex;
+    align-items: center;
+    gap: .38rem;
+    padding: .65rem .8rem;
+    border-bottom: 2px solid transparent;
+    color: var(--rem-muted);
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.rem-tabs a:hover,
+.rem-tabs a[aria-current="page"] {
+    color: var(--rem-accent);
+}
+
+.rem-tabs a[aria-current="page"] {
+    border-bottom-color: currentColor;
+}
+
+.rem-tabs ::deep .rzi {
+    font-size: 1rem;
+}
+
+.rem-coverage {
+    display: grid;
+    grid-template-columns: minmax(12rem, 1fr) minmax(0, 2fr);
+    align-items: center;
+    gap: .95rem 2rem;
+    padding: .85rem 1.1rem;
+    margin-bottom: .9rem;
+    border: 1px solid var(--rem-line);
+    border-radius: .8rem;
+    background: linear-gradient(110deg, var(--rem-tint), transparent 65%), var(--rem-surface);
+}
+
+.rem-coverage h2,
+.rem-workspace ::deep .rem-panel-heading h2 {
+    margin: 0 0 .2rem;
+    font-size: 1.24rem;
+}
+
+.rem-coverage p {
+    font-size: .84rem;
+}
+
+.rem-year {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+    margin-top: .55rem;
+    color: var(--rem-muted);
+    font-size: .79rem;
+}
+
+.rem-bars {
+    display: flex;
+    align-items: end;
+    height: 3.7rem;
+    gap: 1px;
+    border-bottom: 1px solid var(--rem-line);
+}
+
+.rem-bars span {
+    display: block;
+    flex: 1 1 0;
+    min-inline-size: 0;
+    min-block-size: 1px;
+    border-radius: .16rem .16rem 0 0;
+    background: color-mix(in srgb, var(--rem-accent) 57%, transparent);
+}
+
+.rem-bars span:hover {
+    background: var(--rem-accent);
+}
+
+.rem-timeline-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: .25rem;
+    color: var(--rem-muted);
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.rem-workspace ::deep .rem-panel {
+    min-width: 0;
+    border: 1px solid var(--rem-line);
+    border-radius: .85rem;
+    background: var(--rem-surface);
+}
+
+.rem-workspace ::deep .rem-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: .7rem 1rem;
+    padding: .95rem 1.08rem;
+}
+
+.rem-breadcrumbs,
+.rem-search,
+.rem-workspace ::deep .rem-controls,
+.rem-workspace ::deep .rem-pager > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+
+.rem-breadcrumbs {
+    align-items: center;
+    margin-bottom: .4rem;
+    font-size: .84rem;
+    color: var(--rem-muted);
+    overflow-wrap: anywhere;
+}
+
+.rem-search {
+    align-items: end;
+    max-width: 100%;
+}
+
+.rem-search label {
+    display: grid;
+    gap: .25rem;
+    flex: 1 1 8rem;
+    min-width: 0;
+    max-width: 13rem;
+}
+
+.rem-search label span,
+.rem-workspace ::deep .rem-editor-block label,
+.rem-workspace ::deep .rem-group-heading label span {
+    font-size: .79rem;
+    color: var(--rem-muted);
+}
+
+.rem-workspace ::deep input,
+.rem-workspace ::deep select,
+.rem-workspace ::deep .rem-button {
+    min-width: 0;
+    min-height: 2.2rem;
+    max-width: 100%;
+    padding: .32rem .52rem;
+    border: 1px solid var(--rem-line);
+    border-radius: .44rem;
+    background: var(--rem-raised);
+    color: var(--rem-ink);
+    font: inherit;
+    font-size: .86rem;
+}
+
+.rem-workspace ::deep .rem-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem;
+    font-weight: 645;
+    cursor: pointer;
+}
+
+.rem-workspace ::deep .rem-button:hover:not(:disabled) {
+    border-color: var(--rem-accent);
+    color: var(--rem-accent);
+}
+
+.rem-workspace ::deep .rem-primary,
+.rem-workspace ::deep .rem-primary:hover:not(:disabled) {
+    border-color: var(--rem-accent);
+    background: var(--rem-tint);
+    color: var(--rem-accent);
+}
+
+.rem-workspace ::deep .rem-link {
+    color: var(--rem-accent);
+    font: inherit;
+    font-weight: 650;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.rem-workspace ::deep .rem-link:hover:not(:disabled) {
+    text-decoration: underline;
+}
+
+.rem-workspace ::deep button.rem-link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    text-align: start;
+}
+
+.rem-workspace ::deep .rem-button:disabled,
+.rem-workspace ::deep .rem-link:disabled {
+    opacity: .5;
+    cursor: default;
+}
+
+.rem-workspace ::deep .rem-link .rzi,
+.rem-workspace ::deep .rem-button .rzi {
+    font-size: 1rem;
+    vertical-align: middle;
+}
+
+.rem-workspace ::deep .rem-empty {
+    margin: 0;
+    padding: 1.1rem;
+}
+
+.rem-workspace ::deep .rem-results {
+    min-width: 0;
+}
+
+.rem-workspace ::deep .rem-grid-count {
+    padding: .4rem 1.08rem;
+    margin: 0;
+    color: var(--rem-muted);
+    font-size: .82rem;
+}
+
+.rem-workspace ::deep .rem-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.rem-workspace ::deep table {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 1px solid var(--rem-line);
+    white-space: nowrap;
+    text-align: start;
+    font-size: .86rem;
+}
+
+.rem-workspace ::deep th,
+.rem-workspace ::deep td {
+    padding: .52rem .65rem;
+    border-bottom: 1px solid var(--rem-line);
+    text-align: start;
+}
+
+.rem-workspace ::deep th:first-child,
+.rem-workspace ::deep td:first-child {
+    padding-inline-start: 1.08rem;
+}
+
+.rem-workspace ::deep th {
+    background: var(--rem-raised);
+    font-size: .8rem;
+    font-weight: 680;
+}
+
+.rem-workspace ::deep th button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.rem-workspace ::deep th .rzi {
+    vertical-align: middle;
+    font-size: .85rem;
+    color: var(--rem-accent);
+}
+
+.rem-workspace ::deep tr:hover td {
+    background: var(--rem-tint);
+}
+
+.rem-workspace ::deep .rem-numeric {
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+}
+
+.rem-workspace ::deep .rem-cell-note {
+    display: block;
+    color: var(--rem-muted);
+    font-size: .79rem;
+}
+
+.rem-workspace ::deep .rem-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .55rem;
+    padding: .62rem 1.08rem;
+    color: var(--rem-muted);
+    font-size: .82rem;
+}
+
+.rem-workspace ::deep .rem-builder {
+    display: grid;
+    grid-template-columns: minmax(19rem, 2fr) minmax(0, 3fr);
+    align-items: start;
+    gap: .85rem;
+}
+
+.rem-workspace ::deep .rem-editor-block {
+    padding: .7rem 1.08rem;
+}
+
+.rem-workspace ::deep .rem-presets,
+.rem-workspace ::deep .rem-run {
+    border-top: 1px solid var(--rem-line);
+}
+
+.rem-workspace ::deep .rem-controls {
+    flex-wrap: nowrap;
+    margin-top: .35rem;
+}
+
+.rem-workspace ::deep .rem-controls input,
+.rem-workspace ::deep .rem-controls select {
+    flex: 1 1 0;
+}
+
+.rem-workspace ::deep .rem-editor-note {
+    margin: .45rem 0 0;
+    color: var(--rem-muted);
+    font-size: .8rem;
+}
+
+.rem-workspace ::deep .rem-filter-group {
+    min-inline-size: 0;
+    margin: 0 1.08rem .72rem;
+    padding: .4rem .55rem .55rem;
+    border: 1px solid var(--rem-line);
+    border-radius: .55rem;
+}
+
+.rem-workspace ::deep .rem-filter-group legend {
+    padding: 0 .24rem;
+    font-size: .84rem;
+    font-weight: 670;
+}
+
+.rem-workspace ::deep .rem-group-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin-bottom: .43rem;
+}
+
+.rem-workspace ::deep .rem-group-heading label {
+    display: flex;
+    align-items: center;
+    gap: .36rem;
+}
+
+.rem-workspace ::deep .rem-filter-group .rem-link {
+    font-size: .8rem;
+}
+
+.rem-workspace ::deep .rem-condition {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, .95fr) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .28rem;
+    margin-bottom: .4rem;
+}
+
+.rem-workspace ::deep .rem-remove {
+    grid-column: 4;
+}
+
+.rem-workspace ::deep .rem-builder-notice {
+    margin: 0;
+    color: var(--rem-accent);
+    font-size: .85rem;
+}
+
+.rem-workspace ::deep .rem-result-placeholder {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    border-top: 1px solid var(--rem-line);
+    color: var(--rem-muted);
+}
+
+.rem-workspace ::deep .rem-result-placeholder p {
+    margin: 0;
+}
+
+.rem-workspace ::deep .rem-quality-body {
+    display: grid;
+    gap: .9rem;
+    padding: .9rem 1.08rem 1.15rem;
+    border-top: 1px solid var(--rem-line);
+}
+
+.rem-workspace ::deep .rem-quality-body h3 {
+    margin: 0 0 .35rem;
+    font-size: 1.06rem;
+    overflow-wrap: anywhere;
+}
+
+.rem-workspace ::deep .rem-quality-body p,
+.rem-workspace ::deep .rem-quality-breakdown ul {
+    margin: 0;
+}
+
+.rem-workspace ::deep .rem-quality-breakdown {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .85rem 1.3rem;
+    padding-block: .6rem;
+    border-block: 1px solid var(--rem-line);
+}
+
+.rem-workspace ::deep .rem-quality-breakdown ul {
+    display: grid;
+    gap: .38rem;
+    padding: 0;
+    list-style: none;
+}
+
+.rem-workspace ::deep .rem-quality-breakdown li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+    align-items: center;
+    gap: .5rem;
+    font-size: .82rem;
+}
+
+.rem-workspace ::deep .rem-coverage-value,
+.rem-workspace ::deep .rem-provenance code {
+    overflow-wrap: anywhere;
+}
+
+.rem-workspace ::deep .rem-quality-breakdown meter {
+    width: 100%;
+    height: .65rem;
+}
+
+.rem-workspace ::deep .rem-quality-breakdown meter::-webkit-meter-optimum-value {
+    background: var(--rem-accent);
+}
+
+.rem-workspace ::deep .rem-quality-breakdown meter::-moz-meter-bar {
+    background: var(--rem-accent);
+}
+
+.rem-workspace ::deep .rem-provenance {
+    display: grid;
+    justify-items: start;
+    gap: .28rem;
+    font-size: .86rem;
+}
+
+@media (max-width: 780px) {
+    .rem-workspace ::deep .rem-builder {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 540px) {
+    .rem-hero {
+        padding-bottom: 1rem;
+    }
+
+    .rem-overview {
+        width: 100%;
+    }
+
+    .rem-overview div:first-child {
+        padding-inline-start: 0;
+        border-inline-start: 0;
+    }
+
+    .rem-tabs a {
+        padding: .58rem .34rem;
+        font-size: .84rem;
+    }
+
+    .rem-coverage {
+        grid-template-columns: minmax(0, 1fr);
+        gap: .5rem;
+        padding: .7rem .8rem;
+    }
+
+    .rem-bars {
+        height: 2.65rem;
+    }
+
+    .rem-workspace ::deep .rem-panel-heading,
+    .rem-workspace ::deep .rem-editor-block,
+    .rem-workspace ::deep .rem-quality-body {
+        padding-inline: .78rem;
+    }
+
+    .rem-search {
+        width: 100%;
+    }
+
+    .rem-search label {
+        flex: 1 1 7rem;
+        max-width: none;
+    }
+
+    .rem-workspace ::deep .rem-condition {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+    }
+
+    .rem-workspace ::deep .rem-condition select:first-child {
+        grid-column: 1 / 3;
+    }
+
+    .rem-workspace ::deep .rem-condition .rem-remove {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    .rem-workspace ::deep .rem-quality-breakdown {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rem-workspace ::deep .rem-quality-metrics {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

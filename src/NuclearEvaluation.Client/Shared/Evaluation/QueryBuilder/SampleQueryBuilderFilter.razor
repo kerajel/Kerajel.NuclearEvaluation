@@ -2,7 +2,7 @@
 @inherits BaseQueryBuilderFilter<SampleViewPresetFilter>
 
 
-<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="true" ViewChanged="NotifyDraftEdited" TItem="SampleViewPresetFilter">
+<RadzenDataFilter @ref="filter" LogicalFilterOperator="logicalFilterOperator" Visible="Visible" Auto="true" ViewChanged="NotifyDraftEdited" TItem="SampleViewPresetFilter" EnumFilterSelectText="Choose a value">
     <Properties>
         <RadzenDataFilterProperty Property="Sample.Sequence" Title="Sequence" />
         <RadzenDataFilterProperty Property="Sample.ExternalCode" Title="External Code" />

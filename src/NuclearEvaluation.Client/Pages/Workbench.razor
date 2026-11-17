@@ -1,0 +1,74 @@
+@page "/workbench"
+@using NuclearEvaluation.Client.Shared.Workbench
+
+<PageTitle>Data Workbench · Nuclear Evaluation</PageTitle>
+
+<section class="wb-workbench" aria-labelledby="wb-title">
+    <header class="wb-heading">
+        <div>
+            <h1 id="wb-title">Data Workbench</h1>
+            <p>Organize and review EPA RadNet monitoring records.</p>
+        </div>
+        @if (_catalog?.Archive is { Available: true } archive)
+        {
+            <dl class="wb-coverage" aria-label="RadNet archive coverage">
+                <div>
+                    <dt>Source observations</dt>
+                    <dd>@Count(archive.ObservationCount)</dd>
+                </div>
+                <div>
+                    <dt>Stations</dt>
+                    <dd>@Count(archive.StationCount)</dd>
+                </div>
+                <div>
+                    <dt>Annual files</dt>
+                    <dd>@Count(archive.SourceFileCount)</dd>
+                </div>
+            </dl>
+        }
+    </header>
+
+    <nav class="wb-nav" aria-label="Data workbench">
+        <a href="workbench" aria-current="@(!ShowProjects && !ShowBuilder && !ShowImportReview ? "page" : null)">
+            <RadzenIcon Icon="table_rows" aria-hidden="true" /> Series
+        </a>
+        <a href="workbench?view=projects" aria-current="@(ShowProjects ? "page" : null)">
+            <RadzenIcon Icon="folder_open" aria-hidden="true" /> Projects
+        </a>
+        <a href="workbench?view=builder" aria-current="@(ShowBuilder ? "page" : null)">
+            <RadzenIcon Icon="tune" aria-hidden="true" /> Query Builder
+        </a>
+        <a href="workbench?view=import" aria-current="@(ShowImportReview ? "page" : null)">
+            <RadzenIcon Icon="upload_file" aria-hidden="true" /> Import Review
+        </a>
+    </nav>
+
+    @if (_loading)
+    {
+        <div class="wb-message" role="status">Loading the workbench…</div>
+    }
+    else if (_catalog is not { Archive.Available: true } catalog)
+    {
+        <div class="wb-message" role="alert">
+            <h2>Workbench unavailable</h2>
+            <p>@(_error ?? "This host is missing the EPA RadNet archive snapshot.")</p>
+            <button type="button" @onclick="LoadCatalogAsync">Retry</button>
+        </div>
+    }
+    else if (ShowProjects)
+    {
+        <WorkbenchProjects />
+    }
+    else if (ShowBuilder)
+    {
+        <WorkbenchQueryBuilder RunExampleOnLoad="@RunBuilderExample" />
+    }
+    else if (ShowImportReview)
+    {
+        <ImportReview ObservationCount="@catalog.Archive.ObservationCount" />
+    }
+    else
+    {
+        <WorkbenchSeriesGrid Stations="catalog.Stations" />
+    }
+</section>

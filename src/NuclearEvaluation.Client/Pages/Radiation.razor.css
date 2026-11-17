@@ -1,0 +1,232 @@
+.radiation-workspace {
+    --radiation-accent: var(--ne-accent, #159982);
+    --radiation-line: var(--ne-line, #d6e1e3);
+    --radiation-text: var(--ne-ink, #182d35);
+    --radiation-muted: var(--ne-muted, #475f65);
+    --radiation-surface: var(--ne-surface, #f1f6f6);
+    --radiation-emphasis: var(--ne-surface-raised, #e6efef);
+    --radiation-accent-surface: var(--ne-accent-tint, #d9f1eb);
+    min-width: 0;
+    color: var(--radiation-text);
+}
+
+.radiation-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1.5rem 2rem;
+    flex-wrap: wrap;
+    padding: .9rem 0 1.55rem;
+}
+
+.radiation-header h1 {
+    margin: .32rem 0 .38rem;
+    font-size: clamp(2rem, 4vw, 3.15rem);
+    line-height: 1.03;
+    letter-spacing: -.035em;
+}
+
+.radiation-header p,
+.radiation-panel-heading p {
+    margin: 0;
+    color: var(--radiation-muted);
+}
+
+.radiation-source {
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+    color: var(--radiation-accent);
+    font-size: .875rem;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.radiation-source:hover {
+    text-decoration: underline;
+}
+
+.radiation-source ::deep .rzi {
+    font-size: .9rem;
+}
+
+.radiation-overview {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(5rem, auto);
+    margin: 0;
+    padding: .3rem 0;
+}
+
+.radiation-overview div {
+    padding: .1rem clamp(.7rem, 1.6vw, 1.25rem);
+    border-inline-start: 1px solid var(--radiation-line);
+}
+
+.radiation-overview dt {
+    color: var(--radiation-muted);
+    font-size: .78rem;
+}
+
+.radiation-overview dd {
+    margin: .14rem 0 0;
+    font-size: clamp(1.18rem, 2vw, 1.62rem);
+    font-weight: 690;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.radiation-tabs {
+    display: flex;
+    align-items: center;
+    gap: .2rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--radiation-line);
+    margin-bottom: 1rem;
+}
+
+.radiation-tabs a {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .65rem .85rem;
+    border-bottom: 2px solid transparent;
+    color: var(--radiation-muted);
+    text-decoration: none;
+    font-weight: 630;
+}
+
+.radiation-tabs a:hover {
+    color: var(--radiation-accent);
+}
+
+.radiation-tabs a[aria-current="page"] {
+    color: var(--radiation-accent);
+    border-bottom-color: currentColor;
+}
+
+.radiation-tabs ::deep .rzi {
+    font-size: 1.08rem;
+}
+
+.radiation-panel,
+.radiation-empty {
+    min-width: 0;
+    border: 1px solid var(--radiation-line);
+    background: var(--radiation-surface);
+    border-radius: .85rem;
+}
+
+.radiation-empty {
+    padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.radiation-empty h2,
+.radiation-panel-heading h2 {
+    margin: 0 0 .2rem;
+    font-size: 1.27rem;
+}
+
+.radiation-empty p {
+    color: var(--radiation-muted);
+}
+
+.radiation-panel-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+}
+
+.radiation-breadcrumbs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .35rem;
+    color: var(--radiation-muted);
+    font-size: .84rem;
+    margin-bottom: .45rem;
+}
+
+.radiation-breadcrumbs button {
+    border: 0;
+    padding: 0;
+    color: var(--radiation-accent);
+    font: inherit;
+    font-weight: 650;
+    background: transparent;
+    cursor: pointer;
+}
+
+.radiation-breadcrumbs button:hover {
+    text-decoration: underline;
+}
+
+.radiation-breadcrumbs ::deep .rzi {
+    font-size: .9rem;
+}
+
+.radiation-search {
+    display: grid;
+    gap: .22rem;
+}
+
+.radiation-search label {
+    font-size: .78rem;
+    color: var(--radiation-muted);
+}
+
+.radiation-search div {
+    display: flex;
+    align-items: stretch;
+    gap: .4rem;
+}
+
+.radiation-search input,
+.radiation-button {
+    min-width: 0;
+    min-height: 2.3rem;
+    background: var(--radiation-emphasis);
+    color: var(--radiation-text);
+    border: 1px solid var(--radiation-line);
+    border-radius: .45rem;
+    padding: .34rem .6rem;
+    font: inherit;
+}
+
+.radiation-search input {
+    width: min(100%, 13rem);
+}
+
+.radiation-button {
+    cursor: pointer;
+    font-weight: 620;
+}
+
+.radiation-button:hover {
+    border-color: var(--radiation-accent);
+    color: var(--radiation-accent);
+}
+
+@media (max-width: 540px) {
+    .radiation-overview {
+        width: 100%;
+        grid-auto-columns: 1fr;
+    }
+
+    .radiation-overview div:first-child {
+        padding-inline-start: 0;
+        border-inline-start: 0;
+    }
+
+    .radiation-tabs a {
+        padding: .6rem .4rem;
+        font-size: .9rem;
+    }
+
+    .radiation-panel-heading {
+        padding: .85rem;
+    }
+}

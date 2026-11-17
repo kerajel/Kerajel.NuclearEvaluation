@@ -223,6 +223,8 @@
                 if (action.Kind == AssistantActionKind.ShowQueryBuilderExample
                     && view.Context.Surface != AssistantSurface.QueryBuilder)
                     Navigation.NavigateTo(EvaluationTabs.AdvancedExampleRoute);
+                else if (action.Kind == AssistantActionKind.ShowRemDbExample)
+                    Navigation.NavigateTo("/radiochemistry?view=builder&example=true");
                 else if (view.Target is null || !await view.Target.ApplyAsync(action))
                     message = "That action is unavailable in the current view.";
             }
@@ -273,6 +275,8 @@
             "fleet-generation" => AssistantPage.FleetGeneration,
             "energy-emissions" => AssistantPage.Emissions,
             "sources" => AssistantPage.Sources,
+            "radiation" => AssistantPage.Radiation,
+            "radiochemistry" => AssistantPage.Radiochemistry,
             "data-management" => AssistantPage.DataManagement,
             "evaluation" => AssistantPage.Evaluation,
             string path when path.StartsWith("projects/", StringComparison.Ordinal) => AssistantPage.Project,
@@ -302,8 +306,10 @@
             AssistantPage.FleetGeneration => "What does daily average generation mean?",
             AssistantPage.Emissions => "How do I compare emissions for 1 GWh?",
             AssistantPage.Sources => "Where do the plant and emissions data come from?",
+            AssistantPage.Radiation => "Show approved observations from California in 2025 with an R03 reading",
+            AssistantPage.Radiochemistry => "Show Cs-137 results for Austrian cow’s milk in 2023 below the reporting limit",
             AssistantPage.Project => "How do I explore this project's records?",
-            _ => "Where can I find the data management and evaluation tools?",
+            _ => "Can you show me an example Query Builder query?",
         },
     };
 

@@ -1,0 +1,54 @@
+@page "/data-management"
+@page "/evaluation"
+@page "/projects/{Id:int}"
+@inject NavigationManager Navigation
+
+@if (Features is null)
+{
+    <p role="status">Opening workspace…</p>
+}
+else if (Features.IsotopeFixturesAvailable)
+{
+    switch (Route)
+    {
+        case "evaluation":
+            <Evaluation Example="@Example" />
+            break;
+        case "projects":
+            <ProjectCard Id="@Id" />
+            break;
+        default:
+            <DataManagement />
+            break;
+    }
+}
+
+@code {
+    [CascadingParameter]
+    public SiteFeatures? Features { get; set; }
+
+    [Parameter]
+    public int Id { get; set; }
+
+    [SupplyParameterFromQuery(Name = "example")]
+    public string? Example { get; set; }
+
+    string Route => Navigation.ToBaseRelativePath(Navigation.Uri).Split('/', '?', '#')[0].ToLowerInvariant();
+
+    protected override void OnParametersSet()
+    {
+        if (Features is not { IsotopeFixturesAvailable: false })
+            return;
+
+        string? destination = Route switch
+        {
+            "evaluation" when Example == QueryBuilderExample.AdvancedSlug =>
+                "workbench?view=builder&example=true",
+            "evaluation" or "projects" => "workbench?view=projects",
+            "data-management" => "workbench",
+            _ => null,
+        };
+        if (destination is not null)
+            Navigation.NavigateTo(destination, replace: true);
+    }
+}

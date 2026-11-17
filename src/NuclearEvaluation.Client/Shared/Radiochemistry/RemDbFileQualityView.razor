@@ -1,0 +1,150 @@
+@using static RemDbPresentation
+
+<section class="rem-panel rem-file-quality" aria-labelledby="rem-file-title">
+    <header class="rem-panel-heading">
+        <div>
+            <h2 id="rem-file-title">File quality</h2>
+            <p>Inspect coverage and reported values in an original REMdb CSV file.</p>
+        </div>
+        @if (FileId.HasValue)
+        {
+            <a class="rem-link" href="radiochemistry?view=quality">All source files</a>
+        }
+    </header>
+
+    @if (_loading)
+    {
+        <p class="rem-empty" role="status">Reading source files…</p>
+    }
+    else if (_error is not null)
+    {
+        <div class="rem-empty">
+            <p role="alert">@_error</p>
+            <button type="button" class="rem-button" @onclick="LoadAsync">Retry</button>
+        </div>
+    }
+    else if (_quality is { } report)
+    {
+        <div class="rem-quality-body">
+            <header>
+                <span class="rem-cell-note">Source release · @report.SourceFile.Year</span>
+                <h3>@report.SourceFile.FileName</h3>
+                <button type="button" class="rem-button" @onclick="() => OnBrowse.InvokeAsync(report.SourceFile)">
+                    Browse measurements <RadzenIcon Icon="chevron_right" aria-hidden="true" />
+                </button>
+            </header>
+            <dl class="rem-quality-metrics">
+                <div><dt>Measurements</dt><dd>@Count(report.MeasurementCount)</dd></div>
+                <div><dt>Activity blank</dt><dd>@Count(report.MissingActivityCount)</dd></div>
+                <div><dt>Less-than qualified</dt><dd>@Count(report.LessThanCount)</dd></div>
+                <div><dt>Qualifier blank</dt><dd>@Count(report.MissingQualifierCount)</dd></div>
+            </dl>
+            @if (report.SourceFile.Year <= 2011)
+            {
+                <p class="rem-cell-note">Releases from 1984 through 2011 omit the qualifier column.</p>
+            }
+            @if (report.SourceFile.Year == 1986)
+            {
+                <p class="rem-cell-note">This archive member splits some results across consecutive rows. Rejoined results cite the first row.</p>
+            }
+            @if (report.FirstBeganOn.HasValue || report.LastEndedOn.HasValue)
+            {
+                <p class="rem-cell-note">Sampling dates span @Date(report.FirstBeganOn) to @Date(report.LastEndedOn).</p>
+            }
+            <div class="rem-quality-breakdown">
+                @foreach ((string label, IReadOnlyList<RemDbCoverageValue> values) in Breakdown(report))
+                {
+                    <section>
+                        <h3>@label</h3>
+                        @if (values.Count == 0)
+                        {
+                            <p class="rem-cell-note">No values reported.</p>
+                        }
+                        else
+                        {
+                            <ul>
+                                @foreach (RemDbCoverageValue coverage in values)
+                                {
+                                    <li>
+                                        <span class="rem-coverage-value">@coverage.Value</span>
+                                        <meter min="0" max="@Math.Max(1L, report.MeasurementCount)" value="@coverage.Count"
+                                               aria-label="@($"Records with {coverage.Value}")"></meter>
+                                        <strong>@Count(coverage.Count)</strong>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </section>
+                }
+            </div>
+            <section class="rem-provenance">
+                <h3>Source provenance</h3>
+                <p>Open the JRC archive and extract <strong>@report.SourceFile.FileName</strong> to check a source record.</p>
+                @if (ArchiveUrl(report.SourceFile.ArchiveUrl) is { } archive)
+                {
+                    <a class="rem-link" href="@archive" target="_blank" rel="noopener">
+                        Download original JRC ZIP <RadzenIcon Icon="north_east" aria-hidden="true" />
+                    </a>
+                }
+                <a class="rem-link" href="sources#remdb">Dataset documentation and attribution</a>
+                @if (!string.IsNullOrWhiteSpace(report.SourceFile.ArchiveSha256))
+                {
+                    <details>
+                        <summary>Archive SHA-256</summary>
+                        <code>@report.SourceFile.ArchiveSha256</code>
+                    </details>
+                }
+            </section>
+        </div>
+    }
+    else if (_page is { Items.Count: > 0 } page)
+    {
+        <p class="rem-grid-count" role="status"><strong>@Count(page.TotalCount)</strong> source files</p>
+        <div class="rem-table-scroll" tabindex="0" aria-label="Source files">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Source CSV</th>
+                        <th scope="col">Release year</th>
+                        <th scope="col" class="rem-numeric">Records</th>
+                        <th scope="col" class="rem-numeric">Archive</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (RemDbSourceFile file in page.Items)
+                    {
+                        <tr>
+                            <td><a class="rem-link" href="@FileUrl(file.Id)">@file.FileName</a></td>
+                            <td>@file.Year</td>
+                            <td class="rem-numeric">@Count(file.RowCount)</td>
+                            <td class="rem-numeric">
+                                @if (ArchiveUrl(file.ArchiveUrl) is { } archive)
+                                {
+                                    <a class="rem-link" href="@archive" target="_blank" rel="noopener"
+                                       aria-label="@($"Download JRC archive for {file.FileName}")">
+                                        ZIP <RadzenIcon Icon="north_east" aria-hidden="true" />
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (page.TotalCount > PageSize)
+        {
+            <nav class="rem-pager" aria-label="Source file pages">
+                <span>@Count((long)_skip + 1)–@Count((long)_skip + page.Items.Count) of @Count(page.TotalCount)</span>
+                <div>
+                    <button type="button" class="rem-button" disabled="@(_skip == 0)" @onclick="() => TurnPageAsync(-1)">Previous</button>
+                    <button type="button" class="rem-button" disabled="@((long)_skip + PageSize >= page.TotalCount)"
+                            @onclick="() => TurnPageAsync(1)">Next</button>
+                </div>
+            </nav>
+        }
+    }
+    else
+    {
+        <p class="rem-empty">No source files are available.</p>
+    }
+</section>

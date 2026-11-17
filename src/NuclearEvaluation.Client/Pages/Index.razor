@@ -1,143 +1,128 @@
 @page "/"
 @implements IDisposable
-@using NuclearEvaluation.Client.Shared.Fleet
 @inject HttpClient Http
 @inject ILogger<Index> Logger
 
-<PageTitle>Nuclear Evaluation</PageTitle>
+<PageTitle>Nuclear Evaluation | Radiation data workbench</PageTitle>
 
-<section class="home-hero" aria-labelledby="home-title">
-    <img class="home-hero-image" src="images/fleet-river-hero-1600.webp"
-         srcset="images/fleet-river-hero-800.webp 800w, images/fleet-river-hero-1600.webp 1600w"
-         sizes="(max-width: 900px) 96vw, 75vw" width="1600" height="800" alt="" fetchpriority="high" />
-    <div class="home-hero-copy">
-        <h1 id="home-title">Nuclear Evaluation</h1>
-        <p>Explore U.S. nuclear power plants and their electricity output, compare energy sources, or inspect sample data in the evaluation workspace.</p>
-        <div class="home-actions">
-            <a class="home-primary" href="fleet">Explore the fleet <span aria-hidden="true">→</span></a>
-            <a class="home-secondary" href="#evaluation-workspace" @onclick="FocusWorkspace">Find a workspace</a>
-        </div>
-    </div>
-    <span class="home-illustration">Illustration</span>
-</section>
-
-@if (_fleet is { Plants.Length: > 0 } fleet)
-{
-    <section class="home-snapshot" aria-labelledby="home-snapshot-title">
-        <div class="home-section-heading">
-            <div>
-                <h2 id="home-snapshot-title">U.S. nuclear fleet at year-end @fleet.Year</h2>
-                <p>Plant inventory and reported generation from the EIA snapshot.</p>
+<div class="radiation-home">
+    <section class="home-hero" aria-labelledby="home-title">
+        <div class="home-hero-copy">
+            <div class="home-source">
+                <RadzenIcon Icon="sensors" aria-hidden="true" />
+                EPA RadNet archive
             </div>
-            <a href="sources">Sources &amp; Methods <span aria-hidden="true">→</span></a>
+            <h1 id="home-title">Radiation data workbench</h1>
+            <p>Build and review Series from published EPA measurements. Add Series to a project and follow its coverage from the chart down to the original observations.</p>
+            <div class="home-actions">
+                <a class="home-primary" href="workbench">Open Series <RadzenIcon Icon="arrow_forward" aria-hidden="true" /></a>
+                <a class="home-secondary" href="workbench?view=projects">Explore Projects</a>
+            </div>
         </div>
-        <dl class="home-metrics">
-            <div><dt>Power plants</dt><dd>@fleet.Plants.Length.ToString("N0")</dd></div>
-            <div><dt>Reactor units</dt><dd>@fleet.UnitCount.ToString("N0")</dd></div>
-            <div><dt>Net summer capacity</dt><dd>@FormatMetric(fleet.NetSummerCapacityMw / 1_000, "GW")</dd></div>
-            <div><dt>Annual net generation</dt><dd>@FormatMetric(fleet.AnnualNetGenerationMwh / 1_000_000, "TWh")</dd></div>
-        </dl>
+        <figure class="home-station">
+            <img src="images/radnet-montgomery-epa-oig.jpg" width="410" height="547"
+                 alt="Stationary RadNet monitoring cabinet and sensor mast" fetchpriority="high" />
+            <figcaption>
+                <span>RadNet monitor</span>
+                Montgomery, Alabama · EPA OIG
+            </figcaption>
+        </figure>
     </section>
-}
 
-<section class="home-section" aria-labelledby="home-data-title">
-    <div class="home-section-heading">
-        <h2 id="home-data-title">Explore the data</h2>
-    </div>
-    <div class="home-entries">
-        <a class="home-entry" href="fleet">
-            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="map" /></span>
-            <div>
-                <h3>Fleet Explorer</h3>
-                <p>Find plants on the map, browse state rankings, and compare two plants’ monthly generation.</p>
-            </div>
-            <span class="home-entry-arrow" aria-hidden="true">→</span>
-        </a>
-        <a class="home-entry" href="fleet-generation">
-            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="calendar_month" /></span>
-            <div>
-                <h3>Generation Calendar</h3>
-                <p>Explore seasonal differences in reported generation by state, month, and plant.</p>
-            </div>
-            <span class="home-entry-arrow" aria-hidden="true">→</span>
-        </a>
-        <a class="home-entry" href="energy-emissions">
-            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="bar_chart" /></span>
-            <div>
-                <h3>Energy &amp; Emissions</h3>
-                <p>Compare lifecycle emissions estimates for six electricity sources.</p>
-            </div>
-            <span class="home-entry-arrow" aria-hidden="true">→</span>
-        </a>
-    </div>
-</section>
+    <section class="home-archive" aria-label="Archive coverage" aria-busy="@(_summaryLoaded ? "false" : "true")">
+        @if (_summary is { Available: true } summary)
+        {
+            <dl class="home-metrics">
+                <div><dt>Observations</dt><dd>@summary.ObservationCount.ToString("N0")</dd></div>
+                <div><dt>Monitoring stations</dt><dd>@summary.StationCount.ToString("N0")</dd></div>
+                <div><dt>Annual source files</dt><dd>@summary.SourceFileCount.ToString("N0")</dd></div>
+                <div><dt>Coverage</dt><dd>@FormatCoverage(summary.Coverage)</dd></div>
+            </dl>
+        }
+        else
+        {
+            <p class="home-archive-status" role="status">
+                @(_summaryLoaded ? "Archive snapshot unavailable on this host." : "Loading archive coverage…")
+            </p>
+        }
+    </section>
 
-<section class="home-section" id="evaluation-workspace" aria-labelledby="home-workspace-title"
-         tabindex="-1" @ref="_workspace">
-    <div class="home-section-heading">
-        <div>
-            <h2 id="home-workspace-title">Evaluation workspace</h2>
-            <p>The shared sandbox uses generated records. Changes reset periodically and uploads are temporary.</p>
+    <section class="home-tools" aria-labelledby="home-tools-title">
+        <h2 id="home-tools-title">Analyze the archive</h2>
+        <div class="home-tool-grid">
+            <a class="home-tool" href="workbench?view=builder">
+                <div class="home-tool-icon"><RadzenIcon Icon="tune" aria-hidden="true" /></div>
+                <div>
+                    <h3>Query Builder</h3>
+                    <p>Filter Projects, Series, files, observations, and gamma channels in one query. Run the California coverage preset to see how the levels work together.</p>
+                </div>
+                <RadzenIcon Icon="arrow_forward" class="home-tool-arrow" aria-hidden="true" />
+            </a>
+            <a class="home-tool" href="radiation?view=quality">
+                <div class="home-tool-icon"><RadzenIcon Icon="fact_check" aria-hidden="true" /></div>
+                <div>
+                    <h3>File quality</h3>
+                    <p>Inspect a station file’s date range, reporting gaps, and channel coverage. Follow its link to the original archive.</p>
+                </div>
+                <RadzenIcon Icon="arrow_forward" class="home-tool-arrow" aria-hidden="true" />
+            </a>
         </div>
-    </div>
-    <div class="home-entries">
-        <a class="home-entry" href="data-management">
-            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="dataset" /></span>
-            <div>
-                <h3>Data Management</h3>
-                <p>Browse series, filter their records, and inspect related samples.</p>
+    </section>
+
+    <section class="home-context" aria-label="Related workspaces">
+        <div>
+            <h2>Radiochemistry</h2>
+            <p>Trace radionuclide measurements in air, water, food, and other media to their sampling locations and published files in the European Commission’s REMdb archive.</p>
+            <div class="home-context-links">
+                <a href="radiochemistry">Browse measurements</a>
+                <a href="radiochemistry?view=builder">Build a query</a>
+                <a href="radiochemistry?view=quality">Inspect source files</a>
             </div>
-            <span class="home-entry-arrow" aria-hidden="true">→</span>
-        </a>
-        <a class="home-entry" href="data-management?tab=stem-preview&amp;view=quality">
-            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="fact_check" /></span>
-            <div>
-                <h3>STEM Quality</h3>
-                <p>Find missing measurements and repeated identifiers in staged spreadsheet rows.</p>
+        </div>
+        <div>
+            <h2>Nuclear power</h2>
+            <p>Explore reported plant capacity and generation, then compare lifecycle emissions.</p>
+            <div class="home-context-links">
+                <a href="fleet">Fleet Explorer</a>
+                <a href="fleet-generation">Generation Calendar</a>
+                <a href="energy-emissions">Energy &amp; Emissions</a>
             </div>
-            <span class="home-entry-arrow" aria-hidden="true">→</span>
-        </a>
-        <a class="home-entry" href="evaluation">
-            <span class="home-entry-icon" aria-hidden="true"><RadzenIcon Icon="query_stats" /></span>
-            <div>
-                <h3>Evaluation</h3>
-                <p>Explore projects and build queries across series, samples, and measurements.</p>
-            </div>
-            <span class="home-entry-arrow" aria-hidden="true">→</span>
-        </a>
-    </div>
-</section>
+        </div>
+    </section>
+</div>
 
 @code {
     readonly CancellationTokenSource _lifetime = new();
-    FleetSnapshot? _fleet;
-    ElementReference _workspace;
+    RadNetSummary? _summary;
+    bool _summaryLoaded;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _fleet = await Http.GetFromJsonAsync<FleetSnapshot>(FleetSnapshot.AssetPath, _lifetime.Token);
+            _summary = await Http.GetFromJsonAsync<RadNetSummary>("api/radnet/summary", _lifetime.Token);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
         }
         catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
         {
-            // The public dataset cards still link to their pages if the summary cannot load.
+            Logger.LogDebug(exception, "Unable to load the RadNet archive summary.");
+        }
+        finally
+        {
+            _summaryLoaded = true;
         }
     }
 
-    static string FormatMetric(decimal? value, string unit) =>
-        value is decimal reported ? $"{reported:N1} {unit}" : "Unavailable";
-
-    async Task FocusWorkspace()
+    static string FormatCoverage(IReadOnlyList<RadNetYearCoverage> coverage)
     {
-        try
-        {
-            await _workspace.FocusAsync(preventScroll: true);
-        }
-        catch (JSException exception)
-        {
-            Logger.LogDebug(exception, "Unable to focus the home workspace section.");
-        }
+        if (coverage.Count == 0)
+            return "—";
+
+        int first = coverage.Min(item => item.Year);
+        int last = coverage.Max(item => item.Year);
+        return first == last ? first.ToString() : $"{first}–{last}";
     }
 
     public void Dispose()

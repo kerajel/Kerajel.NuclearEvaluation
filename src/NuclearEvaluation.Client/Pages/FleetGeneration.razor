@@ -9,20 +9,16 @@
         <p>Compare reported monthly net generation across states for U.S. nuclear units operating at year-end @(_year == 0 ? 2024 : _year).</p>
     </header>
 
-    @if (_loading)
-    {
-        <p role="status">Loading generation data…</p>
-    }
-    else if (_states.Length == 0)
+    @if (!_loading && _states.Length == 0)
     {
         <p role="alert">The generation snapshot could not be loaded.</p>
         <button type="button" class="generation-control" @onclick="LoadSnapshotAsync">Retry</button>
     }
     else
     {
-        StateMonths selected = _states[_stateIndex];
+        StateMonths? selected = _states.ElementAtOrDefault(_stateIndex);
         string selectedMonth = MonthName(_monthIndex);
-        decimal? selectedTotal = selected.GenerationMwh[_monthIndex];
+        decimal? selectedTotal = selected?.GenerationMwh[_monthIndex];
         string metricLabel = _averagePerDay ? "Average daily net generation" : "Monthly net generation";
 
         <section class="generation-panel" aria-labelledby="generation-chart-title">
@@ -33,15 +29,15 @@
                 </div>
                 <div class="generation-mode" role="group" aria-label="Generation measure">
                     <button type="button" aria-pressed="@(!_averagePerDay ? "true" : "false")"
-                            @onclick="() => SelectDailyAverage(false)">Monthly total</button>
+                            disabled="@_loading" @onclick="() => SelectDailyAverage(false)">Monthly total</button>
                     <button type="button" aria-pressed="@(_averagePerDay ? "true" : "false")"
-                            @onclick="() => SelectDailyAverage(true)">Daily average</button>
+                            disabled="@_loading" @onclick="() => SelectDailyAverage(true)">Daily average</button>
                 </div>
             </div>
 
             <div class="generation-selectors">
                 <label>State
-                    <select class="generation-control" @bind:get="_stateIndex" @bind:set="SelectState">
+                    <select class="generation-control" disabled="@_loading" @bind:get="_stateIndex" @bind:set="SelectState">
                         @for (int stateIndex = 0; stateIndex < _states.Length; stateIndex++)
                         {
                             <option value="@stateIndex">@_states[stateIndex].Name</option>
@@ -49,20 +45,34 @@
                     </select>
                 </label>
                 <label>Month
-                    <select class="generation-control" @bind:get="_monthIndex" @bind:set="SelectMonth">
+                    <select class="generation-control" disabled="@_loading" @bind:get="_monthIndex" @bind:set="SelectMonth">
                         @for (int monthIndex = 0; monthIndex < MonthCount; monthIndex++)
                         {
                             <option value="@monthIndex">@MonthName(monthIndex)</option>
                         }
                     </select>
                 </label>
-                <output class="generation-selection" aria-live="polite">
-                    <span>@selected.Name · @selectedMonth</span>
-                    <strong>@(selectedTotal is null ? "No state total" : $"{FormatExact(DisplayedGeneration(selectedTotal, _monthIndex))} {Units}")</strong>
+                <output class="generation-selection" aria-live="polite" aria-busy="@(_loading ? "true" : "false")">
+                    @if (selected is not null)
+                    {
+                        <span>@selected.Name · @selectedMonth</span>
+                        <strong>@(selectedTotal is null ? "No state total" : $"{FormatExact(DisplayedGeneration(selectedTotal, _monthIndex))} {Units}")</strong>
+                    }
+                    else
+                    {
+                        <span aria-hidden="true"></span><strong aria-hidden="true"></strong>
+                    }
                 </output>
             </div>
 
-            <div class="generation-viewport" role="region" aria-label="Monthly generation heatmap" @ref="_viewport">
+            <div class="generation-viewport @(_loading ? "generation-viewport-loading" : null)" role="region"
+                 aria-label="Monthly generation heatmap" @ref="_viewport">
+                @if (_loading)
+                {
+                    <GridLoadingPlaceholder Label="Loading generation data…" Rows="16" />
+                }
+                else
+                {
                 <table class="generation-heatmap">
                     <caption class="generation-hidden">@metricLabel by state and month in @_year, in @Units. Use arrow keys within the table to change selection.</caption>
                     <colgroup><col class="generation-state-column" /><col span="12" /></colgroup>
@@ -99,8 +109,11 @@
                         }
                     </tbody>
                 </table>
+                }
             </div>
 
+            @if (!_loading)
+            {
             <div class="generation-legend" aria-label="Heatmap key">
                 @if (ScaleMaximum > 0)
                 {
@@ -119,8 +132,11 @@
                 <a class="generation-download" href="@CsvDownloadUrl" download="@CsvFileName"
                    aria-label="Download @metricLabel as CSV">Download CSV</a>
             </div>
+            }
         </section>
 
+        @if (selected is not null)
+        {
         <section class="generation-panel generation-detail" aria-labelledby="generation-detail-title">
             <div class="generation-toolbar">
                 <div>
@@ -160,5 +176,12 @@
             <span aria-hidden="true"> · </span>
             <a href="https://www.eia.gov/electricity/data/eia860/" target="_blank" rel="noopener">EIA-860 operating inventory</a>
         </footer>
+        }
+        else
+        {
+            <section class="generation-panel generation-detail" aria-label="Generation by plant">
+                <GridLoadingPlaceholder Label="Loading generation by plant…" Rows="4" />
+            </section>
+        }
     }
 </div>

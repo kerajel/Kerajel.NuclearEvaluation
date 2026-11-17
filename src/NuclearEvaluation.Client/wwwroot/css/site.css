@@ -383,7 +383,8 @@ body {
     min-height: 0;
 }
 
-.ne-grid-refresh[aria-busy="true"] > table {
+.ne-grid-refresh[aria-busy="true"] > table,
+.ne-data-refresh[aria-busy="true"] {
     opacity: 0.55;
     filter: grayscale(0.75);
 }

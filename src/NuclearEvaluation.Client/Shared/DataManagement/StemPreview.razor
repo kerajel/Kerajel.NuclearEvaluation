@@ -92,9 +92,9 @@
                 }
             </select>
         </div>
-        @if (profileCancellation is not null)
+        @if (profileCancellation is not null && qualityProfile is null)
         {
-            <p class="stem-workspace__status" role="status">Loading quality profile…</p>
+            <GridLoadingPlaceholder Label="Loading quality profile…" />
         }
         else if (qualityError is not null)
         {
@@ -103,10 +103,18 @@
                 <RadzenButton Text="Retry profile" Click="@(() => SelectQualityFile(qualityFileId))" />
             </div>
         }
-        else if (qualityProfile is not null && qualityFileId is Guid fileId)
+        else if (qualityProfile is { } displayed)
         {
-            <StemQualityWorkbench @key="fileId" @ref="qualityWorkbench" StemSessionId="@sessionId"
-                                  FileId="@fileId" Profile="@qualityProfile" @bind-SelectedCheck="qualityCheck" />
+            bool awaitingProfile = profileCancellation is not null;
+            @if (awaitingProfile)
+            {
+                <p class="stem-workspace__status" role="status">Loading quality profile…</p>
+            }
+            <div class="ne-data-refresh" aria-busy="@(awaitingProfile ? "true" : "false")"
+                 inert="@(awaitingProfile ? "inert" : null)">
+                <StemQualityWorkbench @key="displayed.FileId" @ref="qualityWorkbench" StemSessionId="@sessionId"
+                                      FileId="@displayed.FileId" Profile="@displayed.Profile" @bind-SelectedCheck="qualityCheck" />
+            </div>
         }
     }
 </section>

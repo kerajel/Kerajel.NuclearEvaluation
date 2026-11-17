@@ -23,7 +23,7 @@ public class WorkbenchLoadingTests : TestBase
         Assert.Equal("true", page.Find(".wb-coverage").GetAttribute("aria-busy"));
         Assert.Equal(
             "Loading series…",
-            series.Find(".wb-loading-grid [role='status']").TextContent
+            series.Find(".ne-grid-placeholder [role='status']").TextContent
         );
         Assert.False(handler.SeriesRequested.Task.IsCompleted);
 
@@ -38,7 +38,7 @@ public class WorkbenchLoadingTests : TestBase
         await handler.SeriesRequested.Task.WaitAsync(DefaultWaitForStateTimeout);
         Assert.Equal(
             "Loading series…",
-            series.Find(".wb-loading-grid [role='status']").TextContent
+            series.Find(".ne-grid-placeholder [role='status']").TextContent
         );
         Assert.DoesNotContain("No series match", series.Markup, StringComparison.Ordinal);
 
@@ -64,7 +64,7 @@ public class WorkbenchLoadingTests : TestBase
         );
         series.WaitForAssertion(() =>
         {
-            Assert.Empty(series.FindAll(".wb-loading-grid"));
+            Assert.Empty(series.FindAll(".ne-grid-placeholder"));
             Assert.Contains(
                 "Fresno 2025",
                 series.Find("tbody").TextContent,

@@ -3,23 +3,24 @@
 <section class="wb-details" aria-label="Series source records">
     <div class="wb-level">
         <h3>Annual source files</h3>
-        @if (_loading)
-        {
-            <p role="status">Loading files…</p>
-        }
-        else if (_files is null)
+        @if (_filesError)
         {
             <p role="alert">The annual file list could not be loaded.</p>
-            <button type="button" @onclick="LoadFilesAsync">Retry</button>
+            <button type="button" @onclick="RetryFilesAsync">Retry</button>
         }
-        else if (_files.TotalCount == 0)
+        @if (_loading && _files is null)
+        {
+            <GridLoadingPlaceholder Label="Loading annual files…" Rows="4" />
+        }
+        else if (_files is { TotalCount: 0 })
         {
             <p>No source files contain observations within this date range.</p>
         }
-        else
+        else if (_files is not null)
         {
-            <div class="wb-file-scroll" tabindex="0" aria-label="Annual files">
-                <table class="wb-file-grid">
+            <div class="wb-file-scroll ne-grid-refresh" tabindex="0" aria-label="Annual files"
+                 aria-busy="@(_loading ? "true" : "false")">
+                <table class="wb-file-grid" inert="@_loading">
                     <thead>
                         <tr>
                             <th scope="col">Year</th>
@@ -50,27 +51,27 @@
             {
                 <nav class="wb-file-pager" aria-label="Annual file pages">
                     <span>@RadNetPresentation.Count(_skip + 1)–@RadNetPresentation.Count(_skip + _files.Items.Count) of @RadNetPresentation.Count(_files.TotalCount)</span>
-                    <button type="button" @onclick="() => PageFilesAsync(-1)" disabled="@(_skip == 0)">Previous</button>
-                    <button type="button" @onclick="() => PageFilesAsync(1)" disabled="@(_skip + PageSize >= _files.TotalCount)">Next</button>
+                    <button type="button" @onclick="() => PageFilesAsync(-1)" disabled="@(_loading || _skip == 0)">Previous</button>
+                    <button type="button" @onclick="() => PageFilesAsync(1)" disabled="@(_loading || _skip + PageSize >= _files.TotalCount)">Next</button>
                 </nav>
             }
         }
     </div>
     @if (_observations is not null)
     {
-        <div class="wb-level" @key="_file?.Id">
+        <div class="wb-level">
             <header><h3>Observations</h3><span>@_file?.FileName</span></header>
-            <RadNetResults Query="_observations" OnOpen="OpenObservation" OnQuality="OpenQuality" />
+            <RadNetResults Query="_observations" ScopeLoading="_loading" OnOpen="OpenObservation" OnQuality="OpenQuality" />
         </div>
     }
     @if (_channels is not null)
     {
-        <div class="wb-level" @key="_observation?.ObservationId">
+        <div class="wb-level">
             <header>
                 <h3>Gamma channel readings</h3>
                 <span>@RadNetPresentation.Timestamp(_observation?.ObservedAt) UTC</span>
             </header>
-            <RadNetResults Query="_channels" />
+            <RadNetResults Query="_channels" ScopeLoading="_loading" />
         </div>
     }
 </section>

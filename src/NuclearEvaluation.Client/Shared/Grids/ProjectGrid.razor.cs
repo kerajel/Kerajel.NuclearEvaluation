@@ -16,6 +16,7 @@ public partial class ProjectGrid : BaseGridGeneric<ProjectView>
 
     public override async Task LoadData(LoadDataArgs loadDataArgs)
     {
+        isLoading = true;
         DataQuery query = loadDataArgs.ToDataQuery();
         query.AssistantQuery = AssistantQuery;
 

@@ -9,28 +9,26 @@
         <p>Find U.S. nuclear power plants on the map and compare their monthly electricity generation.</p>
     </header>
 
-    @if (_loading)
-    {
-        <p role="status">Loading the fleet snapshot…</p>
-    }
-    else if (_snapshot is null || _selected is not FleetPlant selected)
+    @if (!_loading && (_snapshot is null || _selected is null))
     {
         <p role="alert">The fleet snapshot could not be loaded.</p>
         <button type="button" class="fleet-control" @onclick="LoadSnapshot">Retry</button>
     }
     else
     {
-        FleetPlant[] visible = FilterPlants();
+        FleetPlant? selected = _selected;
+        FleetPlant[] visible = _snapshot is null ? [] : FilterPlants();
         FleetPlant? comparison = Comparison;
         FleetState[] rankedStates = RankStates();
         string stateValueUnits = _stateMetric == StateMetric.Capacity ? "GW" : "TWh";
         decimal? stateMaximum = rankedStates.Length > 0 ? StateValue(rankedStates[0]) : null;
 
-        <dl class="fleet-snapshot" aria-label="Fleet snapshot at year-end @_snapshot.Year">
-            <div><dt>Operating plants</dt><dd>@_snapshot.Plants.Length</dd></div>
-            <div><dt>Reactor units</dt><dd>@_snapshot.UnitCount</dd></div>
-            <div><dt>Net summer capacity</dt><dd>@FormatMetric(_snapshot.NetSummerCapacityMw / 1_000, "GW")</dd></div>
-            <div><dt>Annual net generation</dt><dd>@FormatMetric(_snapshot.AnnualNetGenerationMwh / 1_000_000, "TWh")</dd></div>
+        <dl class="fleet-snapshot" aria-label="@(_snapshot is { } fleet ? $"Fleet snapshot at year-end {fleet.Year}" : "Fleet snapshot")"
+            aria-busy="@(_loading ? "true" : "false")">
+            <div><dt>Operating plants</dt><dd>@_snapshot?.Plants.Length</dd></div>
+            <div><dt>Reactor units</dt><dd>@_snapshot?.UnitCount</dd></div>
+            <div><dt>Net summer capacity</dt><dd>@(_snapshot is { } capacity ? FormatMetric(capacity.NetSummerCapacityMw / 1_000, "GW") : null)</dd></div>
+            <div><dt>Annual net generation</dt><dd>@(_snapshot is { } generation ? FormatMetric(generation.AnnualNetGenerationMwh / 1_000_000, "TWh") : null)</dd></div>
         </dl>
 
         <div class="fleet-overview">
@@ -38,19 +36,19 @@
                 <header class="fleet-section-header">
                     <div>
                         <h2 id="fleet-map-title">U.S. nuclear power plants</h2>
-                        <p>Operating at year-end @_snapshot.Year</p>
+                        <p>@(_snapshot is { } operating ? $"Operating at year-end {operating.Year}" : "Operating fleet")</p>
                     </div>
                     <div class="fleet-map-modes" role="group" aria-label="Map view">
                         <button type="button" aria-pressed="@(!_showCapacity ? "true" : "false")"
-                                @onclick="() => _showCapacity = false">Locations</button>
+                                disabled="@_loading" @onclick="() => _showCapacity = false">Locations</button>
                         <button type="button" aria-pressed="@(_showCapacity ? "true" : "false")"
-                                @onclick="() => _showCapacity = true">3D capacity</button>
+                                disabled="@_loading" @onclick="() => _showCapacity = true">3D capacity</button>
                     </div>
                 </header>
 
                 <label class="fleet-state-filter">
                     State
-                    <select class="fleet-control" @bind="_stateFilter">
+                    <select class="fleet-control" disabled="@_loading" @bind="_stateFilter">
                         <option value="">All states</option>
                         @foreach (FleetState state in _states)
                         {
@@ -62,17 +60,17 @@
                 <div class="fleet-plant-picks" role="group" aria-label="Plant to select on the map">
                     <button type="button" class="fleet-pick"
                             aria-pressed="@(!_choosingComparison ? "true" : "false")"
-                            @onclick="() => _choosingComparison = false">
+                            disabled="@_loading" @onclick="() => _choosingComparison = false">
                         <span class="fleet-pick-dot fleet-series-primary" aria-hidden="true"></span>
-                        <span>First plant <strong>@selected.Name</strong></span>
+                        <span>First plant <strong>@(selected?.Name ?? "—")</strong></span>
                     </button>
                     <button type="button" class="fleet-pick"
                             aria-pressed="@(_choosingComparison ? "true" : "false")"
-                            @onclick="() => _choosingComparison = true">
+                            disabled="@_loading" @onclick="() => _choosingComparison = true">
                         <span class="fleet-pick-dot fleet-series-comparison" aria-hidden="true"></span>
                         <span>Second plant <strong>@(comparison?.Name ?? "Choose a plant")</strong></span>
                     </button>
-                    @if (comparison is not null)
+                    @if (selected is not null && comparison is not null)
                     {
                         <button type="button" class="fleet-plant-link" @onclick="ClearComparison">Clear comparison</button>
                         <button type="button" class="fleet-plant-link fleet-copy-link"
@@ -80,11 +78,11 @@
                                 @onclick="() => CopyComparisonLink(selected.Id, comparison.Id)">Copy link</button>
                     }
                 </div>
-                @if (comparison is not null && _shareFeedback == ShareFeedback.Copied)
+                @if (selected is not null && comparison is not null && _shareFeedback == ShareFeedback.Copied)
                 {
                     <p class="fleet-share-status" role="status">Comparison link copied.</p>
                 }
-                else if (comparison is not null && _shareFeedback == ShareFeedback.ManualLink)
+                else if (selected is not null && comparison is not null && _shareFeedback == ShareFeedback.ManualLink)
                 {
                     <div class="fleet-share-manual">
                         <label for="fleet-share-link">Comparison link</label>
@@ -95,11 +93,15 @@
                     </div>
                 }
                 <p class="fleet-map-instructions" aria-live="polite">
-                    @if (visible.Length == 0)
+                    @if (_loading)
+                    {
+                        <span>Plant selection</span>
+                    }
+                    else if (visible.Length == 0)
                     {
                         <span>No plants match the current filters.</span>
                     }
-                    else if (_choosingComparison && visible.All(plant => plant.Id == selected.Id))
+                    else if (_choosingComparison && visible.All(plant => plant.Id == selected?.Id))
                     {
                         <span>Change the filters to find another plant to compare.</span>
                     }
@@ -109,7 +111,7 @@
                     }
                 </p>
 
-                <FleetMap Plants="visible" SelectedId="selected.Id" ComparedId="comparison?.Id"
+                <FleetMap Plants="visible" SelectedId="selected?.Id" ComparedId="comparison?.Id" LoadingPlants="_loading"
                           PlantSelected="SelectPlant" ShowCapacity="_showCapacity" CapacityScaleMw="_capacityScaleMw"
                           HighlightedStateName="@(_stateFilter.Length == 0 ? null : FleetState.DisplayName(_stateFilter))" />
 
@@ -137,6 +139,14 @@
                 </div>
             </section>
 
+            @if (selected is null)
+            {
+                <section class="fleet-panel fleet-plant" aria-label="Plant details">
+                    <GridLoadingPlaceholder Label="Loading plant details…" Rows="4" />
+                </section>
+            }
+            else
+            {
             <section class="fleet-panel fleet-plant" aria-labelledby="fleet-selected-name">
                 <header aria-live="polite">
                     <p class="fleet-plant-meta">@selected.State <span aria-hidden="true">·</span> EIA plant @selected.Id</p>
@@ -180,13 +190,16 @@
                 }
 
             </section>
+            }
         </div>
 
+        @if (_snapshot is { } snapshot && selected is not null)
+        {
         <section class="fleet-panel fleet-generation" aria-labelledby="fleet-generation-title">
             <header class="fleet-section-header">
                 <div>
                     <h2 id="fleet-generation-title">Monthly net generation</h2>
-                    <p>@_snapshot.Year · Gigawatt-hours (GWh)</p>
+                    <p>@snapshot.Year · Gigawatt-hours (GWh)</p>
                 </div>
                 <ul class="fleet-series" aria-label="Chart series">
                     <li><span class="fleet-series-primary" aria-hidden="true"></span>@selected.Name</li>
@@ -213,8 +226,8 @@
                             <RadzenColumnSeries Data="_comparisonSeries" CategoryProperty="Month" ValueProperty="GenerationGwh"
                                                 Fill="var(--fleet-secondary)" Title="@comparison.Name" />
                         }
-                        <RadzenCategoryAxis Min="@(new DateTime(_snapshot.Year, 1, 1))"
-                                            Max="@(new DateTime(_snapshot.Year, 12, 1))" Formatter="FormatChartMonth" />
+                        <RadzenCategoryAxis Min="@(new DateTime(snapshot.Year, 1, 1))"
+                                            Max="@(new DateTime(snapshot.Year, 12, 1))" Formatter="FormatChartMonth" />
                         <RadzenValueAxis FormatString="{0:N0}"><RadzenGridLines Visible="true" /></RadzenValueAxis>
                         <RadzenLegend Visible="false" />
                         <RadzenChartRangeNavigator Height="34" />
@@ -262,7 +275,7 @@
                 <header class="fleet-section-header">
                     <div>
                         <h2 id="fleet-rank-title">State rankings</h2>
-                        <p>@_snapshot.Year · @rankedStates.Length states with operating plants</p>
+                        <p>@snapshot.Year · @rankedStates.Length states with operating plants</p>
                     </div>
                     <div class="fleet-map-modes" role="group" aria-label="Rank states by">
                         <button type="button" aria-pressed="@(_stateMetric == StateMetric.Capacity ? "true" : "false")"
@@ -306,7 +319,7 @@
                     <div>
                         <h2 id="fleet-directory-title">Plant list</h2>
                         <p aria-live="polite">
-                            @visible.Length of @_snapshot.Plants.Length plants
+                            @visible.Length of @snapshot.Plants.Length plants
                             @if (_stateFilter.Length > 0)
                             {
                                 <span> · @FleetState.DisplayName(_stateFilter)</span>
@@ -355,8 +368,23 @@
 
         <footer class="fleet-sources">
             <a href="https://www.eia.gov/electricity/data/eia860/" target="_blank" rel="noopener">EIA-860 plant inventory and capacity</a>
-            and <a href="https://www.eia.gov/nuclear/generation/index.php" target="_blank" rel="noopener">EIA @_snapshot.Year nuclear generation from EIA-923</a>.
+            and <a href="https://www.eia.gov/nuclear/generation/index.php" target="_blank" rel="noopener">EIA @snapshot.Year nuclear generation from EIA-923</a>.
             Plant generation sums the units that reported each month. Capacity sums the net summer values for all listed units.
         </footer>
+        }
+        else
+        {
+            <section class="fleet-panel fleet-generation" aria-label="Monthly net generation">
+                <GridLoadingPlaceholder Label="Loading monthly generation…" />
+            </section>
+            <div class="fleet-browser">
+                <section class="fleet-panel fleet-rank" aria-label="State rankings">
+                    <GridLoadingPlaceholder Label="Loading state rankings…" />
+                </section>
+                <section class="fleet-panel fleet-directory" aria-label="Plant list">
+                    <GridLoadingPlaceholder Label="Loading the plant list…" />
+                </section>
+            </div>
+        }
     }
 </section>

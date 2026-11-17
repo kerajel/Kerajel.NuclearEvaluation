@@ -23,7 +23,7 @@
 
     @if (Loading && _page is null)
     {
-        <WorkbenchLoadingGrid Label="Running query…" />
+        <GridLoadingPlaceholder Label="Running query…" />
     }
 
     @if (_filterEditor is { } editor && _page is { } filterPage)

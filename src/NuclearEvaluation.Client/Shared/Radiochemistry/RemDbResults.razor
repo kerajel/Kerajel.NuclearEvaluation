@@ -4,7 +4,14 @@
     @if (_page is { } displayed)
     {
         <div class="rem-grid-summary">
-            <p class="rem-grid-count" role="status"><strong>@Count(displayed.Result.TotalCount)</strong> matching @EntityName(displayed.Request.Query.Entity).ToLowerInvariant()</p>
+            @if (Loading && !ReferenceEquals(displayed.Scope, _lastQuery))
+            {
+                <p class="rem-grid-count" role="status">Loading @EntityName(_requested.Query.Entity).ToLowerInvariant()…</p>
+            }
+            else
+            {
+                <p class="rem-grid-count" role="status"><strong>@Count(displayed.Result.TotalCount)</strong> matching @EntityName(displayed.Request.Query.Entity).ToLowerInvariant()</p>
+            }
             @if (displayed.Request.ColumnFilters.Count > 0)
             {
                 <button type="button" class="rem-link" disabled="@Loading" @onclick="() => ClearFiltersAsync()">Clear column filters</button>
@@ -13,7 +20,7 @@
     }
     else if (Loading)
     {
-        <p class="rem-grid-count" role="status">Loading @EntityName(_requested.Query.Entity).ToLowerInvariant()…</p>
+        <GridLoadingPlaceholder Label="@($"Loading {EntityName(_requested.Query.Entity).ToLowerInvariant()}…")" Rows="@Math.Min(12, Query.Top)" />
     }
 
     @if (_editor is { } editor && _page is { } filterPage)
@@ -40,8 +47,10 @@
         bool canDrillDown = OnOpen.HasDelegate && query.Entity != RemDbEntity.Measurement;
         long nextOffset = (long)query.Skip + query.Top;
         bool canPageForward = nextOffset < page.Result.TotalCount && nextOffset <= int.MaxValue;
-        <div class="rem-table-scroll" tabindex="0" aria-label="@EntityName(query.Entity)">
-            <table style="@FormattableString.Invariant($"min-width:{columns.Sum(column => column.Width)}rem")">
+        bool changingScope = !ReferenceEquals(page.Scope, _lastQuery);
+        <div class="rem-table-scroll ne-grid-refresh" tabindex="0" aria-label="@EntityName(query.Entity)"
+             aria-busy="@(Loading ? "true" : "false")">
+            <table style="@FormattableString.Invariant($"min-width:{columns.Sum(column => column.Width)}rem")" inert="@changingScope">
                 <colgroup>
                     @foreach (ResultColumn column in columns)
                     {
@@ -80,7 +89,7 @@
                 <tbody>
                     @if (page.Result.Items.Count == 0)
                     {
-                        <tr><td colspan="@columns.Length" class="rem-empty">No records match this selection.</td></tr>
+                        <tr><td colspan="@columns.Length" class="rem-empty">@(changingScope ? "Loading results…" : "No records match this selection.")</td></tr>
                     }
                     @foreach (RemDbRow row in page.Result.Items)
                     {

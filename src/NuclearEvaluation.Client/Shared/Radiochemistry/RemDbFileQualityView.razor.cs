@@ -13,6 +13,7 @@ public partial class RemDbFileQualityView : IDisposable
     RemDbFileQuality? _quality;
     string? _error;
     int _skip;
+    int _requestedSkip;
     bool _loading = true;
 
     [Parameter]
@@ -24,11 +25,14 @@ public partial class RemDbFileQualityView : IDisposable
     [Inject]
     HttpClient Http { get; set; } = null!;
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    protected override Task OnInitializedAsync() => LoadAsync(0);
 
-    async Task LoadAsync()
+    Task RetryAsync() => LoadAsync(_requestedSkip);
+
+    async Task LoadAsync(int skip)
     {
         _loading = true;
+        _requestedSkip = skip;
         _error = null;
         try
         {
@@ -42,9 +46,10 @@ public partial class RemDbFileQualityView : IDisposable
             else
             {
                 _page = await Http.GetFromJsonAsync<RemDbFilePage>(
-                    FormattableString.Invariant($"api/remdb/files?skip={_skip}&top={PageSize}"),
+                    FormattableString.Invariant($"api/remdb/files?skip={skip}&top={PageSize}"),
                     _lifetime.Token
-                );
+                ) ?? throw new JsonException("Missing source files response.");
+                _skip = skip;
             }
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
@@ -61,11 +66,8 @@ public partial class RemDbFileQualityView : IDisposable
         }
     }
 
-    Task TurnPageAsync(int direction)
-    {
-        _skip += direction * PageSize;
-        return LoadAsync();
-    }
+    Task TurnPageAsync(int direction) =>
+        _loading ? Task.CompletedTask : LoadAsync(_skip + direction * PageSize);
 
     static (string Label, IReadOnlyList<RemDbCoverageValue> Values)[] Breakdown(
         RemDbFileQuality report

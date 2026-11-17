@@ -1,4 +1,4 @@
-.wb-loading-grid {
+.ne-grid-placeholder {
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--ne-line);
@@ -6,7 +6,7 @@
   background: var(--ne-surface);
 }
 
-.wb-loading-grid p {
+.ne-grid-placeholder p {
   margin: 0;
   padding: .63rem .85rem;
   background: var(--ne-surface-raised);
@@ -14,7 +14,7 @@
   font-size: .87rem;
 }
 
-.wb-loading-row {
+.ne-grid-placeholder-row {
   display: grid;
   grid-template-columns: 2fr 1fr 1.25fr .85fr;
   align-items: center;
@@ -24,7 +24,7 @@
   border-top: 1px solid var(--ne-line);
 }
 
-.wb-loading-row > span {
+.ne-grid-placeholder-row > span {
   display: block;
   width: 72%;
   height: .55rem;
@@ -32,6 +32,6 @@
   background: var(--ne-line);
 }
 
-.wb-loading-row:nth-child(even) > span:nth-child(odd) {
+.ne-grid-placeholder-row:nth-child(even) > span:nth-child(odd) {
   width: 58%;
 }

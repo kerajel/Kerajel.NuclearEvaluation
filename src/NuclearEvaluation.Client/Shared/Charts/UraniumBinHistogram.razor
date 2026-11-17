@@ -1,30 +1,34 @@
 @implements IDisposable
 
-@if (AwaitingGridQuery)
-{
-    <p role="status">Waiting for the measurement grid…</p>
-}
-else if (_isLoading)
-{
-    <p role="status">Loading uranium distributions…</p>
-}
-else if (_hasError)
+@if (_hasError && !IsPending)
 {
     <p role="alert">The chart could not be loaded.</p>
     <RadzenButton Text="Retry chart" Click="Refresh" />
 }
 else if (_bins.Count == 0)
 {
-    <p role="status">No matching rows.</p>
+    if (IsPending)
+    {
+        <GridLoadingPlaceholder Label="@PendingLabel" />
+    }
+    else
+    {
+        <p role="status">No matching rows.</p>
+    }
 }
 else
 {
-    @if (!string.IsNullOrWhiteSpace(Caption))
+    @if (IsPending)
+    {
+        <div class="ne-chart-caption" role="status">@PendingLabel</div>
+    }
+    else if (!string.IsNullOrWhiteSpace(Caption))
     {
         <div class="ne-chart-caption">@Caption</div>
     }
 
-    <div role="group" aria-label="@Title">
+    <div class="ne-data-refresh" role="group" aria-label="@Title" aria-busy="@(IsPending ? "true" : "false")"
+         inert="@(IsPending ? "inert" : null)">
         <RadzenChart>
             <RadzenChartTooltipOptions Shared="@true" />
             @foreach (string isotope in Isotopes)

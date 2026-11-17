@@ -35,16 +35,32 @@ public partial class UraniumBinHistogram
         Task<List<IsotopeBinCounts>>
     > LoadBinsAsync { get; set; } = null!;
 
-    ILookup<string, BinCount> _bins = Enumerable
+    static readonly ILookup<string, BinCount> EmptyBins = Enumerable
         .Empty<(string Isotope, BinCount Bin)>()
         .ToLookup(value => value.Isotope, value => value.Bin);
+
+    ILookup<string, BinCount> _bins = EmptyBins;
     CancellationTokenSource? _loadCancellation;
     (string Json, int Version)? _lastQuery;
+    int? _projectScope;
     bool _isLoading = true;
     bool _hasError;
 
+    bool IsPending => AwaitingGridQuery || _isLoading;
+
+    string PendingLabel =>
+        AwaitingGridQuery ? "Waiting for the measurement grid…" : "Loading uranium distributions…";
+
     protected override async Task OnParametersSetAsync()
     {
+        DataQuery query = GetEffectiveQuery();
+        int projectScope = query.ProjectId ?? ProjectId;
+        if (_projectScope != projectScope)
+        {
+            _projectScope = projectScope;
+            _bins = EmptyBins;
+        }
+
         if (AwaitingGridQuery)
         {
             CancelPendingLoad();
@@ -52,7 +68,6 @@ public partial class UraniumBinHistogram
             return;
         }
 
-        DataQuery query = GetEffectiveQuery();
         (string Json, int Version) queryKey = (JsonSerializer.Serialize(query), QueryVersion);
         if (queryKey == _lastQuery)
             return;

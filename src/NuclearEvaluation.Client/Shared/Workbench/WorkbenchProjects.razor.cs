@@ -33,6 +33,7 @@ public partial class WorkbenchProjects : IDisposable
     bool _started;
     bool _busy;
     bool _refreshingObservations;
+    bool _searchLoading;
     bool _editing;
 
     [Inject]
@@ -211,10 +212,18 @@ public partial class WorkbenchProjects : IDisposable
         string endpoint = FormattableString.Invariant(
             $"api/workbench/series?search={Uri.EscapeDataString(search)}&sort=Name&skip={skip}&top={SeriesPageSize}"
         );
-        _matches = await Http.GetFromJsonAsync<WorkbenchSeriesPage>(endpoint, ct)
-            ?? throw new JsonException("Missing Series results.");
-        _appliedSearch = search;
-        _searchSkip = skip;
+        _searchLoading = true;
+        try
+        {
+            _matches = await Http.GetFromJsonAsync<WorkbenchSeriesPage>(endpoint, ct)
+                ?? throw new JsonException("Missing Series results.");
+            _appliedSearch = search;
+            _searchSkip = skip;
+        }
+        finally
+        {
+            _searchLoading = false;
+        }
     }
 
     Task RefreshProjectAsync() =>

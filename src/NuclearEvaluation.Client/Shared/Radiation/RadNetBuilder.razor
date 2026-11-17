@@ -133,7 +133,7 @@
         </header>
         @if (_applied is { } query)
         {
-            <RadNetResults @key="_resultRevision" Query="query" OnSort="SetSort" OnOpen="OpenRow" OnQuality="OnQuality" />
+            <RadNetResults Query="query" QueryRevision="_resultRevision" OnSort="SetSort" OnOpen="OpenRow" OnQuality="OnQuality" />
         }
         else
         {

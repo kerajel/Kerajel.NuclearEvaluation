@@ -58,7 +58,7 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
     protected string GridSettingsKey => $"{ComponentId}_{nameof(DataGridSettings)}";
 
     protected string GridMinHeightStyle =>
-        ReserveHeight
+        ReserveHeight || (isLoading && entries.Count == 0)
             ? $"--ne-grid-min-height: {GetGridMinHeightRem()}rem;"
             : "--ne-grid-min-height: 0;";
 
@@ -196,6 +196,9 @@ public abstract class BaseGridGeneric<T> : ComponentBase, IDataGridComponent
     protected RenderFragment EmptyTemplate =>
         builder =>
         {
+            if (isLoading)
+                return;
+
             const string fontSettings =
                 "font-family: 'Material Symbols Outlined', 'Arial', sans-serif;";
 

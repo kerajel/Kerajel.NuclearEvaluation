@@ -73,7 +73,6 @@ public partial class RemDbResults : IDisposable
             return Task.CompletedTask;
 
         _lastQuery = Query;
-        _page = null;
         _editor = null;
         return LoadAsync(new(Query, []));
     }
@@ -181,6 +180,7 @@ public partial class RemDbResults : IDisposable
 
     async Task LoadAsync(ResultRequest query)
     {
+        RemDbQuery? scope = _lastQuery;
         _pending?.Cancel();
         using CancellationTokenSource request = new();
         _pending = request;
@@ -213,7 +213,7 @@ public partial class RemDbResults : IDisposable
                 throw new JsonException("Missing archive query response.");
             if (ReferenceEquals(_pending, request))
             {
-                _page = new(query, result);
+                _page = new(scope, query, result);
                 committed = true;
             }
         }
@@ -227,7 +227,11 @@ public partial class RemDbResults : IDisposable
         finally
         {
             if (ReferenceEquals(_pending, request))
+            {
                 _pending = null;
+                if (!ReferenceEquals(_page?.Scope, scope))
+                    _page = null;
+            }
         }
 
         if (committed && query.NotifySort && query.Query.SortField is { } sortField)
@@ -279,7 +283,7 @@ public partial class RemDbResults : IDisposable
         bool NotifySort = false
     );
 
-    sealed record DisplayedPage(ResultRequest Request, RemDbQueryResult Result);
+    sealed record DisplayedPage(RemDbQuery? Scope, ResultRequest Request, RemDbQueryResult Result);
 
     sealed record QueryProblem(string? Title);
 }

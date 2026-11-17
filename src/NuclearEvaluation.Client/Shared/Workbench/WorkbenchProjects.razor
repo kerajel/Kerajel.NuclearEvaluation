@@ -60,7 +60,7 @@
             {
                 <section class="wb-project-card wb-project-observations" aria-labelledby="wb-project-observations-loading-heading">
                     <h3 id="wb-project-observations-loading-heading">Project observations</h3>
-                    <WorkbenchLoadingGrid Label="Loading project observations…" Rows="@ObservationQuery.Top" />
+                    <GridLoadingPlaceholder Label="Loading project observations…" Rows="@ObservationQuery.Top" />
                 </section>
             }
             else if (_error is null)
@@ -119,7 +119,8 @@
                 {
                     ChartBucket[] buckets = ChartBuckets(detail.Stats.Months);
                     long scale = Math.Max(1, buckets.Max(bucket => bucket.Count));
-                    <figure class="wb-project-chart" aria-label="@ChartTitle">
+                    <figure class="wb-project-chart ne-data-refresh" aria-label="@ChartTitle"
+                            aria-busy="@(_refreshingObservations ? "true" : "false")">
                         <div class="wb-project-chart-scroll">
                             <ul class="wb-project-chart-axis" aria-hidden="true">
                                 <li>@Count(scale)</li>
@@ -159,7 +160,8 @@
                 }
                 else
                 {
-                    <div class="wb-project-grid is-membership" role="region" aria-label="Linked Series table" tabindex="0">
+                    <div class="wb-project-grid is-membership ne-grid-refresh" role="region" aria-label="Linked Series table" tabindex="0"
+                         aria-busy="@(_refreshingObservations ? "true" : "false")">
                         <table>
                             <thead>
                                 <tr>
@@ -194,7 +196,11 @@
                         </label>
                         <button type="submit" class="wb-project-button" disabled="@_busy">Search Series</button>
                     </form>
-                    @if (_matches is { } matches)
+                    @if (_searchLoading && _matches is null)
+                    {
+                        <GridLoadingPlaceholder Label="Loading Series search results…" Rows="@SeriesPageSize" />
+                    }
+                    else if (_matches is { } matches)
                     {
                         @if (matches.Items.Count == 0)
                         {
@@ -202,7 +208,8 @@
                         }
                         else
                         {
-                            <div class="wb-project-grid" role="region" aria-label="Series search results" tabindex="0">
+                            <div class="wb-project-grid ne-grid-refresh" role="region" aria-label="Series search results" tabindex="0"
+                                 aria-busy="@(_searchLoading || _refreshingObservations ? "true" : "false")">
                                 <table>
                                     <thead>
                                         <tr>

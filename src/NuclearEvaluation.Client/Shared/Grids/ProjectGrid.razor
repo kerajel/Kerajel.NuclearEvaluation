@@ -30,10 +30,20 @@
                     ShowPagingSummary="true"
                     TItem="ProjectView"
                     FilterPopupRenderMode="PopupRenderMode.OnDemand"
-                    EmptyTemplate="@EmptyTemplate"
                     PagingSummaryFormat="Displaying page {0:N0} of {1:N0} (total {2:N0} records)"
                     Style="@GridMinHeightStyle"
                     FilterMode="FilterMode.Advanced">
+
+        <EmptyTemplate>
+            @if (AssistantQuery?.ProjectSeriesRanking is { Filters.Count: > 0 } && !hasFetchDataError)
+            {
+                <span>No projects have series matching those conditions.</span>
+            }
+            else
+            {
+                @EmptyTemplate
+            }
+        </EmptyTemplate>
 
         <Columns>
             <RadzenDataGridColumn Property="@nameof(ProjectView.Id)"

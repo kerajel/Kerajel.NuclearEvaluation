@@ -47,7 +47,18 @@ internal static class AssistantGridQueries
                 query.SortField is null
                 || SeriesQuerySchema.FindField(fields, query.SortField) is not null
             )
-            && SeriesQuerySchema.AreFiltersValid(fields, query.Filters);
+            && SeriesQuerySchema.AreFiltersValid(fields, query.Filters)
+            && (
+                query.ProjectSeriesRanking is not { } ranking
+                || (
+                    query.Grid == AssistantSurface.Projects
+                    && query.Limit is not null
+                    && SeriesQuerySchema.AreFiltersValid(
+                        SeriesQuerySchema.GetFields(SeriesQueryEntity.Series),
+                        ranking.Filters
+                    )
+                )
+            );
     }
 
     public static IQueryable<T> ApplyFilters<T>(IQueryable<T> rows, AssistantGridQuery query)

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NuclearEvaluation.Shared.Contracts;
+using NuclearEvaluation.Shared.Models.Views;
 
 namespace NuclearEvaluation.Server.Services.Assistant;
 
@@ -10,6 +11,7 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
     internal const int MaxHistory = 4;
     const string HelpTool = "site_help";
     const string GridTool = "filter_current_grid";
+    const string RankProjectsTool = "rank_projects_by_series_count";
     const string ClearTool = "clear_assistant_query";
     const string BuilderTool = "draft_query_builder_filters";
     const string BuilderExampleTool = "show_query_builder_example";
@@ -123,6 +125,23 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
                     ObjectSchema()
                 )
             );
+
+        if (grid is { Grid: AssistantSurface.Projects, RelatedSeries: { } relatedSeries })
+        {
+            tools.Add(BuildProjectRankingTool(grid, relatedSeries));
+            contextNotes.Add(
+                """
+                In Projects, "where sample count" refers to the total in the project's Sample Count
+                column. Use projectFilters for that total and individualSeriesFilters for conditions
+                explicitly scoped to individual series.
+                Select the requested number of projects by series count first, then use the requested
+                column sort on that selection.
+                """
+            );
+            contextNotes.Add(
+                $"Fields for each linked series: {DescribeFields(relatedSeries.Fields)}."
+            );
+        }
 
         if (context.Surface == AssistantSurface.QueryBuilder)
         {
@@ -241,7 +260,7 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
         )
             return Unavailable(context);
 
-        return await ApplyToolAsync(call, context, ct) ?? Unavailable(context);
+        return await ApplyToolAsync(call, question, ct) ?? Unavailable(context);
     }
 
     async Task<SiteAssistantReply> AnswerLocallyAsync(
@@ -277,10 +296,11 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
 
     async Task<SiteAssistantReply?> ApplyToolAsync(
         OpenAiToolCall call,
-        SiteAssistantContext context,
+        SiteAssistantQuestion question,
         CancellationToken ct
     )
     {
+        SiteAssistantContext context = question.Context;
         if (call.Name == HelpTool)
         {
             HelpArguments? help = ReadArguments<HelpArguments>(call);
@@ -310,6 +330,13 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
                     grid.Limit
                 ),
             },
+            RankProjectsTool
+                when ReadArguments<ProjectRankingArguments>(call)
+                    is { ProjectFilters: not null, IndividualSeriesFilters: not null } projects =>
+                new(AssistantActionKind.FilterGrid)
+                {
+                    GridQuery = BuildProjectRankingQuery(projects, question.Message),
+                },
             BuilderTool when ReadArguments<BuilderArguments>(call) is { } draft => new(
                 AssistantActionKind.DraftQuery
             )
@@ -368,6 +395,80 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
 
     static AssistantTool Tool(string name, string description, JsonObject parameters) =>
         new("function", name, description, true, parameters);
+
+    static readonly string[] IndividualSeriesQualifiers =
+    [
+        "each series",
+        "series each",
+        "per series",
+        "individual series",
+        "series individually",
+    ];
+
+    static AssistantGridQuery BuildProjectRankingQuery(
+        ProjectRankingArguments ranking,
+        string message
+    )
+    {
+        IReadOnlyList<SeriesFieldFilter> projectFilters = ranking.ProjectFilters;
+        IReadOnlyList<SeriesFieldFilter> seriesFilters = ranking.IndividualSeriesFilters;
+        // Both levels have a SampleCount field. Bind the unqualified grid label to the current grid.
+        if (
+            message.Contains("where sample count", StringComparison.OrdinalIgnoreCase)
+            && !IndividualSeriesQualifiers.Any(qualifier =>
+                message.Contains(qualifier, StringComparison.OrdinalIgnoreCase)
+            )
+            && !projectFilters.Any(IsSampleCount)
+            && seriesFilters.Any(IsSampleCount)
+        )
+        {
+            projectFilters = [.. projectFilters, .. seriesFilters.Where(IsSampleCount)];
+            seriesFilters = seriesFilters.Where(filter => !IsSampleCount(filter)).ToArray();
+        }
+
+        return new(
+            AssistantSurface.Projects,
+            projectFilters,
+            ranking.SortField,
+            ranking.Descending,
+            ranking.Limit
+        )
+        {
+            ProjectSeriesRanking = new(seriesFilters, ranking.RankDescending),
+        };
+
+        static bool IsSampleCount(SeriesFieldFilter filter) =>
+            string.Equals(
+                filter?.Field,
+                nameof(ProjectView.SampleCount),
+                StringComparison.OrdinalIgnoreCase
+            );
+    }
+
+    static AssistantTool BuildProjectRankingTool(
+        SiteAssistantGridSchema grid,
+        SeriesEntityDescription relatedSeries
+    ) =>
+        Tool(
+            RankProjectsTool,
+            "Filter by Projects grid fields and rank by the count of linked series. Optional individual series filters restrict which links count. Apply any column sort after selecting the requested number.",
+            ObjectSchema(
+                ("projectFilters", ArraySchema(FieldSchema(grid.Fields), 12)),
+                ("individualSeriesFilters", ArraySchema(FieldSchema(relatedSeries.Fields), 12)),
+                (
+                    "limit",
+                    new JsonObject
+                    {
+                        ["type"] = "integer",
+                        ["minimum"] = 1,
+                        ["maximum"] = DataQuery.MaxPageSize,
+                    }
+                ),
+                ("rankDescending", new JsonObject { ["type"] = "boolean" }),
+                ("sortField", NullableSchema(EnumSchema(grid.Fields.Select(field => field.Name)))),
+                ("descending", new JsonObject { ["type"] = "boolean" })
+            )
+        );
 
     static JsonObject ObjectSchema(params (string Name, JsonObject Schema)[] properties)
     {
@@ -429,6 +530,15 @@ internal sealed class OpenAiSiteAssistant(OpenAiAssistantClient model, LocalSite
         string? SortField,
         bool Descending,
         int? Limit
+    );
+
+    sealed record ProjectRankingArguments(
+        IReadOnlyList<SeriesFieldFilter> ProjectFilters,
+        IReadOnlyList<SeriesFieldFilter> IndividualSeriesFilters,
+        int Limit,
+        bool RankDescending,
+        string? SortField,
+        bool Descending
     );
 
     sealed record BuilderArguments(IReadOnlyList<AssistantBuilderFilter> Filters);

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NuclearEvaluation.Kernel.Commands;
+using NuclearEvaluation.Server.Services.Assistant;
 using NuclearEvaluation.Shared.Contracts;
 using NuclearEvaluation.Shared.Models.Domain;
 using NuclearEvaluation.Shared.Models.Views;
@@ -27,6 +28,10 @@ public class ProjectService : DbServiceBase, IProjectService
         try
         {
             IQueryable<ProjectView> baseQuery = _dbContext.ProjectView;
+            if (command.Query?.AssistantQuery is { ProjectSeriesRanking: { } ranking } query)
+            {
+                return await FetchRankedProjectsAsync(baseQuery, command, query, ranking);
+            }
             return await ExecuteQuery(baseQuery, command);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -34,6 +39,51 @@ public class ProjectService : DbServiceBase, IProjectService
             _logger.LogError(ex, "Error fetching project views");
             return FetchDataResult<ProjectView>.Faulted(ex);
         }
+    }
+
+    async Task<FetchDataResult<ProjectView>> FetchRankedProjectsAsync(
+        IQueryable<ProjectView> projects,
+        FetchDataCommand<ProjectView> command,
+        AssistantGridQuery query,
+        ProjectSeriesRanking ranking
+    )
+    {
+        IQueryable<ProjectView> filtered = GetFilteredQuery(
+            command.AsNoTracking ? projects.AsNoTracking() : projects,
+            command
+        );
+        IQueryable<ProjectViewSeriesView> links = _dbContext.ProjectViewSeriesView;
+        if (ranking.Filters.Count > 0)
+        {
+            IQueryable<SeriesView> matchingSeries = new SeriesSchemaQueries(
+                _dbContext
+            ).ApplyFilters(
+                _dbContext.SeriesView,
+                new SeriesGridQuery { Filters = ranking.Filters }
+            );
+            links = links.Where(link => matchingSeries.Any(series => series.Id == link.SeriesId));
+        }
+        var counts = links
+            .GroupBy(link => link.ProjectId)
+            .Select(matches => new { ProjectId = matches.Key, SeriesCount = matches.Count() });
+        var scored =
+            from project in filtered
+            join count in counts on project.Id equals count.ProjectId
+            select new { Project = project, count.SeriesCount };
+        IQueryable<ProjectView> selected = (
+            ranking.Descending
+                ? scored.OrderByDescending(project => project.SeriesCount)
+                : scored.OrderBy(project => project.SeriesCount)
+        )
+            .ThenByDescending(project => project.Project.UpdatedAt)
+            .ThenBy(project => project.Project.Id)
+            .Take(query.Limit!.Value)
+            .Select(project => project.Project);
+
+        IQueryable<ProjectView> displayed = query.SortField is null
+            ? selected
+            : AssistantGridQueries.ApplyOrder(selected, query, project => project.Id);
+        return await FetchPageAsync(selected, displayed, command);
     }
 
     public async Task UpdateField(ProjectFieldUpdate update)
@@ -65,10 +115,9 @@ public class ProjectService : DbServiceBase, IProjectService
 
     public async Task UpdateProjectSeries(int projectId, IReadOnlyCollection<int> seriesIds)
     {
-        Project project =
-            await _dbContext
-                .Project.IncludeOptimized(x => x.ProjectSeries)
-                .SingleOrDefaultAsync(x => x.Id == projectId)
+        Project project = await _dbContext
+            .Project.IncludeOptimized(x => x.ProjectSeries)
+            .SingleOrDefaultAsync(x => x.Id == projectId)
             ?? throw new KeyNotFoundException($"Project {projectId} not found");
 
         if (await _dbContext.Series.CountAsync(x => seriesIds.Contains(x.Id)) != seriesIds.Count)

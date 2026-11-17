@@ -103,7 +103,7 @@ internal sealed class LocalSiteAssistantTools
             AssistantPage.Evaluation,
             null,
             "How to filter or open Evaluation projects",
-            "Use the Projects tab to find a project by name, sample count, or date. Open a project to inspect its overview and related Series, Samples, SubSamples, APM, and Particle tabs."
+            "Use the Projects tab to find a project by name, sample count, or date. The assistant can rank projects by the count of linked series that match your filters. Open a project to inspect its overview and related records."
         ),
         new(
             "query_builder",
@@ -149,7 +149,15 @@ internal sealed class LocalSiteAssistantTools
                     AssistantGridQueries
                         .Fields(surface)
                         .Select(LocalSeriesTools.DescribeField)
-                        .ToArray()
+                        .ToArray(),
+                    surface == AssistantSurface.Projects
+                        ? series.Entities.Single(entity =>
+                            entity.Entity == nameof(SeriesQueryEntity.Series)
+                        ) with
+                        {
+                            RelationshipPath = "Projects > Project series links > Series",
+                        }
+                        : null
                 ))
                 .ToArray(),
             series
@@ -209,6 +217,12 @@ internal sealed class LocalSiteAssistantTools
 
         string message = action.Kind switch
         {
+            AssistantActionKind.FilterGrid
+                when action.GridQuery?.ProjectSeriesRanking is { Filters.Count: > 0 } =>
+                "Ranked the Projects grid by the number of linked series matching your filters.",
+            AssistantActionKind.FilterGrid
+                when action.GridQuery?.ProjectSeriesRanking is not null =>
+                "Ranked the Projects grid by the number of linked series.",
             AssistantActionKind.FilterGrid => "Updated the current grid.",
             AssistantActionKind.ClearGrid => "Cleared the assistant query.",
             AssistantActionKind.DraftQuery => "Updated the Query Builder draft and results.",
@@ -382,7 +396,8 @@ internal sealed record SiteAssistantCatalog(
 
 internal sealed record SiteAssistantGridSchema(
     AssistantSurface Grid,
-    IReadOnlyList<SeriesFieldDescription> Fields
+    IReadOnlyList<SeriesFieldDescription> Fields,
+    SeriesEntityDescription? RelatedSeries = null
 );
 
 internal sealed record SiteAssistantHelp(

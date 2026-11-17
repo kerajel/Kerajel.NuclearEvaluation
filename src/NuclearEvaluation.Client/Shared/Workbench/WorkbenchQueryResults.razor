@@ -38,9 +38,10 @@
     @if (_page is { } current)
     {
         ResultColumn[] columns = ResultColumns(current.Query).ToArray();
-        <div class="wb-query-table" tabindex="0" role="region" aria-label="@EntityName(current.Query.Entity)"
+        <div class="wb-query-table ne-grid-refresh" tabindex="0" role="region" aria-label="@EntityName(current.Query.Entity)"
              aria-busy="@Loading.ToString().ToLowerInvariant()">
-            <table style="@FormattableString.Invariant($"min-width:{columns.Sum(column => column.Width)}rem")">
+            <table inert="@(ReferenceEquals(current.Scope, _lastQuery) ? null : "inert")"
+                   style="@FormattableString.Invariant($"min-width:{columns.Sum(column => column.Width)}rem")">
                 <colgroup>
                     @foreach (ResultColumn column in columns)
                     {

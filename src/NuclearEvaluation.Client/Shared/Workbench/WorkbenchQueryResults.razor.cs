@@ -166,23 +166,25 @@ public partial class WorkbenchQueryResults : IDisposable
 
     protected override Task OnParametersSetAsync()
     {
-        if (Query == _lastQuery)
+        // Each run supplies a distinct query, even when its draft values are the same.
+        if (ReferenceEquals(Query, _lastQuery))
             return Task.CompletedTask;
 
         _lastQuery = Query;
-        _page = null;
         _filterEditor = null;
+        AssistantWorkspace.Remove(this);
         return LoadAsync(Query);
     }
 
     protected override void OnAfterRender(bool firstRender)
     {
-        if (_page is null || _lastQuery is not { } scope)
+        if (_page is not { } page || !ReferenceEquals(page.Scope, _lastQuery))
         {
             AssistantWorkspace.Remove(this);
             return;
         }
 
+        WorkbenchQuery scope = page.Scope;
         AssistantWorkspace.Set(
             this,
             new(
@@ -202,7 +204,7 @@ public partial class WorkbenchQueryResults : IDisposable
         {
             if (
                 _disposed
-                || scope != _lastQuery
+                || !ReferenceEquals(scope, _lastQuery)
                 || !ReferenceEquals(AssistantWorkspace.Current?.Owner, this)
                 || Loading
                 || _page is not { Query: WorkbenchQuery query }
@@ -335,6 +337,7 @@ public partial class WorkbenchQueryResults : IDisposable
 
     async Task<bool> LoadAsync(WorkbenchQuery query, bool notifySort = false)
     {
+        WorkbenchQuery scope = _lastQuery ?? query;
         _pending?.Cancel();
         using CancellationTokenSource request = new();
         _pending = request;
@@ -375,7 +378,7 @@ public partial class WorkbenchQueryResults : IDisposable
             ) ?? throw new JsonException("Missing workbench query results.");
             if (ReferenceEquals(_pending, request))
             {
-                _page = new(query, page);
+                _page = new(scope, query, page);
                 committed = true;
             }
         }
@@ -389,7 +392,11 @@ public partial class WorkbenchQueryResults : IDisposable
         finally
         {
             if (ReferenceEquals(_pending, request))
+            {
+                if (!committed && ReferenceEquals(scope, query))
+                    _page = null;
                 _pending = null;
+            }
         }
 
         if (committed && notifySort && query.SortField is { } sortField)
@@ -468,7 +475,11 @@ public partial class WorkbenchQueryResults : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    sealed record DisplayedPage(WorkbenchQuery Query, WorkbenchQueryPage Result);
+    sealed record DisplayedPage(
+        WorkbenchQuery Scope,
+        WorkbenchQuery Query,
+        WorkbenchQueryPage Result
+    );
 
     sealed record QueryProblem(string? Title, string? Detail);
 

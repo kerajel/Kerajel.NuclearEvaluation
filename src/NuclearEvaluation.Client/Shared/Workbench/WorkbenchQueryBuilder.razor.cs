@@ -23,7 +23,6 @@ public partial class WorkbenchQueryBuilder
     string _selectedPreset = "";
     string _presetName = "";
     int? _minimum;
-    int _revision;
     bool _descending;
     bool _openedExample;
 
@@ -186,7 +185,6 @@ public partial class WorkbenchQueryBuilder
     {
         _notice = null;
         _applied = query with { Skip = 0, ResultFilters = null, ResultFilterGroups = null };
-        _revision++;
     }
 
     WorkbenchQuery? BuildQuery()

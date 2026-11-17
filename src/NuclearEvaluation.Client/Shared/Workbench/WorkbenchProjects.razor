@@ -222,7 +222,8 @@
 
             <section class="wb-project-card wb-project-observations" aria-labelledby="wb-project-observations-heading">
                 <h3 id="wb-project-observations-heading">Project observations</h3>
-                <RadNetResults @key="detail.Project.Id" Query="ObservationQuery" QueryUrl="@ObservationUrl(detail.Project)"
+                <RadNetResults Query="ObservationQuery" QueryUrl="@ObservationUrl(detail.Project)"
+                               ProjectId="detail.Project.Id" ScopeLoading="_refreshingObservations"
                                AssistantGrid="AssistantSurface.WorkbenchProjectObservations"
                                ShowObservationState="true" SourceLink="ObservationSourceLink" OnConflict="RefreshProjectAsync"
                                EmptyText="@(detail.Stats.ObservationCount == 0 ? "No observations are linked to this project." : "No project observations match these filters.")" />

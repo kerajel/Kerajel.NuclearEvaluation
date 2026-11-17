@@ -1,18 +1,18 @@
 @using static RadNetPresentation
 
-<div class="radnet-results" aria-busy="@_loading.ToString().ToLowerInvariant()">
+<div class="radnet-results" aria-busy="@(Busy ? "true" : "false")">
     <div class="radnet-grid-info" role="status">
-        @if (_result is { } result)
-        {
-            <span><strong>@Count(result.TotalCount)</strong> matching @EntityName(DisplayedQuery.Entity).ToLowerInvariant()</span>
-        }
-        else if (_loading)
+        @if (ScopeLoading || (_loading && _displayedScope != _scope))
         {
             <span>Loading @EntityName(_requested.Query.Entity).ToLowerInvariant()…</span>
         }
+        else if (_result is { } result)
+        {
+            <span><strong>@Count(result.TotalCount)</strong> matching @EntityName(DisplayedQuery.Entity).ToLowerInvariant()</span>
+        }
         @if (_result is not null && _displayed.ColumnFilters.Count > 0)
         {
-            <button type="button" class="radnet-filter-clear" @onclick="ClearFiltersAsync" disabled="@_loading">Clear column filters</button>
+            <button type="button" class="radnet-filter-clear" @onclick="ClearFiltersAsync" disabled="@Busy">Clear column filters</button>
         }
     </div>
 
@@ -21,7 +21,7 @@
         RadNetField field = FindField(editing.Field);
         <div id="@_filterEditorId" class="radnet-filter-editor">
             <ColumnFilterEditor @key="field.Name" Field="@field.Name" Label="@editing.Label"
-                                Type="field.Type" Nullable="field.Nullable" Busy="_loading"
+                                Type="field.Type" Nullable="field.Nullable" Busy="Busy"
                                 Filter="AppliedFilter(field.Name)" OnApply="ApplyFilterAsync"
                                 OnRemove="RemoveFilterAsync" OnClose="CloseFilter" />
         </div>
@@ -29,8 +29,9 @@
 
     @if (_result is { } page)
     {
-        <div class="radnet-table-scroll" tabindex="0" aria-label="@EntityName(DisplayedQuery.Entity)">
-            <table style="@FormattableString.Invariant($"min-width:{MinimumTableWidth}rem")">
+        <div class="radnet-table-scroll ne-grid-refresh" tabindex="0" aria-label="@EntityName(DisplayedQuery.Entity)"
+             aria-busy="@(Busy ? "true" : "false")">
+            <table style="@FormattableString.Invariant($"min-width:{MinimumTableWidth}rem")" inert="@Busy">
                 <colgroup>
                     @foreach (ResultColumn column in DisplayedColumns)
                     {
@@ -51,7 +52,7 @@
                             <th scope="col" aria-sort="@direction" class="@(column.Numeric ? "radnet-numeric" : null)">
                                 <div class="radnet-column-heading">
                                     <button type="button" class="radnet-column-sort" title="@column.Label"
-                                            @onclick="() => SortAsync(column)" disabled="@_loading">
+                                            @onclick="() => SortAsync(column)" disabled="@Busy">
                                         <span>@column.Label</span>
                                         <span class="radnet-sort-marker" aria-hidden="true">
                                             @if (direction is not null)
@@ -64,7 +65,7 @@
                                             data-active-filter="@(hasFilter ? "true" : null)"
                                             aria-label="@($"Filter {column.Label}")" title="@(hasFilter ? "Edit active filter" : $"Filter {column.Label}")"
                                             aria-expanded="@filterOpen.ToString().ToLowerInvariant()" aria-controls="@(filterOpen ? _filterEditorId : null)"
-                                            @onclick="() => OpenFilter(column)" disabled="@_loading">
+                                            @onclick="() => OpenFilter(column)" disabled="@Busy">
                                         <RadzenIcon Icon="filter_alt" aria-hidden="true" />
                                     </button>
                                 </div>
@@ -79,7 +80,7 @@
                 <tbody>
                     @if (page.Items.Count == 0)
                     {
-                        <tr><td colspan="@(DisplayedColumns.Count + (HasActions ? 1 : 0))" class="radnet-result-empty">@EmptyText</td></tr>
+                        <tr><td colspan="@(DisplayedColumns.Count + (HasActions ? 1 : 0))" class="radnet-result-empty">@(_displayedScope == _scope ? EmptyText : "Loading results…")</td></tr>
                     }
                     @foreach (RadNetRow row in page.Items)
                     {
@@ -103,12 +104,12 @@
                                 <td class="radnet-actions">
                                     @if (OnOpen.HasDelegate && DisplayedQuery.Entity != RadNetEntity.Channel)
                                     {
-                                        <button type="button" disabled="@_loading" @onclick="() => OnOpen.InvokeAsync(row)"
+                                        <button type="button" disabled="@Busy" @onclick="() => OnOpen.InvokeAsync(row)"
                                                 aria-label="@OpenLabel(row)">@OpenText <RadzenIcon Icon="chevron_right" aria-hidden="true" /></button>
                                     }
                                     @if (ShowQuality)
                                     {
-                                        <button type="button" disabled="@_loading" @onclick="() => OnQuality.InvokeAsync(row)"
+                                        <button type="button" disabled="@Busy" @onclick="() => OnQuality.InvokeAsync(row)"
                                                 aria-label="@($"Quality for {row.FileName}")">@(row.ObservationId.HasValue ? "Source" : "Quality")</button>
                                     }
                                 </td>
@@ -123,13 +124,13 @@
             <nav class="radnet-pager" aria-label="Results pages">
                 <span>@Count((long)DisplayedQuery.Skip + 1)–@Count((long)DisplayedQuery.Skip + page.Items.Count) of @Count(page.TotalCount)</span>
                 <div>
-                    <button type="button" @onclick="() => PageAsync(-1)" disabled="@(DisplayedQuery.Skip == 0)" aria-disabled="@(_loading ? "true" : null)">
+                    <button type="button" @onclick="() => PageAsync(-1)" disabled="@(DisplayedQuery.Skip == 0)" aria-disabled="@(Busy ? "true" : null)">
                         <RadzenIcon Icon="chevron_left" aria-hidden="true" /> Previous
                     </button>
                     <button type="button" @onclick="() => PageAsync(1)"
                             disabled="@((long)DisplayedQuery.Skip + DisplayedQuery.Top >= page.TotalCount ||
                                         (long)DisplayedQuery.Skip + DisplayedQuery.Top > int.MaxValue)"
-                            aria-disabled="@(_loading ? "true" : null)">
+                            aria-disabled="@(Busy ? "true" : null)">
                         Next <RadzenIcon Icon="chevron_right" aria-hidden="true" />
                     </button>
                 </div>
@@ -140,7 +141,7 @@
     {
         <div class="radnet-result-empty" role="alert">
             <p>@_error</p>
-            <button type="button" @onclick="() => LoadAsync(_requested)">Retry</button>
+            <button type="button" @onclick="() => LoadAsync(_requested)" disabled="@Busy">Retry</button>
         </div>
     }
 </div>

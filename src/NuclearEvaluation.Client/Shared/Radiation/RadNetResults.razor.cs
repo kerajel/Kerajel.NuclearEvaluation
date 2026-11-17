@@ -57,8 +57,8 @@ public partial class RadNetResults : IDisposable
 
     CancellationTokenSource? _pendingRequest;
     readonly string _filterEditorId = $"radnet-filter-{Guid.NewGuid():N}";
-    RadNetQuery? _lastQuery;
-    string? _lastQueryUrl;
+    ResultScope? _scope;
+    ResultScope? _displayedScope;
     ResultRequest _requested = new(new(), []);
     ResultRequest _displayed = new(new(), []);
     ResultRequest? _assistantRequest;
@@ -78,6 +78,12 @@ public partial class RadNetResults : IDisposable
 
     [Parameter]
     public string QueryUrl { get; set; } = "api/radnet/query";
+
+    [Parameter]
+    public Guid? ProjectId { get; set; }
+
+    [Parameter]
+    public bool ScopeLoading { get; set; }
 
     [Parameter]
     public string EmptyText { get; set; } = "No records match these filters.";
@@ -106,6 +112,7 @@ public partial class RadNetResults : IDisposable
     [Parameter]
     public bool OpenQuality { get; set; }
 
+    bool Busy => _loading || ScopeLoading;
     RadNetQuery DisplayedQuery => _displayed.Query;
     IReadOnlyList<ResultColumn> DisplayedColumns =>
         ShowObservationState && DisplayedQuery.Entity == RadNetEntity.Observation
@@ -128,18 +135,22 @@ public partial class RadNetResults : IDisposable
 
     protected override Task OnParametersSetAsync()
     {
-        bool sameQuery = Query == _lastQuery;
-        if (sameQuery && QueryUrl == _lastQueryUrl)
+        ResultScope scope = new(Query, QueryUrl, ProjectId);
+        if (scope == _scope)
         {
-            if (!_loading)
+            if (!_loading || ScopeLoading)
                 UpdateAssistantTarget();
             return Task.CompletedTask;
         }
 
         AssistantWorkspace.Remove(this);
-        _lastQuery = Query;
-        _lastQueryUrl = QueryUrl;
-        if (sameQuery)
+        ResultScope? previousScope = _scope;
+        _scope = scope;
+        if (
+            previousScope is not null
+            && scope.Query == previousScope.Query
+            && scope.ProjectId == previousScope.ProjectId
+        )
         {
             ResultRequest current =
                 _result is not null
@@ -149,7 +160,6 @@ public partial class RadNetResults : IDisposable
             return LoadAsync(current with { Query = current.Query with { Skip = 0 } });
         }
 
-        _result = null;
         _editingColumn = null;
         return LoadAsync(new(Query, []));
     }
@@ -157,7 +167,10 @@ public partial class RadNetResults : IDisposable
     void UpdateAssistantTarget()
     {
         if (
-            _result is null
+            ScopeLoading
+            || _result is null
+            || _scope is not { } scope
+            || scope != _displayedScope
             || Query.Entity != RadNetEntity.Observation
             || AssistantGrid
                 is not (
@@ -170,7 +183,6 @@ public partial class RadNetResults : IDisposable
             return;
         }
 
-        object scope = (Query, QueryUrl);
         AssistantWorkspace.Set(
             this,
             new(AssistantPage.Workbench, AssistantGrid),
@@ -179,17 +191,17 @@ public partial class RadNetResults : IDisposable
         );
     }
 
-    bool HasAssistantScope(object scope) =>
+    bool HasAssistantScope(ResultScope scope) =>
         AssistantWorkspace.Current is { } target
         && ReferenceEquals(target.Owner, this)
         && Equals(target.Scope, scope);
 
-    async Task<bool> ApplyAssistantAsync(AssistantAction action, object scope)
+    async Task<bool> ApplyAssistantAsync(AssistantAction action, ResultScope scope)
     {
         bool applied = false;
         await InvokeAsync(async () =>
         {
-            if (_loading || _result is null || !HasAssistantScope(scope))
+            if (Busy || _result is null || !HasAssistantScope(scope))
                 return;
 
             ResultRequest? request = action switch
@@ -265,7 +277,7 @@ public partial class RadNetResults : IDisposable
 
     async Task SortAsync(ResultColumn column)
     {
-        if (_loading)
+        if (Busy)
             return;
 
         bool descending =
@@ -283,14 +295,14 @@ public partial class RadNetResults : IDisposable
                 Skip = 0,
             },
         };
-        RadNetQuery? parentQuery = _lastQuery;
+        ResultScope? scope = _scope;
         await OnSort.InvokeAsync((column.Field, descending));
-        if (_lastQuery == parentQuery)
+        if (_scope == scope && !Busy)
             await LoadAsync(request);
     }
 
     Task PageAsync(int direction) =>
-        _loading
+        Busy
             ? Task.CompletedTask
             : LoadAsync(
                 _displayed with
@@ -313,7 +325,7 @@ public partial class RadNetResults : IDisposable
 
     void OpenFilter(ResultColumn column)
     {
-        if (!_loading)
+        if (!Busy)
             _editingColumn = _editingColumn == column ? null : column;
     }
 
@@ -340,7 +352,7 @@ public partial class RadNetResults : IDisposable
 
     Task SetColumnFiltersAsync(IReadOnlyList<ColumnFilterGroup> filters)
     {
-        if (_loading)
+        if (Busy)
             return Task.CompletedTask;
 
         return LoadAsync(
@@ -367,6 +379,9 @@ public partial class RadNetResults : IDisposable
 
     async Task LoadAsync(ResultRequest request)
     {
+        if (_scope is not { } scope)
+            return;
+
         _pendingRequest?.Cancel();
         using CancellationTokenSource cancellation = new();
         _pendingRequest = cancellation;
@@ -388,7 +403,7 @@ public partial class RadNetResults : IDisposable
                 };
 
             using HttpResponseMessage response = await Http.PostAsJsonAsync(
-                QueryUrl,
+                scope.Url,
                 query,
                 cancellation.Token
             );
@@ -423,6 +438,7 @@ public partial class RadNetResults : IDisposable
             if (ReferenceEquals(_pendingRequest, cancellation))
             {
                 (_displayed, _result) = (request, result);
+                _displayedScope = scope;
                 UpdateAssistantTarget();
             }
         }
@@ -439,6 +455,8 @@ public partial class RadNetResults : IDisposable
             {
                 _pendingRequest = null;
                 _loading = false;
+                if (_displayedScope != scope)
+                    _result = null;
             }
         }
     }
@@ -478,6 +496,8 @@ public partial class RadNetResults : IDisposable
     sealed record ResultColumn(string Field, string Label, int Width, bool Numeric = false);
 
     sealed record ResultRequest(RadNetQuery Query, IReadOnlyList<ColumnFilterGroup> ColumnFilters);
+
+    sealed record ResultScope(RadNetQuery Query, string Url, Guid? ProjectId);
 
     sealed record QueryProblem(string? Title);
 }

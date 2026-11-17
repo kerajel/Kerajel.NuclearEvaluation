@@ -383,6 +383,11 @@ body {
     min-height: 0;
 }
 
+.ne-grid-refresh[aria-busy="true"] > table {
+    opacity: 0.55;
+    filter: grayscale(0.75);
+}
+
 .ne-grid-caption,
 .ne-chart-caption {
     color: var(--rz-text-secondary-color);

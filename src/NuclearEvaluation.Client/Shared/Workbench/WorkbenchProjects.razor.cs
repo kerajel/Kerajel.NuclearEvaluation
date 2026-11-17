@@ -31,6 +31,7 @@ public partial class WorkbenchProjects : IDisposable
     int _chartYear;
     CoverageMetric _chartMetric;
     bool _busy;
+    bool _refreshingObservations;
     bool _editing;
 
     [Inject]
@@ -47,27 +48,28 @@ public partial class WorkbenchProjects : IDisposable
     protected override Task OnInitializedAsync() => LoadProjectsAsync();
 
     Task LoadProjectsAsync() =>
-        RunAsync(async ct =>
-        {
-            _projects = await Http.GetFromJsonAsync<WorkbenchProject[]>(ProjectsUrl, ct)
-                ?? throw new JsonException("Missing project list.");
-            if (_projects.FirstOrDefault() is { } first)
-                await SelectAsync(first.Id, ct);
-        });
+        RunAsync(
+            async ct =>
+            {
+                _projects = await Http.GetFromJsonAsync<WorkbenchProject[]>(ProjectsUrl, ct)
+                    ?? throw new JsonException("Missing project list.");
+                if (_projects.FirstOrDefault() is { } first)
+                    await SelectAsync(first.Id, ct);
+            },
+            refreshObservations: true
+        );
 
-    Task OpenAsync(Guid id) => RunAsync(ct => SelectAsync(id, ct));
+    Task OpenAsync(Guid id) => RunAsync(ct => SelectAsync(id, ct), refreshObservations: true);
 
     async Task SelectAsync(Guid id, CancellationToken ct)
     {
-        _selectedId = id;
-        _project = null;
+        await LoadDetailsAsync(id, ct);
         _matches = null;
         _editing = false;
         _seriesSearch = "";
         _appliedSearch = "";
         _chartYear = 0;
         _chartMetric = CoverageMetric.Observations;
-        await LoadDetailsAsync(id, ct);
     }
 
     async Task LoadDetailsAsync(Guid id, CancellationToken ct)
@@ -80,56 +82,62 @@ public partial class WorkbenchProjects : IDisposable
     }
 
     Task CreateAsync() =>
-        RunAsync(async ct =>
-        {
-            using HttpResponseMessage response = await Http.PostAsJsonAsync(
-                ProjectsUrl,
-                new WorkbenchProjectDraft(_newProjectName.Trim()),
-                ct
-            );
-            WorkbenchProjectDetails? created = await ReadChangeAsync(response, ct);
-            if (created is null)
-                return;
+        RunAsync(
+            async ct =>
+            {
+                using HttpResponseMessage response = await Http.PostAsJsonAsync(
+                    ProjectsUrl,
+                    new WorkbenchProjectDraft(_newProjectName.Trim()),
+                    ct
+                );
+                WorkbenchProjectDetails? created = await ReadChangeAsync(response, ct);
+                if (created is null)
+                    return;
 
-            _newProjectName = "";
-            _editing = false;
-            _matches = null;
-            _seriesSearch = "";
-            _appliedSearch = "";
-            _chartYear = 0;
-            _chartMetric = CoverageMetric.Observations;
-            ShowProject(created);
-            _notice = $"{created.Project.Name} created.";
-        });
+                _newProjectName = "";
+                _editing = false;
+                _matches = null;
+                _seriesSearch = "";
+                _appliedSearch = "";
+                _chartYear = 0;
+                _chartMetric = CoverageMetric.Observations;
+                ShowProject(created);
+                _notice = $"{created.Project.Name} created.";
+            },
+            refreshObservations: true
+        );
 
     Task ChangeMembershipAsync(WorkbenchSeries series, bool add) =>
-        RunAsync(async ct =>
-        {
-            if (_project is not { Project: WorkbenchProject project })
-                return;
-
-            string endpoint = FormattableString.Invariant(
-                $"{ProjectsUrl}/{project.Id}/series/{series.Id}?version={project.Version}"
-            );
-            using HttpRequestMessage request = new(
-                add ? HttpMethod.Post : HttpMethod.Delete,
-                endpoint
-            );
-            using HttpResponseMessage response = await Http.SendAsync(request, ct);
-            if (response.StatusCode == HttpStatusCode.Conflict)
+        RunAsync(
+            async ct =>
             {
-                await LoadDetailsAsync(project.Id, ct);
-                _notice = "The project changed. Its latest data is loaded. Try again.";
-                return;
-            }
+                if (_project is not { Project: WorkbenchProject project })
+                    return;
 
-            WorkbenchProjectDetails? changed = await ReadChangeAsync(response, ct);
-            if (changed is null)
-                return;
+                string endpoint = FormattableString.Invariant(
+                    $"{ProjectsUrl}/{project.Id}/series/{series.Id}?version={project.Version}"
+                );
+                using HttpRequestMessage request = new(
+                    add ? HttpMethod.Post : HttpMethod.Delete,
+                    endpoint
+                );
+                using HttpResponseMessage response = await Http.SendAsync(request, ct);
+                if (response.StatusCode == HttpStatusCode.Conflict)
+                {
+                    await LoadDetailsAsync(project.Id, ct);
+                    _notice = "The project changed. Its latest data is loaded. Try again.";
+                    return;
+                }
 
-            ShowProject(changed);
-            _notice = add ? $"{series.Name} added." : $"{series.Name} removed.";
-        });
+                WorkbenchProjectDetails? changed = await ReadChangeAsync(response, ct);
+                if (changed is null)
+                    return;
+
+                ShowProject(changed);
+                _notice = add ? $"{series.Name} added." : $"{series.Name} removed.";
+            },
+            refreshObservations: true
+        );
 
     async Task<WorkbenchProjectDetails?> ReadChangeAsync(
         HttpResponseMessage response,
@@ -197,13 +205,16 @@ public partial class WorkbenchProjects : IDisposable
     }
 
     Task RefreshProjectAsync() =>
-        RunAsync(async ct =>
-        {
-            if (_selectedId is not Guid id)
-                return;
-            await LoadDetailsAsync(id, ct);
-            _notice = "The project changed. Its latest details are loaded.";
-        });
+        RunAsync(
+            async ct =>
+            {
+                if (_selectedId is not Guid id)
+                    return;
+                await LoadDetailsAsync(id, ct);
+                _notice = "The project changed. Its latest details are loaded.";
+            },
+            refreshObservations: true
+        );
 
     static string ObservationUrl(WorkbenchProject project) =>
         FormattableString.Invariant(
@@ -215,12 +226,13 @@ public partial class WorkbenchProjects : IDisposable
             ? FormattableString.Invariant($"radiation?view=quality&file={sourceId}")
             : null;
 
-    async Task RunAsync(Func<CancellationToken, Task> action)
+    async Task RunAsync(Func<CancellationToken, Task> action, bool refreshObservations = false)
     {
         if (_busy || _lifetime.IsCancellationRequested)
             return;
 
         _busy = true;
+        _refreshingObservations = refreshObservations;
         _error = _notice = null;
         CancellationToken ct = _lifetime.Token;
         try
@@ -236,6 +248,7 @@ public partial class WorkbenchProjects : IDisposable
         finally
         {
             _busy = false;
+            _refreshingObservations = false;
         }
     }
 

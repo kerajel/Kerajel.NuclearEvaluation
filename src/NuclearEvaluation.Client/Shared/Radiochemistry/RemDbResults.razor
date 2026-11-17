@@ -1,0 +1,135 @@
+@using static RemDbPresentation
+
+<div class="rem-results" aria-busy="@Loading.ToString().ToLowerInvariant()">
+    @if (_page is { } displayed)
+    {
+        <div class="rem-grid-summary">
+            <p class="rem-grid-count" role="status"><strong>@Count(displayed.Result.TotalCount)</strong> matching @EntityName(displayed.Request.Query.Entity).ToLowerInvariant()</p>
+            @if (displayed.Request.ColumnFilters.Count > 0)
+            {
+                <button type="button" class="rem-link" disabled="@Loading" @onclick="() => ClearFiltersAsync()">Clear column filters</button>
+            }
+        </div>
+    }
+    else if (Loading)
+    {
+        <p class="rem-grid-count" role="status">Loading @EntityName(_requested.Query.Entity).ToLowerInvariant()…</p>
+    }
+
+    @if (_editor is { } editor && _page is { } filterPage)
+    {
+        RemDbField field = FindField(editor.Field);
+        <ColumnFilterEditor @key="editor.Field" Field="@editor.Field" Label="@editor.Label" Type="field.Type"
+                            Nullable="field.Nullable" DateOnlyInput="true" Busy="Loading"
+                            Filter="FindFilter(filterPage.Request, editor.Field)" OnApply="ApplyFilterAsync"
+                            OnRemove="() => ClearFiltersAsync(editor.Field)" OnClose="CloseFilter" />
+    }
+
+    @if (_error is not null)
+    {
+        <div class="rem-empty" role="alert">
+            <p>@_error</p>
+            <button type="button" class="rem-button" @onclick="RetryAsync">Retry</button>
+        </div>
+    }
+
+    @if (_page is { } page)
+    {
+        RemDbQuery query = page.Request.Query;
+        ResultColumn[] columns = Columns[query.Entity];
+        bool canDrillDown = OnOpen.HasDelegate && query.Entity != RemDbEntity.Measurement;
+        long nextOffset = (long)query.Skip + query.Top;
+        bool canPageForward = nextOffset < page.Result.TotalCount && nextOffset <= int.MaxValue;
+        <div class="rem-table-scroll" tabindex="0" aria-label="@EntityName(query.Entity)">
+            <table style="@FormattableString.Invariant($"min-width:{columns.Sum(column => column.Width)}rem")">
+                <colgroup>
+                    @foreach (ResultColumn column in columns)
+                    {
+                        <col style="@FormattableString.Invariant($"width:{column.Width}rem")" />
+                    }
+                </colgroup>
+                <thead>
+                    <tr>
+                        @foreach (ResultColumn column in columns)
+                        {
+                            string? direction = SortDirection(query, column);
+                            bool filtered = FindFilter(page.Request, column.Field) is not null;
+                            string filterLabel = $"Filter {column.Label}";
+                            <th scope="col" aria-sort="@direction" class="@(column.Numeric ? "rem-numeric" : null)">
+                                <div class="rem-column-heading">
+                                    <button type="button" class="rem-column-sort" aria-disabled="@Loading.ToString().ToLowerInvariant()" @onclick="() => SortAsync(column)">
+                                        <span class="rem-column-label" title="@column.Label">@column.Label</span>
+                                        <span class="rem-sort-marker" aria-hidden="true">
+                                            @if (direction is not null)
+                                            {
+                                                <RadzenIcon Icon="@(query.Descending ? "arrow_downward" : "arrow_upward")" />
+                                            }
+                                        </span>
+                                    </button>
+                                    <button type="button" class="rem-column-filter" aria-label="@filterLabel"
+                                            aria-expanded="@(_editor == column ? "true" : "false")" title="@(filtered ? $"{filterLabel} (active)" : filterLabel)"
+                                            aria-disabled="@Loading.ToString().ToLowerInvariant()" data-active-filter="@(filtered ? "true" : null)"
+                                            @onclick="() => OpenFilter(column)">
+                                        <RadzenIcon Icon="@(filtered ? "filter_alt" : "filter_list")" aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (page.Result.Items.Count == 0)
+                    {
+                        <tr><td colspan="@columns.Length" class="rem-empty">No records match this selection.</td></tr>
+                    }
+                    @foreach (RemDbRow row in page.Result.Items)
+                    {
+                        <tr>
+                            @foreach (ResultColumn column in columns)
+                            {
+                                string value = FormatCell(row, column.Field);
+                                <td title="@value" class="@(column.Numeric ? "rem-numeric" : null)">
+                                    @if (canDrillDown && column == columns[0])
+                                    {
+                                        <button type="button" class="rem-link rem-result-link" aria-disabled="@Loading.ToString().ToLowerInvariant()"
+                                                aria-label="@OpenLabel(query.Entity, row)" @onclick="() => Loading ? Task.CompletedTask : OnOpen.InvokeAsync(row)">
+                                            <span class="rem-column-label">@value</span> <RadzenIcon Icon="chevron_right" aria-hidden="true" />
+                                        </button>
+                                    }
+                                    else if (column.Field == nameof(RemDbRow.FileName) && row.SourceFileId is int file)
+                                    {
+                                        <a class="rem-link" href="@FileUrl(file)">@value</a>
+                                        @if (row.SourceRow is int sourceRow)
+                                        {
+                                            <span class="rem-cell-note">Record @Count(sourceRow)</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @value
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (page.Result.TotalCount > 0)
+        {
+            <nav class="rem-pager" aria-label="Results pages">
+                <span>@Count((long)query.Skip + 1)–@Count((long)query.Skip + page.Result.Items.Count) of @Count(page.Result.TotalCount)</span>
+                <div>
+                    <button type="button" class="rem-button" @onclick="() => PageAsync(-1)" disabled="@(query.Skip == 0)"
+                            aria-disabled="@((Loading || query.Skip == 0).ToString().ToLowerInvariant())">
+                        Previous
+                    </button>
+                    <button type="button" class="rem-button" @onclick="() => PageAsync(1)"
+                            disabled="@(!canPageForward)" aria-disabled="@((Loading || !canPageForward).ToString().ToLowerInvariant())">
+                        Next
+                    </button>
+                </div>
+            </nav>
+        }
+    }
+</div>

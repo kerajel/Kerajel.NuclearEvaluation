@@ -1,0 +1,76 @@
+@using NuclearEvaluation.Client.Shared.Radiation
+
+<section class="wb-details" aria-label="Series source records">
+    <div class="wb-level">
+        <h3>Annual source files</h3>
+        @if (_loading)
+        {
+            <p role="status">Loading files…</p>
+        }
+        else if (_files is null)
+        {
+            <p role="alert">The annual file list could not be loaded.</p>
+            <button type="button" @onclick="LoadFilesAsync">Retry</button>
+        }
+        else if (_files.TotalCount == 0)
+        {
+            <p>No source files contain observations within this date range.</p>
+        }
+        else
+        {
+            <div class="wb-file-scroll" tabindex="0" aria-label="Annual files">
+                <table class="wb-file-grid">
+                    <thead>
+                        <tr>
+                            <th scope="col">Year</th>
+                            <th scope="col">Source file</th>
+                            <th scope="col">Observations in range</th>
+                            <th scope="col">Quality</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (WorkbenchSeriesFile file in _files.Items)
+                        {
+                            <tr @key="file.Id">
+                                <td>@file.Year</td>
+                                <th scope="row">
+                                    <button type="button" class="wb-file-open" @onclick="() => OpenFile(file)"
+                                            aria-expanded="@(_file?.Id == file.Id ? "true" : "false")">
+                                        @file.FileName <RadzenIcon Icon="chevron_right" aria-hidden="true" />
+                                    </button>
+                                </th>
+                                <td>@RadNetPresentation.Count(file.ObservationCount)</td>
+                                <td><a href="@SourceUrl(file.Id)">File quality</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (_files.TotalCount > PageSize)
+            {
+                <nav class="wb-file-pager" aria-label="Annual file pages">
+                    <span>@RadNetPresentation.Count(_skip + 1)–@RadNetPresentation.Count(_skip + _files.Items.Count) of @RadNetPresentation.Count(_files.TotalCount)</span>
+                    <button type="button" @onclick="() => PageFilesAsync(-1)" disabled="@(_skip == 0)">Previous</button>
+                    <button type="button" @onclick="() => PageFilesAsync(1)" disabled="@(_skip + PageSize >= _files.TotalCount)">Next</button>
+                </nav>
+            }
+        }
+    </div>
+    @if (_observations is not null)
+    {
+        <div class="wb-level" @key="_file?.Id">
+            <header><h3>Observations</h3><span>@_file?.FileName</span></header>
+            <RadNetResults Query="_observations" OnOpen="OpenObservation" OnQuality="OpenQuality" />
+        </div>
+    }
+    @if (_channels is not null)
+    {
+        <div class="wb-level" @key="_observation?.ObservationId">
+            <header>
+                <h3>Gamma channel readings</h3>
+                <span>@RadNetPresentation.Timestamp(_observation?.ObservedAt) UTC</span>
+            </header>
+            <RadNetResults Query="_channels" />
+        </div>
+    }
+</section>

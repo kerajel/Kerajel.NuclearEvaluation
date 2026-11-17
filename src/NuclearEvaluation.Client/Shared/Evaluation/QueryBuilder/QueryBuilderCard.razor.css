@@ -63,20 +63,22 @@
 .query-builder-entities {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-start;
     gap: .5rem;
 }
 
 .query-builder-entity {
+    box-sizing: border-box;
     flex: 1 1 8.5rem;
     min-width: 0;
-    padding: .65rem;
+    padding: .5rem;
     border: 1px solid var(--rz-base-300);
     border-radius: .45rem;
     background: var(--rz-base-background-color);
 }
 
 .query-builder-entity.is-enabled {
-    flex-basis: 100%;
+    flex-basis: max(calc(50% - .25rem), min(100%, 29rem));
     border-color: color-mix(in srgb, var(--rz-primary) 55%, var(--rz-base-300));
 }
 
@@ -94,9 +96,36 @@
 }
 
 .query-builder-entity ::deep .rz-datafilter {
+    --rz-datafilter-item-padding-block: .15rem;
+    --rz-datafilter-item-padding-inline-start: .75rem;
+    --rz-datafilter-item-indentation: .4rem;
+    --rz-input-size-md: var(--rz-input-size-sm);
+    --rz-input-padding-block-md: var(--rz-input-padding-block-sm);
+    --rz-input-padding-inline-md: var(--rz-input-padding-inline-sm);
     width: 100%;
     min-width: 0;
-    margin-top: .45rem;
+    margin-top: .3rem;
+}
+
+.query-builder-entity ::deep .rz-datafilter-item > .rz-datafilter-property {
+    flex: 0 1 min(37%, 12rem);
+}
+
+.query-builder-entity ::deep .rz-datafilter-item > .rz-datafilter-operator {
+    flex: 0 1 min(26%, 10rem);
+}
+
+.query-builder-entity ::deep .rz-datafilter-item > .rz-datafilter-editor {
+    flex: 0 1 min(24%, 10rem);
+}
+
+.query-builder-entity ::deep .rz-datafilter-item > :is(.rz-datafilter-editor, .rz-datafilter-check) {
+    min-width: 0;
+}
+
+/* Radzen disables the operand editor for operators such as Is not null. */
+.query-builder-entity ::deep .rz-datafilter-item > :is(.rz-datafilter-editor, .rz-datafilter-check):is(.rz-state-disabled, :disabled, [aria-disabled="true"], :has(:disabled)) {
+    display: none;
 }
 
 .query-builder-toolbar {
@@ -139,6 +168,14 @@
 @media (max-width: 510px) {
     .query-builder-entity {
         flex-basis: 7rem;
+    }
+
+    .query-builder-entity ::deep .rz-datafilter-item > :is(.rz-datafilter-property, .rz-datafilter-operator) {
+        flex: 1 1 43%;
+    }
+
+    .query-builder-entity ::deep .rz-datafilter-item > .rz-datafilter-editor {
+        flex: 1 1 calc(100% - 2.5rem);
     }
 
     .query-builder-toolbar__group {

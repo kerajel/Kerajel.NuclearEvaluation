@@ -1,0 +1,146 @@
+@using static RadNetPresentation
+
+<div class="radnet-results" aria-busy="@_loading.ToString().ToLowerInvariant()">
+    <div class="radnet-grid-info" role="status">
+        @if (_result is { } result)
+        {
+            <span><strong>@Count(result.TotalCount)</strong> matching @EntityName(DisplayedQuery.Entity).ToLowerInvariant()</span>
+        }
+        else if (_loading)
+        {
+            <span>Loading @EntityName(_requested.Query.Entity).ToLowerInvariant()…</span>
+        }
+        @if (_result is not null && _displayed.ColumnFilters.Count > 0)
+        {
+            <button type="button" class="radnet-filter-clear" @onclick="ClearFiltersAsync" disabled="@_loading">Clear column filters</button>
+        }
+    </div>
+
+    @if (_editingColumn is { } editing)
+    {
+        RadNetField field = FindField(editing.Field);
+        <div id="@_filterEditorId" class="radnet-filter-editor">
+            <ColumnFilterEditor @key="field.Name" Field="@field.Name" Label="@editing.Label"
+                                Type="field.Type" Nullable="field.Nullable" Busy="_loading"
+                                Filter="AppliedFilter(field.Name)" OnApply="ApplyFilterAsync"
+                                OnRemove="RemoveFilterAsync" OnClose="CloseFilter" />
+        </div>
+    }
+
+    @if (_result is { } page)
+    {
+        <div class="radnet-table-scroll" tabindex="0" aria-label="@EntityName(DisplayedQuery.Entity)">
+            <table style="@FormattableString.Invariant($"min-width:{MinimumTableWidth}rem")">
+                <colgroup>
+                    @foreach (ResultColumn column in DisplayedColumns)
+                    {
+                        <col style="@FormattableString.Invariant($"width:{column.Width}rem")" />
+                    }
+                    @if (HasActions)
+                    {
+                        <col style="@FormattableString.Invariant($"width:{ActionColumnWidth}rem")" />
+                    }
+                </colgroup>
+                <thead>
+                    <tr>
+                        @foreach (ResultColumn column in DisplayedColumns)
+                        {
+                            string? direction = SortDirection(column);
+                            bool filterOpen = _editingColumn == column;
+                            bool hasFilter = AppliedFilter(column.Field) is not null;
+                            <th scope="col" aria-sort="@direction" class="@(column.Numeric ? "radnet-numeric" : null)">
+                                <div class="radnet-column-heading">
+                                    <button type="button" class="radnet-column-sort" title="@column.Label"
+                                            @onclick="() => SortAsync(column)" disabled="@_loading">
+                                        <span>@column.Label</span>
+                                        <span class="radnet-sort-marker" aria-hidden="true">
+                                            @if (direction is not null)
+                                            {
+                                                <RadzenIcon Icon="@(DisplayedQuery.Descending ? "arrow_downward" : "arrow_upward")" />
+                                            }
+                                        </span>
+                                    </button>
+                                    <button type="button" class="radnet-column-filter"
+                                            data-active-filter="@(hasFilter ? "true" : null)"
+                                            aria-label="@($"Filter {column.Label}")" title="@(hasFilter ? "Edit active filter" : $"Filter {column.Label}")"
+                                            aria-expanded="@filterOpen.ToString().ToLowerInvariant()" aria-controls="@(filterOpen ? _filterEditorId : null)"
+                                            @onclick="() => OpenFilter(column)" disabled="@_loading">
+                                        <RadzenIcon Icon="filter_alt" aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </th>
+                        }
+                        @if (HasActions)
+                        {
+                            <th scope="col" class="radnet-actions-heading">Open</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (page.Items.Count == 0)
+                    {
+                        <tr><td colspan="@(DisplayedColumns.Count + (HasActions ? 1 : 0))" class="radnet-result-empty">@EmptyText</td></tr>
+                    }
+                    @foreach (RadNetRow row in page.Items)
+                    {
+                        <tr>
+                            @foreach (ResultColumn column in DisplayedColumns)
+                            {
+                                string value = FormatCell(row, column.Field);
+                                <td class="@CellClass(column)" title="@(column.Field == nameof(RadNetRow.StationName) ? value : null)">
+                                    @if (column.Field == nameof(RadNetRow.SourceRow) && SourceLink?.Invoke(row) is { } link)
+                                    {
+                                        <a href="@link" title="@row.FileName">@value</a>
+                                    }
+                                    else
+                                    {
+                                        @value
+                                    }
+                                </td>
+                            }
+                            @if (HasActions)
+                            {
+                                <td class="radnet-actions">
+                                    @if (OnOpen.HasDelegate && DisplayedQuery.Entity != RadNetEntity.Channel)
+                                    {
+                                        <button type="button" disabled="@_loading" @onclick="() => OnOpen.InvokeAsync(row)"
+                                                aria-label="@OpenLabel(row)">@OpenText <RadzenIcon Icon="chevron_right" aria-hidden="true" /></button>
+                                    }
+                                    @if (ShowQuality)
+                                    {
+                                        <button type="button" disabled="@_loading" @onclick="() => OnQuality.InvokeAsync(row)"
+                                                aria-label="@($"Quality for {row.FileName}")">@(row.ObservationId.HasValue ? "Source" : "Quality")</button>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (page.Items.Count > 0)
+        {
+            <nav class="radnet-pager" aria-label="Results pages">
+                <span>@Count((long)DisplayedQuery.Skip + 1)–@Count((long)DisplayedQuery.Skip + page.Items.Count) of @Count(page.TotalCount)</span>
+                <div>
+                    <button type="button" @onclick="() => PageAsync(-1)" disabled="@(DisplayedQuery.Skip == 0)" aria-disabled="@(_loading ? "true" : null)">
+                        <RadzenIcon Icon="chevron_left" aria-hidden="true" /> Previous
+                    </button>
+                    <button type="button" @onclick="() => PageAsync(1)"
+                            disabled="@((long)DisplayedQuery.Skip + DisplayedQuery.Top >= page.TotalCount ||
+                                        (long)DisplayedQuery.Skip + DisplayedQuery.Top > int.MaxValue)"
+                            aria-disabled="@(_loading ? "true" : null)">
+                        Next <RadzenIcon Icon="chevron_right" aria-hidden="true" />
+                    </button>
+                </div>
+            </nav>
+        }
+    }
+    @if (_error is not null)
+    {
+        <div class="radnet-result-empty" role="alert">
+            <p>@_error</p>
+            <button type="button" @onclick="() => LoadAsync(_requested)">Retry</button>
+        </div>
+    }
+</div>

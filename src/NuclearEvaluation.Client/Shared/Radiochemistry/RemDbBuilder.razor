@@ -1,0 +1,144 @@
+@using static RemDbPresentation
+@using static NuclearEvaluation.Client.Shared.Radiation.RadNetPresentation
+
+<div class="rem-builder">
+    <section class="rem-panel rem-editor" aria-labelledby="rem-query-title">
+        <header class="rem-panel-heading">
+            <div>
+                <h2 id="rem-query-title">Query Builder</h2>
+                <p>Combine filters on the site, sampling window, and measurement.</p>
+            </div>
+            <button type="button" class="rem-button" @onclick="RunExample">Run example</button>
+        </header>
+
+        <div class="rem-presets rem-editor-block">
+            <label for="rem-presets">Saved presets <span>· this browser</span></label>
+            <div class="rem-controls">
+                <select id="rem-presets" value="@_selectedPreset" @onchange="LoadPreset">
+                    <option value="">Choose a preset</option>
+                    @foreach (SavedPreset preset in _presets)
+                    {
+                        <option value="@preset.Name">@preset.Name</option>
+                    }
+                </select>
+                @if (_selectedPreset.Length != 0)
+                {
+                    <button type="button" class="rem-button" @onclick="DeletePresetAsync">Delete</button>
+                }
+            </div>
+            <div class="rem-controls">
+                <input aria-label="Preset name" placeholder="Name this query" maxlength="80" @bind="_presetName" />
+                <button type="button" class="rem-button" @onclick="SavePresetAsync">Save</button>
+            </div>
+        </div>
+
+        <form aria-label="Radiochemistry query filters" @onsubmit="RunQuery" @onsubmit:preventDefault>
+            <div class="rem-editor-block">
+                <label for="rem-filter-entity">Filter groups</label>
+                <div class="rem-controls">
+                    <select id="rem-filter-entity" @bind="_newGroup">
+                        @foreach (RemDbEntity entity in Entities)
+                        {
+                            <option value="@entity">@SingularName(entity)</option>
+                        }
+                    </select>
+                    <button type="button" class="rem-button" disabled="@(!CanAddGroup)" @onclick="AddGroup">Add group</button>
+                </div>
+                @if (_groups.Count > 1)
+                {
+                    <p class="rem-editor-note">All groups must match.</p>
+                }
+            </div>
+
+            @foreach (GroupDraft group in _groups)
+            {
+                <fieldset class="rem-filter-group" @key="group">
+                    <legend>@SingularName(group.Entity)</legend>
+                    <div class="rem-group-heading">
+                        <label>
+                            <span>Match</span>
+                            <select aria-label="@($"Match mode for {SingularName(group.Entity)}")"
+                                    @bind="group.Match">
+                                <option value="@MatchMode.All">All conditions</option>
+                                <option value="@MatchMode.Any">Any condition</option>
+                            </select>
+                        </label>
+                        <button type="button" class="rem-link" @onclick="() => _groups.Remove(group)">Remove group</button>
+                    </div>
+                    @foreach (ConditionDraft condition in group.Conditions)
+                    {
+                        RemDbField field = condition.Field;
+                        <div class="rem-condition" @key="condition">
+                            <select aria-label="@($"{SingularName(group.Entity)} field")" value="@field.Key"
+                                    @onchange="args => ChooseField(group.Entity, condition, args.Value?.ToString())">
+                                @foreach (RemDbField choice in Fields(group.Entity))
+                                {
+                                    <option value="@choice.Key">@choice.Label</option>
+                                }
+                            </select>
+                            <select aria-label="@($"Comparison for {field.Label}")" @bind="condition.Operator">
+                                @foreach (RadNetOperator op in Operators.Where(op => RemDbCatalog.CanCompare(field, op)))
+                                {
+                                    <option value="@op">@OperatorName(op)</option>
+                                }
+                            </select>
+                            @if (TakesValue(condition.Operator))
+                            {
+                                <input @key="field.Key" type="@InputType(field.Type)" step="@InputStep(field.Type)"
+                                       aria-label="@($"Value for {field.Label}")" placeholder="@Placeholder(field)"
+                                       value="@condition.Value" @onchange="args => condition.Value = args.Value?.ToString() ?? string.Empty"
+                                       maxlength="@MaxFilterValueLength" />
+                            }
+                            <button type="button" class="rem-link rem-remove" title="Remove condition"
+                                    aria-label="@($"Remove {field.Label} condition")"
+                                    @onclick="() => RemoveCondition(group, condition)">
+                                <RadzenIcon Icon="close" aria-hidden="true" />
+                            </button>
+                        </div>
+                    }
+                    <button type="button" class="rem-link" disabled="@(!CanAddCondition)" @onclick="() => AddCondition(group)">
+                        Add condition
+                    </button>
+                </fieldset>
+            }
+            <div class="rem-editor-block rem-run">
+                <label for="rem-result-entity">Show results as</label>
+                <div class="rem-controls">
+                    <select id="rem-result-entity" @bind="_entity" @bind:after="ResetSort">
+                        @foreach (RemDbEntity entity in Entities)
+                        {
+                            <option value="@entity">@EntityName(entity)</option>
+                        }
+                    </select>
+                    <button type="submit" class="rem-button rem-primary">Run query</button>
+                </div>
+            </div>
+        </form>
+        @if (_notice is not null)
+        {
+            <p class="rem-editor-block rem-builder-notice" role="status">@_notice</p>
+        }
+    </section>
+    <section class="rem-panel rem-builder-results" aria-labelledby="rem-result-title">
+        <header class="rem-panel-heading">
+            <div>
+                <h2 id="rem-result-title">@(_applied is { } query ? EntityName(query.Entity) : "Results")</h2>
+                @if (_applied?.Entity == RemDbEntity.Measurement)
+                {
+                    <p>Compare reported activity within a common unit and medium.</p>
+                }
+            </div>
+        </header>
+        @if (_applied is { } applied)
+        {
+            <RemDbResults Query="applied" OnOpen="OpenRow" OnSort="SetSort" />
+        }
+        else
+        {
+            <div class="rem-empty rem-result-placeholder">
+                <RadzenIcon Icon="query_stats" aria-hidden="true" />
+                <p>Run a query or try the example to see matching records.</p>
+            </div>
+        }
+    </section>
+</div>

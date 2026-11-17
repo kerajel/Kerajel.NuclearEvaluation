@@ -1,0 +1,146 @@
+@using static RadNetPresentation
+
+<div class="radnet-builder">
+    <section class="radnet-editor" aria-labelledby="radnet-filter-title">
+        <header class="radnet-editor-heading">
+            <div>
+                <h2 id="radnet-filter-title">Query Builder</h2>
+                <p>Join station, file, observation, and channel filters.</p>
+            </div>
+            <button type="button" class="radnet-secondary" @onclick="RunExample">Run example</button>
+        </header>
+
+        <div class="radnet-preset-tools">
+            <label for="radnet-preset">Saved presets <span>· this browser</span></label>
+            <div class="radnet-line">
+                <select id="radnet-preset" value="@_selectedPreset" @onchange="LoadPreset">
+                    <option value="">Choose a preset</option>
+                    @foreach (SavedPreset preset in _presets)
+                    {
+                        <option value="@preset.Name">@preset.Name</option>
+                    }
+                </select>
+                @if (_selectedPreset.Length > 0)
+                {
+                    <button type="button" class="radnet-secondary" @onclick="RemovePresetAsync">Delete</button>
+                }
+            </div>
+            <div class="radnet-line">
+                <input aria-label="Preset name" placeholder="Name this query" maxlength="80" @bind="_presetName" />
+                <button type="button" class="radnet-secondary" @onclick="SavePresetAsync">Save</button>
+            </div>
+        </div>
+
+        <form aria-label="RadNet query filters" @onsubmit="ApplyQuery" @onsubmit:preventDefault>
+            <div class="radnet-group-tools">
+                <label for="radnet-filter-entity">Filter groups</label>
+                <div class="radnet-line">
+                    <select id="radnet-filter-entity" @bind="_newGroupEntity">
+                        @foreach (RadNetEntity entity in Entities)
+                        {
+                            <option value="@entity">@SingularName(entity)</option>
+                        }
+                    </select>
+                    <button type="button" class="radnet-secondary" disabled="@(!CanAddGroup)" @onclick="AddGroup">Add group</button>
+                </div>
+                @if (_groups.Count > 1)
+                {
+                    <p>All groups must match.</p>
+                }
+            </div>
+
+            @foreach (GroupDraft group in _groups)
+            {
+                <fieldset class="radnet-filter-group" @key="group">
+                    <legend>@SingularName(group.Entity)</legend>
+                    <div class="radnet-group-header">
+                        <label class="radnet-match-mode">
+                            <span>Match</span>
+                            <select aria-label="@($"Match mode for {SingularName(group.Entity)}")"
+                                    value="@(group.MatchAny ? "any" : "all")"
+                                    @onchange="args => ChangeMatchMode(group, args)">
+                                <option value="all">All conditions</option>
+                                <option value="any">Any condition</option>
+                            </select>
+                        </label>
+                        <button type="button" class="radnet-quiet" @onclick="() => _groups.Remove(group)"
+                                aria-label="@($"Remove {SingularName(group.Entity)} group")">Remove group</button>
+                    </div>
+                    @foreach (ConditionDraft condition in group.Conditions)
+                    {
+                        RadNetField field = condition.Field;
+                        <div class="radnet-filter-condition" @key="condition">
+                            <select aria-label="@($"{SingularName(group.Entity)} field")" value="@field.Name"
+                                    @onchange="args => ChangeField(group.Entity, condition, args.Value?.ToString())">
+                                @foreach (RadNetField option in Fields(group.Entity))
+                                {
+                                    <option value="@option.Name">@option.Label</option>
+                                }
+                            </select>
+                            <select aria-label="@($"Comparison for {field.Label}")" @bind="condition.Operator">
+                                @foreach (RadNetOperator operation in Operators.Where(option => RadNetCatalog.CanCompare(field, option)))
+                                {
+                                    <option value="@operation">@OperatorName(operation)</option>
+                                }
+                            </select>
+                            @if (TakesValue(condition.Operator))
+                            {
+                                <input type="@InputType(field.Type)" step="@InputStep(field.Type)"
+                                       aria-label="@($"Value for {field.Label}")" placeholder="@Placeholder(field)"
+                                       value="@condition.Value" @onchange="args => condition.Value = args.Value?.ToString() ?? string.Empty"
+                                       maxlength="160" />
+                            }
+                            <button type="button" class="radnet-quiet radnet-remove"
+                                    aria-label="@($"Remove {field.Label} condition")" title="Remove condition"
+                                    @onclick="() => RemoveCondition(group, condition)">
+                                <RadzenIcon Icon="close" aria-hidden="true" />
+                            </button>
+                        </div>
+                    }
+                    <button type="button" class="radnet-quiet radnet-add" disabled="@(!CanAddCondition)"
+                            @onclick="() => AddCondition(group)">+ Add condition</button>
+                </fieldset>
+            }
+
+            <div class="radnet-run">
+                <label for="radnet-result-entity">Show results as</label>
+                <div class="radnet-line">
+                    <select id="radnet-result-entity" value="@_entity"
+                            @onchange="args => SetResultEntity(args.Value?.ToString())">
+                        @foreach (RadNetEntity entity in Entities)
+                        {
+                            <option value="@entity">@EntityName(entity)</option>
+                        }
+                    </select>
+                    <button type="submit" class="radnet-primary">Run query</button>
+                </div>
+            </div>
+        </form>
+
+        @if (_notice is not null)
+        {
+            <p class="radnet-builder-notice" role="status">@_notice</p>
+        }
+    </section>
+
+    <section class="radnet-builder-results" aria-labelledby="radnet-result-title">
+        <header>
+            <h2 id="radnet-result-title">@(_applied is null ? "Results" : EntityName(_applied.Entity))</h2>
+            @if (_applied is not null)
+            {
+                <p>Sort by a column header. Click a row action to inspect the next level.</p>
+            }
+        </header>
+        @if (_applied is { } query)
+        {
+            <RadNetResults @key="_resultRevision" Query="query" OnSort="SetSort" OnOpen="OpenRow" OnQuality="OnQuality" />
+        }
+        else
+        {
+            <div class="radnet-result-prompt">
+                <RadzenIcon Icon="query_stats" aria-hidden="true" />
+                <p>Run a query or load an example to see matching records.</p>
+            </div>
+        }
+    </section>
+</div>

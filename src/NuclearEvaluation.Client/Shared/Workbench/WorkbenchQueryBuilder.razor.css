@@ -1,0 +1,231 @@
+.wbq-builder {
+    display: grid;
+    grid-template-columns: minmax(23rem, .85fr) minmax(0, 1.4fr);
+    align-items: start;
+    gap: 1rem;
+}
+
+.wbq-editor, .wbq-empty {
+    min-width: 0;
+    padding: .9rem;
+    border: 1px solid var(--ne-line);
+    border-radius: .8rem;
+    background: var(--ne-surface);
+}
+
+h2 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.wbq-heading p, .wbq-empty p, .wbq-notice {
+    margin: .28rem 0 0;
+}
+
+.wbq-heading p, .wbq-empty p, .wbq-any {
+    color: var(--ne-muted);
+    font-size: .85rem;
+}
+
+input, select, button {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 2.1rem;
+    padding: .32rem .48rem;
+    border: 1px solid var(--ne-line);
+    border-radius: .36rem;
+    background: var(--ne-surface-raised);
+    color: var(--ne-ink);
+    font: inherit;
+    font-size: .85rem;
+}
+
+button {
+    cursor: pointer;
+    font-weight: 650;
+}
+
+button:hover:not(:disabled) {
+    border-color: var(--ne-accent);
+}
+
+button:disabled {
+    cursor: default;
+    opacity: .5;
+}
+
+:is(button, input, select, summary):focus-visible {
+    outline: 2px solid var(--ne-accent);
+    outline-offset: 2px;
+}
+
+.wbq-example {
+    display: flex;
+    align-items: center;
+    gap: .58rem;
+    width: 100%;
+    margin-top: .7rem;
+    padding: .45rem .55rem;
+    border-color: var(--ne-accent);
+    background: var(--ne-accent-tint);
+    text-align: start;
+}
+
+.wbq-example ::deep .rzi {
+    color: var(--ne-accent);
+    font-size: 1.4rem;
+}
+
+.wbq-example-copy {
+    display: grid;
+    min-width: 0;
+    gap: .04rem;
+}
+
+.wbq-example-copy small, .wbq-example-copy > span {
+    color: var(--ne-muted);
+    font-size: .78rem;
+    font-weight: 500;
+}
+
+.wbq-presets {
+    margin: .55rem 0;
+    border-block-end: 1px solid var(--ne-line);
+}
+
+.wbq-presets summary {
+    padding: .45rem 0;
+    color: var(--ne-accent);
+    font-weight: 650;
+    font-size: .85rem;
+    cursor: pointer;
+}
+
+.wbq-presets-body, .wbq-run {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .42rem;
+    padding-bottom: .55rem;
+}
+
+.wbq-line {
+    display: flex;
+    gap: .4rem;
+    align-items: end;
+}
+
+.wbq-line > input, .wbq-line > select, .wbq-line > label {
+    min-width: 0;
+    flex: 1 1 0;
+}
+
+.wbq-line > button, .wbq-primary {
+    flex: none;
+}
+
+label {
+    color: var(--ne-muted);
+    font-weight: 630;
+    font-size: .82rem;
+}
+
+.wbq-level {
+    min-width: 0;
+    margin: .45rem 0 .6rem;
+    padding: .32rem .55rem;
+    border: 1px solid var(--ne-line);
+    border-radius: .48rem;
+}
+
+.wbq-level legend {
+    padding: 0 .24rem;
+    font-weight: 680;
+    font-size: .91rem;
+}
+
+.wbq-any {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .25rem;
+}
+
+.wbq-group + .wbq-group {
+    margin-top: .4rem;
+    padding-top: .4rem;
+    border-top: 1px solid var(--ne-line);
+}
+
+.wbq-match {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin-bottom: .4rem;
+}
+
+.wbq-match select {
+    min-height: 1.8rem;
+}
+
+.wbq-condition {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .3rem;
+    margin-bottom: .35rem;
+}
+
+.wbq-condition input {
+    grid-column: 1 / span 2;
+    width: 100%;
+}
+
+.wbq-quiet {
+    min-height: 1.8rem;
+    padding: .1rem .2rem;
+    border-color: transparent;
+    background: transparent;
+    color: var(--ne-accent);
+}
+
+.wbq-remove {
+    display: grid;
+    place-items: center;
+    min-width: 1.6rem;
+}
+
+.wbq-remove ::deep .rzi {
+    font-size: 1rem;
+}
+
+.wbq-run {
+    padding-block: .48rem .08rem;
+    border-top: 1px solid var(--ne-line);
+}
+
+.wbq-minimum, .wbq-results-controls label {
+    display: grid;
+    gap: .22rem;
+}
+
+.wbq-minimum input {
+    width: 10rem;
+}
+
+.wbq-primary {
+    border-color: var(--ne-accent);
+    background: var(--ne-accent-tint);
+}
+
+.wbq-notice {
+    color: var(--ne-accent);
+    font-size: .85rem;
+}
+
+@media (max-width: 64rem) {
+    .wbq-builder {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

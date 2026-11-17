@@ -1,15 +1,13 @@
-@page "/evaluation"
-
 <PageTitle>Evaluation | Nuclear Evaluation</PageTitle>
 
 @using NuclearEvaluation.Client.Shared.Evaluation
 
-<WorkspacePage Title="Evaluation workspace"
-               Description="Open a project to inspect its measurements, or use Query Builder to filter across related records.">
+<WorkspacePage Title="Isotope lab evaluation"
+               Description="Inspect an example project's measurements or build a query across related series and samples.">
     <EvaluationTabs OpenAdvancedExample="@(Example == QueryBuilderExample.AdvancedSlug)" />
 </WorkspacePage>
 
 @code {
-    [SupplyParameterFromQuery(Name = "example")]
+    [Parameter]
     public string? Example { get; set; }
 }

@@ -1,0 +1,164 @@
+@using NuclearEvaluation.Client.Shared.Radiation
+@using static NuclearEvaluation.Client.Shared.Radiation.RadNetPresentation
+
+<section class="ir-workspace" aria-labelledby="ir-title">
+    <header class="ir-heading">
+        <div>
+            <h2 id="ir-title">Import Review</h2>
+            <p>Stage an annual RadNet CSV and review each record against the archived observation.</p>
+        </div>
+        <div class="ir-view" role="group" aria-label="Review view">
+            <button type="button" aria-pressed="@(!_showArchive ? "true" : "false")"
+                    @onclick="() => _showArchive = false">Annual CSV</button>
+            <button type="button" aria-pressed="@(_showArchive ? "true" : "false")"
+                    @onclick="() => _showArchive = true">Full archive</button>
+        </div>
+    </header>
+
+    @if (_showArchive)
+    {
+        <section class="ir-panel ir-archive" aria-labelledby="ir-archive-title">
+            <header>
+                <h3 id="ir-archive-title">Preloaded archive</h3>
+                <p>Filter and sort @Count(ObservationCount) retained observations. Use Annual CSV to review the original records from a single file.</p>
+            </header>
+            <RadNetResults Query="@FullArchiveQuery" OnQuality="OpenFileQuality" />
+        </section>
+    }
+    else
+    {
+        <section class="ir-panel ir-intake" aria-labelledby="ir-source-title">
+            <div class="ir-source">
+                <h3 id="ir-source-title">Annual source file</h3>
+                @if (_availability?.Sample is { } source)
+                {
+                    <p>
+                        <strong>@source.Station, @source.State</strong>
+                        <span class="ir-separator">·</span>@source.Year
+                        <span class="ir-separator">·</span>@Count(source.ObservationCount) archived observations
+                    </p>
+                    <p class="ir-filename" title="@source.FileName">@source.FileName</p>
+                    <div class="ir-links">
+                        <a href="@QualityUrl(source.FileId)">Archive file quality</a>
+                        @if (SafeArchiveUrl(source.ArchiveUrl) is { } archiveUrl)
+                        {
+                            <a href="@archiveUrl" target="_blank" rel="noopener">Original EPA ZIP</a>
+                        }
+                    </div>
+                }
+                else if (_busy)
+                {
+                    <p role="status">Loading annual source information…</p>
+                }
+                else
+                {
+                    <p>The annual reference file is unavailable.</p>
+                    <button type="button" class="ir-button" @onclick="LoadAvailabilityAsync">Retry</button>
+                }
+            </div>
+            @if (_availability is { Sample: not null } availability)
+            {
+                <div class="ir-intake-controls">
+                    <button type="button" class="ir-button ir-primary" @onclick="StageSampleAsync"
+                            disabled="@(_busy || !availability.SampleAvailable)">
+                        <RadzenIcon Icon="play_arrow" aria-hidden="true" /> Stage EPA sample
+                    </button>
+                    @if (!availability.SampleAvailable)
+                    {
+                        <small>The sample is unavailable on this host. You can upload the annual CSV below.</small>
+                    }
+                    <div class="ir-upload" role="group" aria-label="Choose a CSV to stage">
+                        <label for="import-review-csv">Choose a RadNet CSV for this station and year</label>
+                        <div>
+                            <InputFile id="import-review-csv" accept=".csv,text/csv" OnChange="SelectUpload"
+                                       disabled="@_busy" aria-describedby="import-review-size" />
+                            <button type="button" class="ir-button" @onclick="UploadAsync"
+                                    disabled="@(_busy || _upload is null)">Stage CSV</button>
+                        </div>
+                        <small id="import-review-size">CSV up to @UploadMegabytes MB</small>
+                    </div>
+                </div>
+            }
+        </section>
+    }
+
+    @if (_busy && _progress is not null)
+    {
+        <p class="ir-message" role="status">@_progress</p>
+    }
+    @if (_error is not null)
+    {
+        <p class="ir-message ir-error" role="alert">@_error</p>
+    }
+    @if (!_showArchive && _stage is { } stage)
+    {
+        <section class="ir-panel ir-review" aria-labelledby="ir-staged-title">
+            <header class="ir-stage-heading">
+                <div>
+                    <h3 id="ir-staged-title">Staged records</h3>
+                    <p class="ir-filename" title="@stage.Name">@stage.Name</p>
+                </div>
+                <details class="ir-checksum">
+                    <summary>SHA-256</summary>
+                    <code>@stage.Sha256</code>
+                </details>
+            </header>
+            <dl class="ir-summary" aria-label="Import findings">
+                <div><dt>CSV records</dt><dd>@Count(stage.InputRows)</dd></div>
+                <div><dt>Matches archive</dt><dd>@Count(stage.MatchedRows)</dd></div>
+                <div><dt>Duplicate</dt><dd>@Count(stage.DuplicateRows)</dd></div>
+                <div><dt>Rejected</dt><dd>@Count(stage.RejectedRows)</dd></div>
+                <div><dt>Changed</dt><dd>@Count(stage.ChangedRows)</dd></div>
+                <div><dt>New</dt><dd>@Count(stage.NewRows)</dd></div>
+                <div><dt>Missing archive rows</dt><dd>@Count(stage.MissingArchiveRows)</dd></div>
+                <div><dt>Without exposure</dt><dd>@Count(stage.RowsWithoutExposure)</dd></div>
+            </dl>
+            <ImportReviewRows @key="stage.Id" StageId="@stage.Id" />
+        </section>
+
+        <section class="ir-panel ir-series" aria-labelledby="ir-series-title">
+            <div>
+                <h3 id="ir-series-title">Create a Series</h3>
+                <p>
+                    @if (stage.CanCreateSeries)
+                    {
+                        <text>The retained CSV records match this annual archive file. Create a Series from those @Count(stage.MatchedRows) observations.</text>
+                    }
+                    else
+                    {
+                        <text>Series creation requires the retained CSV records to match the complete annual archive file.</text>
+                    }
+                </p>
+            </div>
+            @if (stage.CanCreateSeries)
+            {
+                <div class="ir-series-controls">
+                    <label>
+                        Attach to project
+                        <select @bind="_projectChoice" disabled="@_busy">
+                            <option value="">Choose later</option>
+                            @foreach (WorkbenchProject project in _projects)
+                            {
+                                <option value="@project.Id.ToString("D")">@project.Name</option>
+                            }
+                        </select>
+                    </label>
+                    <button type="button" class="ir-button ir-primary" @onclick="CreateSeriesAsync" disabled="@_busy">
+                        <RadzenIcon Icon="playlist_add" aria-hidden="true" /> Create Series
+                    </button>
+                </div>
+            }
+            @if (_seriesLink is { } seriesLink)
+            {
+                <p class="ir-series-notice" role="status">
+                    @(seriesLink.Created ? "Created" : "Reused") <strong>@seriesLink.Series.Name</strong>.
+                    @if (seriesLink.ProjectId is { } id && ProjectName(id) is { } projectName)
+                    {
+                        @(seriesLink.Linked ? " Added to " : " Already in ")<a href="workbench?view=projects">@projectName</a><text>.</text>
+                    }
+                    <a href="workbench">Open Series</a>
+                </p>
+            }
+        </section>
+    }
+</section>

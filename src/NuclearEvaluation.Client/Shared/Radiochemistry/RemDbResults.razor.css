@@ -1,0 +1,73 @@
+.rem-grid-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .5rem;
+    padding-inline-end: 1.08rem;
+}
+
+.rem-grid-summary button {
+    font-size: .82rem;
+}
+
+.rem-results .rem-table-scroll table {
+    table-layout: fixed;
+}
+
+.rem-results .rem-table-scroll td,
+.rem-column-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rem-column-heading,
+.rem-column-heading button,
+.rem-results .rem-result-link {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    min-width: 0;
+}
+
+.rem-numeric .rem-column-heading {
+    justify-content: end;
+}
+
+.rem-results .rem-result-link {
+    max-width: 100%;
+}
+
+.rem-column-heading .rem-column-filter,
+.rem-sort-marker {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.rem-column-heading .rem-column-filter {
+    border-radius: .25rem;
+}
+
+.rem-column-heading .rem-column-filter:hover,
+.rem-column-heading .rem-column-filter[aria-expanded="true"],
+.rem-column-heading .rem-column-filter[data-active-filter="true"] {
+    background-color: var(--rem-tint);
+}
+
+.rem-column-heading .rem-column-filter[data-active-filter="true"] {
+    box-shadow: inset 0 0 0 1px var(--rem-accent);
+}
+
+.rem-column-heading button:focus-visible {
+    outline: 2px solid var(--rem-accent);
+    outline-offset: 2px;
+}
+
+.rem-column-heading button[aria-disabled="true"],
+.rem-results .rem-result-link[aria-disabled="true"] {
+    cursor: wait;
+}

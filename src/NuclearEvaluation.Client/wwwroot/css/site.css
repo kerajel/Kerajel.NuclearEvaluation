@@ -39,8 +39,9 @@
     --ne-surface: color-mix(in srgb, var(--ne-ink) 4%, var(--rz-body-background-color, #f8fafb));
     --ne-surface-raised: color-mix(in srgb, var(--ne-ink) 7%, var(--rz-body-background-color, #f8fafb));
     --ne-line: color-mix(in srgb, var(--ne-ink) 17%, transparent);
-    --ne-accent: color-mix(in srgb, #199889 54%, var(--ne-ink));
+    --ne-accent: color-mix(in srgb, #199889 49%, var(--ne-ink));
     --ne-accent-tint: color-mix(in srgb, var(--ne-accent) 14%, transparent);
+    --ne-chrome: color-mix(in srgb, #175962 8%, var(--rz-body-background-color, #f8fafb));
 }
 
 body {
@@ -104,8 +105,8 @@ body {
 }
 
 .ne-shell {
-    --ne-sidebar-width: 14rem;
-    --ne-header-height: 3.25rem;
+    --ne-sidebar-width: 14.25rem;
+    --ne-header-height: 3.5rem;
     display: grid;
     grid-template-columns: 0 minmax(0, 1fr);
     grid-template-rows: auto 1fr;
@@ -122,7 +123,7 @@ body {
 .ne-shell-sidebar {
     position: sticky;
     inset-block-start: 0;
-    background: var(--ne-surface);
+    background: var(--ne-chrome);
     color: var(--ne-ink);
 }
 
@@ -184,8 +185,22 @@ body {
 }
 
 .ne-nav-toggle-phone,
+.ne-topbar-brand,
 .ne-navigation-backdrop {
     display: none;
+}
+
+.ne-shell:not(.ne-shell-desktop-open) .ne-topbar-brand {
+    display: inline-flex;
+}
+
+.ne-topbar-brand img {
+    border-radius: 50%;
+}
+
+.ne-topbar-brand:focus-visible {
+    outline: 2px solid var(--ne-accent);
+    outline-offset: 3px;
 }
 
 .ne-topbar-location > span {
@@ -198,7 +213,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    min-height: 3.3rem;
+    min-height: var(--ne-header-height);
     padding: 0.6rem 1rem;
     border-bottom: 1px solid var(--ne-line);
     font-size: 1.02rem;
@@ -208,19 +223,24 @@ body {
 }
 
 .ne-brand img {
-    border-radius: 0.45rem;
+    border-radius: 50%;
     flex: none;
 }
 
 .ne-navigation {
     display: grid;
-    gap: 1.35rem;
+    gap: 0.95rem;
     padding: 1.2rem 0.65rem;
 }
 
 .ne-nav-group {
     display: grid;
     gap: 0.2rem;
+}
+
+.ne-nav-group + .ne-nav-group {
+    padding-block-start: .9rem;
+    border-block-start: 1px solid var(--ne-line);
 }
 
 .ne-nav-group > p {
@@ -264,7 +284,7 @@ body {
 }
 
 .ne-nav-link.active {
-    border-color: var(--ne-line);
+    border-color: color-mix(in srgb, var(--ne-accent) 30%, transparent);
     background: var(--ne-accent-tint);
     font-weight: 675;
 }
@@ -306,6 +326,20 @@ body {
 
     .ne-nav-toggle-phone {
         display: grid;
+    }
+
+    .ne-topbar-brand {
+        display: inline-flex;
+    }
+
+    .ne-topbar-location > span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ne-topbar-location {
+        min-width: 0;
     }
 
     .ne-shell .ne-shell-sidebar {

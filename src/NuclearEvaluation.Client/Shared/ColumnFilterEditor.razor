@@ -1,0 +1,177 @@
+@using System.Globalization
+@using static NuclearEvaluation.Client.Shared.Radiation.RadNetPresentation
+
+<form class="column-filter-editor" aria-label="@($"Filter results by {Label}")"
+      @onsubmit="ApplyAsync" @onsubmit:preventDefault>
+    <fieldset disabled="@Busy">
+        <legend>Filter @Label</legend>
+        @if (_conditions.Count > 1)
+        {
+            <label class="column-filter-match">
+                <span>Match</span>
+                <select @bind="_match">
+                    <option value="all">All conditions (AND)</option>
+                    <option value="any">Any condition (OR)</option>
+                </select>
+            </label>
+        }
+        @for (int index = 0; index < _conditions.Count; index++)
+        {
+            ConditionDraft condition = _conditions[index];
+            int number = index + 1;
+            <div class="column-filter-condition" @key="condition">
+                <label>
+                    <span>@(_conditions.Count == 1 ? "Comparison" : $"Comparison {number}")</span>
+                    <select @bind="condition.Operator">
+                        @foreach (RadNetOperator operation in Operations)
+                        {
+                            <option value="@operation">@OperatorName(operation)</option>
+                        }
+                    </select>
+                </label>
+                @if (TakesValue(condition.Operator))
+                {
+                    <label>
+                        <span>@(_conditions.Count == 1 ? "Value" : $"Value {number}")</span>
+                        @if (Values is { Count: > 0 })
+                        {
+                            <select @bind="condition.Value" required>
+                                <option value="">Choose a value</option>
+                                @foreach ((string value, string label) in Values)
+                                {
+                                    <option value="@value">@label</option>
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            <input type="@InputType" step="@InputStep" maxlength="160" required
+                                   value="@condition.Value"
+                                   @oninput="args => condition.Value = args.Value?.ToString() ?? string.Empty" />
+                        }
+                    </label>
+                }
+                @if (_conditions.Count > 1)
+                {
+                    <button class="column-filter-quiet" type="button" @onclick="() => _conditions.Remove(condition)"
+                            aria-label="@($"Remove condition {number}")">Remove</button>
+                }
+            </div>
+        }
+        <div class="column-filter-actions">
+            <button class="column-filter-apply" type="submit" disabled="@(!HasValues)">Apply filter</button>
+            @if (_conditions.Count < ColumnFilterGroup.MaxConditions)
+            {
+                <button type="button" @onclick="AddCondition">Add condition</button>
+            }
+            @if (Filter is not null)
+            {
+                <button type="button" @onclick="() => OnRemove.InvokeAsync()">Clear column</button>
+            }
+            <button type="button" class="column-filter-quiet" @onclick="() => OnClose.InvokeAsync()">Close</button>
+        </div>
+    </fieldset>
+</form>
+
+@code {
+    static readonly RadNetOperator[] AllOperations = Enum.GetValues<RadNetOperator>();
+    readonly List<ConditionDraft> _conditions = [];
+    ColumnFilterGroup? _lastFilter;
+    string? _lastField;
+    string _match = "all";
+
+    [Parameter, EditorRequired] public string Field { get; set; } = "";
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public RadNetFieldType Type { get; set; }
+    [Parameter] public bool Nullable { get; set; }
+    [Parameter] public bool DateOnlyInput { get; set; }
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public ColumnFilterGroup? Filter { get; set; }
+    [Parameter] public IReadOnlyList<(string Value, string Label)>? Values { get; set; }
+    [Parameter] public EventCallback<ColumnFilterGroup> OnApply { get; set; }
+    [Parameter] public EventCallback OnRemove { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    IEnumerable<RadNetOperator> Operations => AllOperations.Where(operation => operation switch
+    {
+        RadNetOperator.Equal or RadNetOperator.NotEqual => true,
+        RadNetOperator.Contains => Type == RadNetFieldType.Text && Values is not { Count: > 0 },
+        RadNetOperator.GreaterThan or RadNetOperator.AtLeast
+            or RadNetOperator.LessThan or RadNetOperator.AtMost => Type != RadNetFieldType.Text,
+        RadNetOperator.IsPresent or RadNetOperator.IsMissing => Nullable,
+        _ => false,
+    });
+
+    string InputType => Type switch
+    {
+        RadNetFieldType.Integer or RadNetFieldType.Number => "number",
+        RadNetFieldType.DateTime => DateOnlyInput ? "date" : "datetime-local",
+        _ => "text",
+    };
+
+    string? InputStep => Type switch
+    {
+        RadNetFieldType.Number => "any",
+        RadNetFieldType.Integer or RadNetFieldType.DateTime => "1",
+        _ => null,
+    };
+
+    bool HasValues => _conditions.All(condition =>
+        !TakesValue(condition.Operator) || !string.IsNullOrWhiteSpace(condition.Value));
+
+    protected override void OnParametersSet()
+    {
+        if (_lastField == Field && SameFilter(_lastFilter, Filter))
+            return;
+        (_lastField, _lastFilter) = (Field, Filter);
+        _match = Filter?.MatchAny == true ? "any" : "all";
+        _conditions.Clear();
+        if (Filter is { Conditions.Count: > 0 })
+            _conditions.AddRange(Filter.Conditions.Select(condition =>
+                new ConditionDraft(condition.Operator, InputValue(condition.Value))));
+        else
+            AddCondition();
+    }
+
+    static bool SameFilter(ColumnFilterGroup? left, ColumnFilterGroup? right) =>
+        ReferenceEquals(left, right) || (left is not null && right is not null
+            && left.Field == right.Field && left.MatchAny == right.MatchAny
+            && left.Conditions.SequenceEqual(right.Conditions));
+
+    string InputValue(string? value)
+    {
+        if (Type == RadNetFieldType.DateTime && DateTimeOffset.TryParse(
+            value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTimeOffset date))
+        {
+            return date.UtcDateTime.ToString(DateOnlyInput ? "yyyy-MM-dd" : "yyyy-MM-dd'T'HH:mm:ss",
+                CultureInfo.InvariantCulture);
+        }
+        return value ?? "";
+    }
+
+    void AddCondition()
+    {
+        if (_conditions.Count < ColumnFilterGroup.MaxConditions)
+        {
+            RadNetOperator operation = Type == RadNetFieldType.Text && Values is not { Count: > 0 }
+                ? RadNetOperator.Contains
+                : RadNetOperator.Equal;
+            _conditions.Add(new(operation, ""));
+        }
+    }
+
+    Task ApplyAsync() =>
+        HasValues && !Busy
+            ? OnApply.InvokeAsync(new ColumnFilterGroup(
+                Field,
+                _match == "any",
+                _conditions.Select(condition => new ColumnFilterCondition(
+                    condition.Operator, TakesValue(condition.Operator) ? condition.Value.Trim() : null)).ToArray()))
+            : Task.CompletedTask;
+
+    sealed class ConditionDraft(RadNetOperator operation, string value)
+    {
+        public RadNetOperator Operator { get; set; } = operation;
+        public string Value { get; set; } = value;
+    }
+}

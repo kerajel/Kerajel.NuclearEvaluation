@@ -1,0 +1,65 @@
+.column-filter-editor {
+    margin: .25rem .85rem .75rem;
+    min-width: 0;
+}
+
+fieldset {
+    display: grid;
+    min-width: 0;
+    gap: .5rem;
+    margin: 0;
+    padding: .45rem .65rem .65rem;
+    border: 1px solid var(--ne-line);
+    border-radius: .45rem;
+    font-size: .83rem;
+}
+
+legend {
+    padding-inline: .2rem;
+    font-weight: 650;
+}
+
+.column-filter-condition,
+.column-filter-actions {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: .4rem .55rem;
+}
+
+label {
+    display: grid;
+    min-width: 0;
+    max-width: 100%;
+    gap: .16rem;
+    color: var(--ne-muted);
+}
+
+.column-filter-match { justify-self: start; }
+
+input, select, button {
+    box-sizing: border-box;
+    min-height: 1.95rem;
+    max-width: 100%;
+    padding: .22rem .48rem;
+    border: 1px solid var(--ne-line);
+    border-radius: .32rem;
+    background: var(--ne-surface-raised);
+    color: var(--ne-ink);
+    font: inherit;
+}
+
+input, select { min-width: 0; }
+button { cursor: pointer; }
+button:disabled { opacity: .55; cursor: default; }
+
+.column-filter-apply {
+    background: var(--ne-accent-tint);
+    border-color: var(--ne-accent);
+}
+
+.column-filter-quiet {
+    border-color: transparent;
+    background: transparent;
+    color: var(--ne-accent);
+}

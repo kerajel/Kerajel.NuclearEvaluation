@@ -14,6 +14,8 @@ public enum AssistantPage
     Unknown,
     FleetGeneration,
     Sources,
+    Radiation,
+    Radiochemistry,
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<AssistantSurface>))]
@@ -69,6 +71,8 @@ public sealed record SiteAssistantContext(
                 AssistantPage.Emissions => "Energy & Emissions",
                 AssistantPage.Sources => "Sources & Methods",
                 AssistantPage.DataManagement => "Data Management",
+                AssistantPage.Radiation => "Radiation Monitoring",
+                AssistantPage.Radiochemistry => "Radiochemistry",
                 AssistantPage.Evaluation => "Evaluation",
                 AssistantPage.Project => "Project overview",
                 _ => "Nuclear Evaluation",
@@ -87,6 +91,9 @@ public enum AssistantActionKind
     CheckStemQuality,
     SelectGenerationView,
     ShowQueryBuilderExample,
+    ApplyRadNetQuery,
+    ApplyRemDbQuery,
+    ShowRemDbExample,
 }
 
 public sealed record AssistantGridQuery(
@@ -121,6 +128,12 @@ public sealed record AssistantAction(AssistantActionKind Kind)
     public IReadOnlyList<AssistantBuilderFilter>? BuilderFilters { get; init; }
     public StemQualityCheck? QualityCheck { get; init; }
     public AssistantGenerationSelection? GenerationSelection { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RadNetQuery? RadNetQuery { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RemDbQuery? RemDbQuery { get; init; }
 }
 
 public sealed record SiteAssistantQuestion(

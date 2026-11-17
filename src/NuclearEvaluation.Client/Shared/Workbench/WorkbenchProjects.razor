@@ -1,0 +1,231 @@
+@using NuclearEvaluation.Client.Shared.Radiation
+@using static NuclearEvaluation.Client.Shared.Radiation.RadNetPresentation
+
+<div class="wb-project-layout" aria-busy="@(_busy ? "true" : "false")">
+    <aside class="wb-project-list" aria-labelledby="wb-project-list-heading">
+        <h2 id="wb-project-list-heading">Projects</h2>
+        @if (_projects.Count > 0)
+        {
+            <ul>
+                @foreach (WorkbenchProject project in _projects)
+                {
+                    <li @key="project.Id">
+                        <button type="button" class="wb-project-choice"
+                                aria-pressed="@(_selectedId == project.Id ? "true" : "false")"
+                                disabled="@_busy" @onclick="() => OpenAsync(project.Id)">
+                            @project.Name
+                            <small>@Count(project.SeriesCount) linked series</small>
+                        </button>
+                    </li>
+                }
+            </ul>
+        }
+        <form class="wb-project-form" @onsubmit="CreateAsync" @onsubmit:preventDefault>
+            <label>
+                New project name
+                <input @bind="_newProjectName" @bind:event="oninput" maxlength="100" required />
+            </label>
+            <button type="submit" class="wb-project-button is-primary"
+                    disabled="@(_busy || string.IsNullOrWhiteSpace(_newProjectName))">Create project</button>
+        </form>
+    </aside>
+
+    <div class="wb-project-content">
+        @if (_error is not null)
+        {
+            <div class="wb-project-card wb-project-error" role="alert">
+                @_error
+                @if (_project is null)
+                {
+                    <button type="button" class="wb-project-button" disabled="@_busy" @onclick="LoadProjectsAsync">Try again</button>
+                }
+            </div>
+        }
+        @if (_project is not { } detail)
+        {
+            @if (_error is null)
+            {
+                <p class="wb-project-card" role="status">@(_busy ? "Loading projects…" : "Create a project to group Series and review their observations.")</p>
+            }
+        }
+        else
+        {
+            <header class="wb-project-lead">
+                <h2>@detail.Project.Name</h2>
+                <dl class="wb-project-metrics" aria-label="Project totals">
+                    <div><dt>Linked series</dt><dd>@Count(detail.Project.SeriesCount)</dd></div>
+                    <div><dt>Distinct observations</dt><dd>@Count(detail.Stats.ObservationCount)</dd></div>
+                    <div><dt>With exposure</dt><dd>@Count(detail.Stats.WithExposure)</dd></div>
+                    <div><dt>With R03</dt><dd>@Count(detail.Stats.WithR03)</dd></div>
+                </dl>
+            </header>
+            @if (_notice is not null)
+            {
+                <p class="wb-project-feedback" role="status">@_notice</p>
+            }
+
+            <section class="wb-project-card" aria-labelledby="wb-project-chart-heading">
+                <header class="wb-project-heading">
+                    <h3 id="wb-project-chart-heading">Observation coverage</h3>
+                    @if (detail.Stats.Months.Count > 0)
+                    {
+                        <div class="wb-project-form">
+                            <label>
+                                Chart period
+                                <select @bind="_chartYear">
+                                    <option value="0">All years</option>
+                                    @foreach (int year in Years(detail.Stats.Months))
+                                    {
+                                        <option value="@year">@year</option>
+                                    }
+                                </select>
+                            </label>
+                            <label>
+                                Chart metric
+                                <select @bind="_chartMetric">
+                                    <option value="@CoverageMetric.Observations">Observations</option>
+                                    <option value="@CoverageMetric.Exposure">With exposure</option>
+                                    <option value="@CoverageMetric.R03">With R03</option>
+                                </select>
+                            </label>
+                        </div>
+                    }
+                </header>
+                @if (detail.Stats.Months.Count == 0)
+                {
+                    <p class="wb-project-note">Add a Series to plot its archive coverage.</p>
+                }
+                else
+                {
+                    ChartBucket[] buckets = ChartBuckets(detail.Stats.Months);
+                    long scale = Math.Max(1, buckets.Max(bucket => bucket.Count));
+                    <figure class="wb-project-chart" aria-label="@ChartTitle">
+                        <div class="wb-project-chart-scroll">
+                            <ul class="wb-project-chart-axis" aria-hidden="true">
+                                <li>@Count(scale)</li>
+                                @if (scale > 1)
+                                {
+                                    <li>@Count(scale / 2)</li>
+                                }
+                                <li>0</li>
+                            </ul>
+                            <ol class="wb-project-bars" aria-label="Observation counts by period">
+                                @foreach (ChartBucket bucket in buckets)
+                                {
+                                    string label = $"{bucket.Label}, {Count(bucket.Count)}";
+                                    <li @key="bucket.Label" title="@label" aria-label="@label">
+                                        <span class="wb-project-bar-track" aria-hidden="true">
+                                            <span class="wb-project-bar" style="--wb-bar-size:@BarSize(bucket.Count, scale)"></span>
+                                        </span>
+                                        <small aria-hidden="true">@bucket.Label</small>
+                                    </li>
+                                }
+                            </ol>
+                        </div>
+                        <figcaption class="wb-project-note">Overlapping Series contribute each observation once.</figcaption>
+                    </figure>
+                }
+            </section>
+
+            <section class="wb-project-card" aria-labelledby="wb-project-series-heading">
+                <header class="wb-project-heading">
+                    <h3 id="wb-project-series-heading">Linked Series</h3>
+                    <button type="button" class="wb-project-button is-primary" aria-expanded="@(_editing ? "true" : "false")"
+                            disabled="@_busy" @onclick="ToggleSeriesSearchAsync">@(_editing ? "Close Series search" : "Add Series")</button>
+                </header>
+                @if (detail.Series.Count == 0)
+                {
+                    <p class="wb-project-note">This project has no linked Series.</p>
+                }
+                else
+                {
+                    <div class="wb-project-grid is-membership" role="region" aria-label="Linked Series table" tabindex="0">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Series</th><th scope="col">Station</th><th scope="col">UTC dates</th>
+                                    <th scope="col">Observations</th><th scope="col">Membership</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (WorkbenchSeries series in detail.Series)
+                                {
+                                    <tr @key="series.Id">
+                                        <td>@series.Name</td><td>@series.Station, @series.State</td>
+                                        <td>@Day(series.From) to @Day(series.To)</td>
+                                        <td class="is-numeric">@Count(series.ObservationCount)</td>
+                                        <td>
+                                            <button type="button" class="wb-project-button" disabled="@_busy"
+                                                    aria-label="@($"Remove {series.Name} from project")"
+                                                    @onclick="() => ChangeMembershipAsync(series, add: false)">Remove</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                @if (_editing)
+                {
+                    <form class="wb-project-form" @onsubmit="SearchSeriesAsync" @onsubmit:preventDefault>
+                        <label>
+                            Find Series by name or station
+                            <input type="search" @bind="_seriesSearch" @bind:event="oninput" maxlength="100" />
+                        </label>
+                        <button type="submit" class="wb-project-button" disabled="@_busy">Search Series</button>
+                    </form>
+                    @if (_matches is { } matches)
+                    {
+                        @if (matches.Items.Count == 0)
+                        {
+                            <p class="wb-project-note">No Series match the search.</p>
+                        }
+                        else
+                        {
+                            <div class="wb-project-grid" role="region" aria-label="Series search results" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Series</th><th scope="col">Station</th><th scope="col">UTC dates</th>
+                                            <th scope="col">Observations</th><th scope="col">Membership</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (WorkbenchSeries series in matches.Items)
+                                        {
+                                            bool linked = detail.Series.Any(member => member.Id == series.Id);
+                                            <tr @key="series.Id">
+                                                <td>@series.Name</td><td>@series.Station, @series.State</td>
+                                                <td>@Day(series.From) to @Day(series.To)</td>
+                                                <td class="is-numeric">@Count(series.ObservationCount)</td>
+                                                <td>
+                                                    <button type="button" class="wb-project-button" disabled="@(_busy || linked)"
+                                                            aria-label="@($"Add {series.Name} to project")"
+                                                            @onclick="() => ChangeMembershipAsync(series, add: true)">@(linked ? "Linked" : "Add")</button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <footer class="wb-project-foot" aria-label="Series search pages">
+                                <button type="button" class="wb-project-button" disabled="@(_busy || _searchSkip == 0)"
+                                        @onclick="() => FindSeriesAsync(_searchSkip - SeriesPageSize)">Previous</button>
+                                <span>@PageRange(_searchSkip, matches.Items.Count, matches.TotalCount) Series</span>
+                                <button type="button" class="wb-project-button" disabled="@(_busy || _searchSkip + matches.Items.Count >= matches.TotalCount)"
+                                        @onclick="() => FindSeriesAsync(_searchSkip + SeriesPageSize)">Next</button>
+                            </footer>
+                        }
+                    }
+                }
+            </section>
+
+            <section class="wb-project-card wb-project-observations" aria-labelledby="wb-project-observations-heading">
+                <h3 id="wb-project-observations-heading">Project observations</h3>
+                <RadNetResults @key="detail.Project.Id" Query="ObservationQuery" QueryUrl="@ObservationUrl(detail.Project)"
+                               ShowObservationState="true" SourceLink="ObservationSourceLink" OnConflict="RefreshProjectAsync"
+                               EmptyText="@(detail.Stats.ObservationCount == 0 ? "No observations are linked to this project." : "No project observations match these filters.")" />
+            </section>
+        }
+    </div>
+</div>

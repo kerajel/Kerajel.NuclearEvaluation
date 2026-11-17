@@ -1,45 +1,47 @@
 # Nuclear Evaluation
 
-A personal web application for exploring nuclear-material evaluation data: projects, series,
-samples, isotope measurements, charts, and spreadsheet previews.
+A public workspace for managing and analyzing environmental radiation measurements. Create
+editable Series from the EPA RadNet archive, group them into Projects, and follow published
+observations back to their source files. Radiochemistry also provides access to the European
+Commission's Radioactivity Environmental Monitoring Database (REMdb).
 
-Built with Blazor WebAssembly, ASP.NET Core, and SQL Server, it brings relational data exploration,
-reusable queries, isotope charts, and spreadsheet processing into one interactive workspace.
+Built with Blazor WebAssembly, ASP.NET Core, SQL Server, and read-only DuckDB snapshots.
 
 **[Try the live demo](https://nuclearevaluation.com/)**
 
 ### What to try
 
+- **Data Workbench** opens the Series grid with editable metadata and paged source files,
+  observations, and channels. Manage Project membership to update its chart, distinct
+  observation count, and observation grid. Query Builder applies filters from Projects through
+  gamma channels along the same branch, with an optional minimum count of distinct matching
+  observations per Series. Column filters accept two conditions with AND or OR and refine
+  the returned grid without changing those qualifying counts. Try the
+  **California · 2025 R03 coverage review** preset.
+- **Radiation Monitoring** opens the station-to-channel hierarchy, a Query Builder with
+  browser-local presets, and File Quality. Each observation identifies its original CSV record.
+- **Radiochemistry** browses REMdb sites, sampling windows, and radionuclide results from 40 annual
+  releases. Use Query Builder to join conditions across the hierarchy, or File Quality to see
+  published units, value types, missing values, and reporting-limit qualifiers.
 - **Fleet Explorer** shows reactor capacity, state rankings, and monthly generation for two
   selected plants. See [the source snapshot](docs/fleet-data.md).
 - **Generation Calendar** shows monthly or daily-average generation by state, with a plant-level
   breakdown for the selected month of the 2024 snapshot and CSV exports for both measures.
 - **Energy & Emissions** compares published lifecycle factors for six electricity sources and
   estimates totals for a generation amount you choose. Fleet and Calendar links can fill that amount.
-- **Sources & Methods** links to the public datasets and explains the units, calculations, and
-  generated records in the evaluation workspace.
-- **Data Management:** browse and filter series, expand their samples, and inspect matching totals.
-- **Evaluation:** open a project, change its series membership, and explore isotope distributions.
-- **Query Builder** combines filters across related entities, includes example drafts, and saves
-  reusable presets on request.
-- **STEM Preview:** upload Excel or delimited text files, inspect their rows, and remove individual
-  files. Open **Quality** to profile a file and inspect the rows that match a check.
-
-The evaluation workspace is shared and anonymous. It uses **generated example data**, and changes
-are periodically reset. Uploads are temporary. The fleet and emissions sections use published data.
-See [the calculation model](docs/calculation-notes.md) for decay correction, reference dates, and
-histogram definitions.
+- **Sources & Methods** links to the public datasets and explains their units and processing.
 
 ### Design choices
 
-The browser owns component state and calls a typed HTTP API. SQL Server handles data management,
-evaluation queries, and histogram aggregation. STEM Preview retains the original uploads for the
-session and appends each file to a DuckDB temporary table. DuckDB handles preview filtering,
-sorting, counts, and pagination.
+The browser owns component state and calls typed HTTP APIs. DuckDB serves each archive's filters,
+file quality, counts, and pagination. Gamma channels are projected from the observation's
+published count-rate columns. SQL Server persists each browser's Series, Projects, and memberships
+in separate workbench tables. Project queries pass those Series ranges to DuckDB and count their
+union, so overlapping ranges never double-count a published observation. The legacy isotope
+and STEM workflows are available as opt-in fixtures for tests.
 
-The application runs as a single host with an anonymous shared workspace.
-[Implementation notes](docs/implementation.md) describe query execution, upload processing,
-browser state, and automated test coverage.
+[Implementation notes](docs/implementation.md) describe the legacy fixture architecture and test
+coverage.
 
 ## Architecture
 
@@ -52,16 +54,9 @@ browser state, and automated test coverage.
 | `Kerajel.Primitives` | Class library | Vendored helper types (`OperationResult`, `Debouncer`, …) |
 | `Kerajel.TabularDataReader` | Class library | Compatibility reader for legacy Excel and inputs DuckDB cannot parse with the existing STEM rules |
 
-The client talks to the server only through the typed `INuclearEvaluationApi` (HTTP + JSON).
-Grids translate Radzen `LoadDataArgs` into a serializable `DataQuery`; the server runs it against
-SQL Server for evaluation data and embedded DuckDB for STEM Preview.
-
-```
-Browser ──HTTP/JSON──> NuclearEvaluation.Server (API + WASM host) ──EF Core / linq2db──> SQL Server
-   │  (WASM: NuclearEvaluation.Client)                 │
-   └─ proof-of-work captcha gate                       ├─ embedded DuckDB (STEM Preview)
-                                                       └─ SandboxMaintenanceService (purge + nightly reset)
-```
+The client calls the host over HTTP and JSON after the human check. RadNet and REMdb each use a
+typed field catalog and query contract. With fixtures enabled, the legacy grids use `DataQuery`
+over SQL Server or embedded DuckDB for STEM Preview.
 
 ## Running locally with Docker
 
@@ -71,47 +66,106 @@ The repository ships a `docker-compose.yml` that runs SQL Server 2022 and the ap
 docker compose up --build
 ```
 
-Then open <http://localhost:8080>. On first run the app applies EF Core migrations and seeds
-the database. Development mode skips the proof-of-work captcha.
+Then open <http://localhost:8080>. Development mode skips the proof-of-work captcha.
 
-SQL Server data and uploaded files persist in named Docker volumes (`mssql-data`, `app-storage`).
+For legacy fixture development, run `NUCLEAR_TEST_FIXTURES=true docker compose up --build`.
+The app migrates and seeds SQL Server in this mode. The database and uploaded files persist in
+named volumes (`mssql-data`, `app-storage`).
 
 ## Running locally without Docker
 
-Requirements: .NET SDK 11.0 and a reachable SQL Server instance.
-
-1. Put your connection string in `src/NuclearEvaluation.Server/appsettings.Development.json`
-   (git-ignored):
-
-   ```json
-   {
-     "ConnectionStrings": {
-       "NuclearEvaluationServerDbConnection": "Server=localhost;Database=NuclearEvaluation;Trusted_Connection=True;TrustServerCertificate=True;"
-     }
-   }
-   ```
-
-2. Run the host (it migrates and seeds on startup):
-
-   ```bash
-   dotnet run --project src/NuclearEvaluation.Server
-   ```
-
-To manage the schema by hand instead:
+With the .NET 11 SDK installed, run:
 
 ```bash
-cd src/NuclearEvaluation.Server
-dotnet tool restore
-dotnet ef database update --project ../NuclearEvaluation.Kernel --startup-project .
+dotnet run --project src/NuclearEvaluation.Server
 ```
 
-The setup/seed SQL lives at `src/NuclearEvaluation.Kernel/Data/Seed/NuclearEvaluationServerDbSetUp.sql`
-and is embedded into the Kernel assembly so the app can run it for both first-time setup and the
-nightly reset.
+To run the legacy fixtures, set `Sandbox__UseTestFixtures=true` and configure
+`ConnectionStrings__NuclearEvaluationServerDbConnection` for a disposable SQL Server database.
+
+Data Workbench uses `ConnectionStrings__Workbench` or the existing SQL Server connection string.
+Install the RadNet snapshot and provision the workbench tables on that same database. The app
+initializes its isolated tables on first use when its connection has DDL permissions.
+
+### Build the EPA RadNet snapshot
+
+Build the snapshot outside the repository with Python 3.11 or later and DuckDB 1.5.6, the same
+DuckDB release used by the server. The default download covers the available 2016–2025 station
+files. Keep several GB free for the archive cache, staged CSVs, and database.
+
+```bash
+mkdir -p "$HOME/.local/share/nuclear-evaluation/radnet"
+python3 -m venv "$HOME/.local/share/nuclear-evaluation/radnet/venv"
+radnet_dir="$HOME/.local/share/nuclear-evaluation/radnet"
+"$radnet_dir/venv/bin/pip" install duckdb==1.5.6
+"$radnet_dir/venv/bin/python" scripts/import-radnet.py \
+  --cache "$radnet_dir/archives" --output "$radnet_dir/radnet.duckdb"
+RadNet__SnapshotPath="$radnet_dir/radnet.duckdb" dotnet run --project src/NuclearEvaluation.Server
+```
+
+The server also looks for `App_Data/radnet.duckdb` under its content root. The file lives outside
+`wwwroot`. Place the snapshot on the host separately from the application publish. The Radiation
+workspace shows an unavailable state until the snapshot is installed.
+
+The importer retains the archive URL, SHA-256, member path, and source record number. It uses
+the published UTC timestamps and units, leaves missing values empty, and keeps one record per
+station and timestamp. Ties favor approved records, then the most complete record, then the
+first source record. Imported counts exclude rows with unparseable or wrong-year timestamps or
+no usable measurement. Source-file quality shows the input, duplicate, and rejected row counts.
+The public data comes from the [EPA archive index](https://www.epa.gov/radnet/radnet-csv-file-downloads)
+under [EPA's data terms](https://edg.epa.gov/EPA_Data_License.html).
+
+### Try Import Review
+
+Import Review in Data Workbench uses the Colorado Springs 2025 CSV from the same EPA download.
+Extract it from the archive cache and set `ImportReview__SamplePath` when starting the server, or
+place the file at `App_Data/radnet-import-sample.csv` under the server's content root.
+
+```bash
+unzip -p "$radnet_dir"/archives/*-co_colorado_springs_2025-2008.zip \
+  'co_colorado_springs_2025-2008/CO_COLORADO_SPRINGS_2025.csv' \
+  > "$radnet_dir/CO_COLORADO_SPRINGS_2025.csv"
+export ImportReview__SamplePath="$radnet_dir/CO_COLORADO_SPRINGS_2025.csv"
+```
+
+Stage the supplied sample or upload a copy of this annual file to inspect its source records,
+including duplicates, rejected rows, and differences from the archive. A complete match can be
+saved as a Series and linked to a Project. Full archive opens the retained observations for
+server-side filtering, sorting, and paging across all stations.
+
+### Build the JRC REMdb snapshot
+
+Use Python 3.11 or later, DuckDB 1.5.6, and a workspace outside the repository with several GB free.
+
+```bash
+remdb_dir="$HOME/.local/share/nuclear-evaluation/remdb"
+mkdir -p "$remdb_dir"
+python3 -m venv "$remdb_dir/venv"
+"$remdb_dir/venv/bin/pip" install duckdb==1.5.6
+"$remdb_dir/venv/bin/python" scripts/import-remdb.py \
+  --archive-cache "$remdb_dir/archives" --output "$remdb_dir/remdb.duckdb"
+RemDb__SnapshotPath="$remdb_dir/remdb.duckdb" dotnet run --project src/NuclearEvaluation.Server
+```
+
+The server also reads `App_Data/remdb.duckdb` relative to its content root. Install the snapshot
+outside `wwwroot` and separately from the app publish. Radiochemistry shows an unavailable state
+until the snapshot is installed.
+
+The importer uses the bulk 1984–2006 and 2007–2011 archives, then the individual 2012–2023 releases.
+It checks annual CSV headers and published row count footers and retains the archive URL, SHA-256,
+member path, and CSV record number. Sites and sampling windows group published fields. Windows
+use sampling timestamps at their published precision. Activity values, units, reporting-limit
+qualifiers, and value types are retained for inspection. The 1984–2011 files omit the separate
+qualifier column. The 1986 source splits some results across consecutive rows. The importer
+rejoins the recognized pairs and cites the first row.
+
+Source attribution: European Commission, Joint Research Centre (JRC), Radioactivity Environmental
+Monitoring Database (REMdb). [Official archive](https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/REMDB/datasets/) ·
+[CC BY 4.0 reuse notice](https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/REMDB/datasets/copyright.txt).
 
 ### Site assistant and MCP
 
-With the local SQL Server configured, run the assistant host on loopback:
+Run the assistant host on loopback:
 
 ```bash
 ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://127.0.0.1:8081 Assistant__Enabled=true \
@@ -119,12 +173,9 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://127.0.0.1:8081 Assista
 ```
 
 Open <http://127.0.0.1:8081> and use **Assistant** in the bottom-right corner. The popup follows
-the active page and tab. It applies filters, sort, and a row limit directly to the active data
-grid. Ask “Show me top 5 series where Is DU is false and there is at least 1 QC sample order by
-ID desc,” or ask it to clear the assistant's criteria. In Query Builder it can fill the editor
-and refresh the selected results as an unsaved draft. In STEM it can filter the current preview
-and open a quality check for the selected file. On the Generation Calendar, try “Show Illinois in
-February as a daily average” to change the displayed state, month, and measure.
+the active page and tab. In Radiochemistry, ask “Show Cs-137 results for Austrian cow's milk in
+2023 below the reporting limit.” The assistant fills the editor and runs the query. On the
+Generation Calendar, try “Show Illinois in February as a daily average.”
 
 In Development, the app connects to its MCP server over Streamable HTTP at
 `http://127.0.0.1:8081/mcp`. It caches
@@ -135,7 +186,7 @@ text. If you change the port, set `Assistant__McpUrl` to the matching loopback U
 For natural-language requests across the site, set an [OpenAI API project key](https://developers.openai.com/api/docs/quickstart)
 as `OPENAI_API_KEY` in the server process environment or as `OpenAI:ApiKey` in the server project's
 .NET user secrets, then restart the host. `OpenAI:Model` overrides the default `gpt-5-mini`.
-The local parser still handles common Series questions without an API key.
+The local parser handles common Series questions in legacy fixture mode without an API key.
 
 In Production, the server enables the chat when an API key is configured. The human check protects
 chat and status requests, and chat accepts up to five requests per client IP and 60 across the app
@@ -145,9 +196,10 @@ The HTTP MCP endpoint is available only in enabled local Development. Set
 
 ## Abuse protection & ephemeral data
 
-Because the site is public and anonymous, the `Sandbox` configuration section governs:
+The `Sandbox` configuration section governs per-IP request limits and these additional controls
+for legacy fixtures:
 
-- **Rate limiting** — per-IP request window plus a stricter per-IP daily cap on uploads.
+- **Upload rate** — per-IP daily cap.
 - **Upload caps** — 64 MiB per STEM file (`UploadLimits`). Upload admission checks the global storage
   threshold against retained uploads and temporary DuckDB spill files before accepting a new file.
   `Sandbox:StemPreviewMaxConcurrentOperations` bounds simultaneous DuckDB operations (two by default).
@@ -155,7 +207,7 @@ Because the site is public and anonymous, the `Sandbox` configuration section go
   sessions (closing their DuckDB connections and deleting their uploads), and resets SQL Server to seed once per
   interval (tracked in `DBO.SandboxState` so it survives app-pool recycling).
 
-Set a private `Captcha:Secret` and the connection string on the production host. If no captcha
+Set a private `Captcha:Secret` on the production host. If no captcha
 secret is configured, the server generates a random key for that process, so verification cookies
 stop working when it restarts. Difficulty and cookie lifetime can also be set under `Captcha`.
 
@@ -186,7 +238,8 @@ dotnet test --configuration Release --artifacts-path /tmp/nuclear-evaluation-bui
 ```
 
 
-End-to-end browser regression tests live in `tests/e2e`. Start the app first against a disposable local or staging database, then run:
+End-to-end browser regression tests live in `tests/e2e`. Start the app with fixtures enabled
+against a disposable local or staging database, then run:
 
 ```bash
 cd tests/e2e

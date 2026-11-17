@@ -1,0 +1,138 @@
+@page "/radiochemistry"
+@using NuclearEvaluation.Client.Shared.Radiochemistry
+@using static NuclearEvaluation.Client.Shared.Radiochemistry.RemDbPresentation
+
+<PageTitle>Radiochemistry · Nuclear Evaluation</PageTitle>
+
+<section class="rem-workspace" aria-labelledby="rem-title">
+    <header class="rem-hero">
+        <div class="rem-hero-heading">
+            <a class="rem-source" href="@DataSourceUrl" target="_blank" rel="noopener">
+                European Commission · REMdb <RadzenIcon Icon="north_east" aria-hidden="true" />
+            </a>
+            <h1 id="rem-title">Radiochemistry</h1>
+            <p>Explore published measurements of radionuclides in air, water, soil, food, and other environmental media.</p>
+        </div>
+        @if (_summary is { Available: true } summary)
+        {
+            <dl class="rem-overview" aria-label="Archive coverage">
+                <div><dt>Measurements</dt><dd>@Count(summary.MeasurementCount)</dd></div>
+                <div><dt>Sampling windows</dt><dd>@Count(summary.SamplingWindowCount)</dd></div>
+                <div><dt>Sites</dt><dd>@Count(summary.SiteCount)</dd></div>
+            </dl>
+        }
+    </header>
+
+    <nav class="rem-tabs" aria-label="Radiochemistry workspace">
+        @foreach ((string view, string name, string icon) in Views)
+        {
+            <a href="@ViewUrl(view)" aria-current="@(ActiveView == view ? "page" : null)">
+                <RadzenIcon Icon="@icon" aria-hidden="true" /> @name
+            </a>
+        }
+    </nav>
+
+    @if (_loadingSummary)
+    {
+        <div class="rem-panel rem-empty" role="status">Reading archive coverage…</div>
+    }
+    else if (_summary is not { Available: true })
+    {
+        <div class="rem-panel rem-empty">
+            <h2>Radiochemistry archive unavailable</h2>
+            <p>@(_summaryError ?? "This host is missing the REMdb snapshot.")</p>
+            <button type="button" class="rem-button" @onclick="LoadSummaryAsync">Retry</button>
+        </div>
+    }
+    else if (ActiveView == "builder")
+    {
+        <RemDbBuilder @ref="_builder" OnOpen="BrowseQueryResult" RunExampleOnLoad="ExampleRequested" />
+    }
+    else if (ActiveView == "quality")
+    {
+        <RemDbFileQualityView @key="FileId" FileId="FileId" OnBrowse="BrowseFile" />
+    }
+    else
+    {
+        @if (_path.Count == 1 && _summary.Coverage.Count > 0)
+        {
+            long maximum = Math.Max(1L, _summary.Coverage.Max(year => year.MeasurementCount));
+            <section class="rem-coverage" aria-labelledby="rem-coverage-title">
+                <div>
+                    <h2 id="rem-coverage-title">Archive coverage</h2>
+                    <p>Published records by source release year.</p>
+                    <label class="rem-year">
+                        <span>Inspect a year</span>
+                        <select @onchange="BrowseSelectedYear">
+                            <option value="">Choose year</option>
+                            @foreach (RemDbYearCoverage year in _summary.Coverage.Reverse())
+                            {
+                                <option value="@year.Year">@year.Year · @Count(year.MeasurementCount)</option>
+                            }
+                        </select>
+                    </label>
+                </div>
+                <div class="rem-timeline" aria-hidden="true">
+                    <div class="rem-bars">
+                        @foreach (RemDbYearCoverage year in _summary.Coverage)
+                        {
+                            string description = $"{year.Year}: {Count(year.MeasurementCount)} measurements";
+                            string height = FormattableString.Invariant($"{100d * year.MeasurementCount / maximum:0.##}%");
+                            <span title="@description" style="@($"block-size:{height}")"></span>
+                        }
+                    </div>
+                    <div class="rem-timeline-labels">
+                        <span>@_summary.Coverage[0].Year</span>
+                        <span>@_summary.Coverage[^1].Year</span>
+                    </div>
+                </div>
+            </section>
+        }
+        <section class="rem-panel">
+            <header class="rem-panel-heading">
+                <div>
+                    @if (_path.Count > 1)
+                    {
+                        <nav class="rem-breadcrumbs" aria-label="Sampling drilldown">
+                            @foreach (BrowseStep step in _path)
+                            {
+                                if (step == _path[^1])
+                                {
+                                    <span aria-current="page">@step.Label</span>
+                                }
+                                else
+                                {
+                                    <button type="button" class="rem-link" @onclick="() => OpenStep(step)">@step.Label</button>
+                                    <RadzenIcon Icon="chevron_right" aria-hidden="true" />
+                                }
+                            }
+                        </nav>
+                    }
+                    <h2>@EntityName(BrowseQuery.Entity)</h2>
+                    <p>@BrowseDescription</p>
+                </div>
+                @if (BrowseQuery.Entity == RemDbEntity.Site)
+                {
+                    <form class="rem-search" @onsubmit="SearchSites" @onsubmit:preventDefault>
+                        <label>
+                            <span>Country</span>
+                            <select @bind="_country">
+                                <option value="">Any country</option>
+                                @foreach (RemDbCountryCoverage country in _summary.Countries)
+                                {
+                                    <option value="@country.Country">@country.Country (@Count(country.SiteCount))</option>
+                                }
+                            </select>
+                        </label>
+                        <label>
+                            <span>Site name</span>
+                            <input @bind="_siteSearch" @bind:event="oninput" type="search" placeholder="Any name" maxlength="@MaxFilterValueLength" />
+                        </label>
+                        <button type="submit" class="rem-button">Find sites</button>
+                    </form>
+                }
+            </header>
+            <RemDbResults Query="BrowseQuery" OnOpen="DrillDown" />
+        </section>
+    }
+</section>

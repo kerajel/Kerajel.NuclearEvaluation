@@ -1,0 +1,138 @@
+@using static NuclearEvaluation.Client.Shared.Radiation.RadNetPresentation
+
+<section class="wb-query-results" aria-labelledby="workbench-query-results-heading">
+    <header>
+        <h2 id="workbench-query-results-heading">Results</h2>
+        @if (_page is { } page)
+        {
+            <div class="wb-query-summary">
+                <p role="status"><strong>@Count(page.Result.TotalCount)</strong> matching @EntityName(page.Query.Entity).ToLowerInvariant()</p>
+                @if (page.Query.ResultFilters is { Count: > 0 } || page.Query.ResultFilterGroups is { Count: > 0 })
+                {
+                    <button type="button" class="wb-query-clear-filters" @onclick="() => ClearFiltersAsync()" disabled="@Loading">
+                        Clear result filters
+                    </button>
+                }
+            </div>
+        }
+        @if (Loading)
+        {
+            <p class="@(_page is null ? null : "wb-query-sr-only")" role="status">Running query…</p>
+        }
+    </header>
+
+    @if (_filterEditor is { } editor && _page is { } filterPage)
+    {
+        <div id="wb-query-column-filter" class="wb-query-filter-editor">
+            <ColumnFilterEditor @key="editor.Field.Name"
+                                Field="@editor.Field.Name" Label="@editor.Label" Type="@editor.Field.Type"
+                                Nullable="@editor.Field.Nullable"
+                                DateOnlyInput="@(editor.Field.Entity == WorkbenchQueryEntity.Series)"
+                                Values="@(editor.Field.Name == nameof(WorkbenchQueryRow.Review) ? ReviewValues : null)"
+                                Busy="@Loading" Filter="@FindResultFilter(filterPage.Query, editor.Field.Name)"
+                                OnApply="ApplyFilterAsync" OnRemove="@(() => ClearFiltersAsync(editor.Field.Name))"
+                                OnClose="CloseFilter" />
+        </div>
+    }
+
+    @if (_page is { } current)
+    {
+        ResultColumn[] columns = ResultColumns(current.Query).ToArray();
+        <div class="wb-query-table" tabindex="0" role="region" aria-label="@EntityName(current.Query.Entity)"
+             aria-busy="@Loading.ToString().ToLowerInvariant()">
+            <table style="@FormattableString.Invariant($"min-width:{columns.Sum(column => column.Width)}rem")">
+                <colgroup>
+                    @foreach (ResultColumn column in columns)
+                    {
+                        <col style="@FormattableString.Invariant($"width:{column.Width}rem")" />
+                    }
+                </colgroup>
+                <thead>
+                    <tr>
+                        @foreach (ResultColumn column in columns)
+                        {
+                            string? direction = SortDirection(current.Query, column);
+                            WorkbenchQueryField? field = ResultField(current.Query.Entity, column);
+                            <th scope="col" aria-sort="@direction" class="@(column.Numeric ? "wb-query-number" : null)">
+                                <div class="wb-query-column-heading">
+                                    @if (field is not null)
+                                    {
+                                        ColumnFilterGroup? activeFilter = FindResultFilter(current.Query, field.Name);
+                                        bool editorOpen = _filterEditor?.Field.Name == field.Name;
+                                        string filterLabel = $"Filter {column.Label}";
+                                        <button type="button" class="wb-query-sort" @onclick="() => SortAsync(column.Field)"
+                                                title="@column.Label" aria-disabled="@(Loading ? "true" : null)">
+                                            <span class="wb-query-column-label">@column.Label</span>
+                                            <span class="wb-query-sort-marker" aria-hidden="true">
+                                                @if (direction is not null)
+                                                {
+                                                    <RadzenIcon Icon="@(current.Query.Descending ? "arrow_downward" : "arrow_upward")" />
+                                                }
+                                            </span>
+                                        </button>
+                                        <button type="button" class="wb-query-filter-button" @onclick="() => OpenFilter(field, column.Label)"
+                                                aria-label="@filterLabel" title="@(activeFilter is null ? filterLabel : $"{filterLabel} (active)")"
+                                                aria-expanded="@editorOpen.ToString().ToLowerInvariant()" aria-controls="@(editorOpen ? "wb-query-column-filter" : null)"
+                                                aria-disabled="@(Loading ? "true" : null)" data-active-filter="@(activeFilter is null ? null : "true")">
+                                            <RadzenIcon Icon="filter_alt" aria-hidden="true" />
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="wb-query-column-label" title="@column.Label">@column.Label</span>
+                                    }
+                                </div>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (current.Result.Items.Count == 0)
+                    {
+                        <tr><td class="wb-query-result-message" colspan="@columns.Length">No rows match these filters.</td></tr>
+                    }
+                    @foreach (WorkbenchQueryRow row in current.Result.Items)
+                    {
+                        <tr>
+                            @foreach (ResultColumn column in columns)
+                            {
+                                string? value = column.Format(row);
+                                <td class="@(column.Numeric ? "wb-query-number" : null)" title="@value">
+                                    @if (column.Source && row.FileId is int fileId && !string.IsNullOrEmpty(value))
+                                    {
+                                        <a href="@SourceUrl(fileId)" target="_blank" rel="noopener">@value</a>
+                                    }
+                                    else
+                                    {
+                                        @(string.IsNullOrEmpty(value) ? "—" : value)
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (current.Query.Skip > 0 || current.Result.TotalCount > current.Query.Top)
+        {
+            <nav class="wb-query-pager" aria-label="Query result pages">
+                <span>@Count((long)current.Query.Skip + 1)–@Count((long)current.Query.Skip + current.Result.Items.Count) of @Count(current.Result.TotalCount)</span>
+                <div>
+                    <button type="button" @onclick="() => PageAsync(-1)" disabled="@(current.Query.Skip == 0)"
+                            aria-disabled="@(Loading ? "true" : null)">Previous</button>
+                    <button type="button" @onclick="() => PageAsync(1)"
+                            disabled="@((long)current.Query.Skip + current.Query.Top >= current.Result.TotalCount ||
+                                        (long)current.Query.Skip + current.Query.Top > int.MaxValue)"
+                            aria-disabled="@(Loading ? "true" : null)">Next</button>
+                </div>
+            </nav>
+        }
+    }
+    @if (_error is not null)
+    {
+        <div class="wb-query-result-message wb-query-result-error" role="alert">
+            <p>@_error</p>
+            <button type="button" @onclick="RetryAsync">Retry</button>
+        </div>
+    }
+</section>

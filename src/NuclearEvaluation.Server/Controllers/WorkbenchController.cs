@@ -14,7 +14,6 @@ public sealed class WorkbenchController(
     WorkbenchQueryEngine queryEngine,
     ImportReviewStore imports,
     ImportReviewSample importSample,
-    ImportReviewLargeSample largeSample,
     IHostEnvironment environment,
     ILogger<WorkbenchController> logger
 ) : ControllerBase, IAsyncActionFilter
@@ -117,45 +116,7 @@ public sealed class WorkbenchController(
     {
         RequireWorkspace();
         ImportReviewSource? source = await importSample.FindSourceAsync(ct);
-        return new(source, source is not null && importSample.IsAvailable, largeSample.IsAvailable);
-    }
-
-    [HttpPost("import-review/large/stage")]
-    public async Task<ActionResult<ImportReviewLargeStage>> StageLargeSample(CancellationToken ct)
-    {
-        RequireWorkspace();
-        try
-        {
-            if (await largeSample.StageAsync(ct) is { } stage)
-                return stage;
-        }
-        catch (InvalidDataException error)
-        {
-            logger.LogWarning(error, "Could not stage the RadNet CSV collection.");
-        }
-
-        return Problem(
-            statusCode: StatusCodes.Status503ServiceUnavailable,
-            title: "The RadNet CSV collection is unavailable on this host."
-        );
-    }
-
-    [HttpPost("import-review/large/query")]
-    [RequestSizeLimit(32 * 1024)]
-    public async Task<ActionResult<RadNetQueryResult>> LargeSampleRows(
-        [FromBody] RadNetQuery query,
-        CancellationToken ct
-    )
-    {
-        RequireWorkspace();
-        RadNetQueryResult? page = await largeSample.QueryAsync(query, ct);
-        if (page is not null)
-            return page;
-
-        return Problem(
-            statusCode: StatusCodes.Status409Conflict,
-            title: "Stage the RadNet CSV collection before browsing it."
-        );
+        return new(source, source is not null && importSample.IsAvailable);
     }
 
     [HttpPost("import-review/sample")]

@@ -117,9 +117,13 @@ under [EPA's data terms](https://edg.epa.gov/EPA_Data_License.html).
 
 ### Try Import Review
 
-Import Review in Data Workbench uses the Colorado Springs 2025 CSV from the same EPA download.
-Extract it from the archive cache and set `ImportReview__SamplePath` when starting the server, or
-place the file at `App_Data/radnet-import-sample.csv` under the server's content root.
+**Data Workbench → Import Review → Full archive** opens the installed RadNet DuckDB snapshot
+directly. The 2016–2025 snapshot contains 10,058,284 observations. DuckDB filters, sorts, and
+pages them on the server. Each result shows its original CSV name and record number.
+
+**Annual CSV** uses the Colorado Springs 2025 CSV from the same EPA download. Extract it from
+the archive cache and set `ImportReview__SamplePath` when starting the server, or place the file
+at `App_Data/radnet-import-sample.csv` under the server's content root.
 
 ```bash
 unzip -p "$radnet_dir"/archives/*-co_colorado_springs_2025-2008.zip \
@@ -130,28 +134,7 @@ export ImportReview__SamplePath="$radnet_dir/CO_COLORADO_SPRINGS_2025.csv"
 
 Stage the supplied sample or upload a copy of this annual file to inspect its source records,
 including duplicates, rejected rows, and differences from the archive. A complete match can be
-saved as a Series and linked to a Project. Full archive opens the retained observations for
-server-side filtering, sorting, and paging across all stations.
-
-#### Stage the RadNet CSV collection
-
-**Import Review → CSV collection** stages 10,058,284 retained EPA RadNet observations from
-the 2016–2025 snapshot. The export writes one CSV per annual source file, for 1,386 files in
-total, and preserves the original CSV name and source row. Duplicates and rejected records
-are reviewed in Annual CSV mode.
-
-```bash
-"$radnet_dir/venv/bin/python" scripts/export-radnet-large-csv.py \
-  --snapshot "$radnet_dir/radnet.duckdb" --output "$radnet_dir/radnet-large-sample"
-export ImportReview__LargeSampleDirectory="$radnet_dir/radnet-large-sample"
-```
-
-Use `App_Data/radnet-large-sample` for the default host path. In Production, the first stage
-request prepares that directory from the installed RadNet snapshot if the directory is absent.
-DuckDB then scans the separate CSVs and writes a disk-backed database in the host's temporary
-directory. The process shares that stage and applies grid filters, sorting, and pagination in
-DuckDB. Allow space for the CSVs and the staged database. The browser sends query parameters
-and receives the requested page.
+saved as a Series and linked to a Project.
 
 ### Build the JRC REMdb snapshot
 

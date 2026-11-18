@@ -3,55 +3,34 @@
 
 <section class="ir-workspace" aria-labelledby="ir-title">
     <header class="ir-heading">
-        <div>
-            <h2 id="ir-title">Import Review</h2>
-            <p>Stage RadNet CSVs and explore the records.</p>
-        </div>
+        <h2 id="ir-title">Import Review</h2>
         <div class="ir-view" role="group" aria-label="Review view">
-            <button type="button" aria-pressed="@(_view == ReviewView.AnnualCsv ? "true" : "false")"
-                    @onclick="() => _view = ReviewView.AnnualCsv">Annual CSV</button>
-            <button type="button" aria-pressed="@(_view == ReviewView.CsvCollection ? "true" : "false")"
-                    @onclick="() => _view = ReviewView.CsvCollection" disabled="@(!Ready)">CSV collection</button>
-            <button type="button" aria-pressed="@(_view == ReviewView.FullArchive ? "true" : "false")"
-                    @onclick="() => _view = ReviewView.FullArchive" disabled="@(!Ready)">Full archive</button>
+            <button type="button" aria-pressed="@(!_showAnnualCsv ? "true" : "false")"
+                    @onclick="() => _showAnnualCsv = false">Full archive</button>
+            <button type="button" aria-pressed="@(_showAnnualCsv ? "true" : "false")"
+                    @onclick="ShowAnnualCsvAsync" disabled="@(!Ready)">Annual CSV</button>
         </div>
     </header>
 
-    @if (_view == ReviewView.FullArchive)
+    @if (!_showAnnualCsv)
     {
         <section class="ir-panel ir-archive" aria-labelledby="ir-archive-title">
             <header>
-                <h3 id="ir-archive-title">Preloaded archive</h3>
-                <p>Filter and sort @Count(ObservationCount) retained observations. Use Annual CSV to review the original records from a single file.</p>
+                <h3 id="ir-archive-title">EPA RadNet observations</h3>
+                @if (Ready)
+                {
+                    <p>DuckDB queries @Count(ObservationCount) retained observations directly from the archive snapshot.</p>
+                }
             </header>
-            <RadNetResults Query="@FullArchiveQuery" OnQuality="OpenFileQuality" ShowObservationState="true"
-                           AssistantGrid="AssistantSurface.WorkbenchArchiveObservations" />
-        </section>
-    }
-    else if (_view == ReviewView.CsvCollection)
-    {
-        <section class="ir-panel ir-intake" aria-labelledby="ir-large-title">
-            <div class="ir-source">
-                <h3 id="ir-large-title">RadNet CSV collection</h3>
-                <p>DuckDB scans one CSV per EPA RadNet annual source file (2016–2025) and stages the observations in one table.</p>
-                <div class="ir-links">
-                    <a href="https://www.epa.gov/radnet/radnet-csv-file-downloads" target="_blank" rel="noopener">EPA source files</a>
-                </div>
-            </div>
-            <div class="ir-intake-controls">
-                <button type="button" class="ir-button ir-primary" @onclick="StageCsvCollectionAsync"
-                        disabled="@(!Ready || _busy || _availability?.LargeCsvAvailable != true)">
-                    <RadzenIcon Icon="play_arrow" aria-hidden="true" /> Stage CSV collection
-                </button>
-                @if (_availability is { LargeCsvAvailable: false })
-                {
-                    <small>The CSV collection is unavailable on this host.</small>
-                }
-                else if (_availability is null && !_busy)
-                {
-                    <button type="button" class="ir-button" @onclick="LoadAvailabilityAsync">Retry</button>
-                }
-            </div>
+            @if (Ready)
+            {
+                <RadNetResults Query="@FullArchiveQuery" OnQuality="OpenFileQuality" ShowObservationProvenance="true"
+                               AssistantGrid="AssistantSurface.WorkbenchArchiveObservations" />
+            }
+            else
+            {
+                <GridLoadingPlaceholder Label="Loading archive observations…" />
+            }
         </section>
     }
     else
@@ -111,9 +90,9 @@
         </section>
     }
 
-    @if (_busy && _progress is { } progress)
+    @if (_showAnnualCsv && _busy && _progress is { } progress)
     {
-        @if (_view == ReviewView.AnnualCsv && _stage is null)
+        @if (_stage is null)
         {
             <section class="ir-panel ir-review" aria-labelledby="ir-staged-title">
                 <header class="ir-stage-heading">
@@ -127,28 +106,11 @@
             <p class="ir-message" role="status">@progress</p>
         }
     }
-    @if (_error is not null)
+    @if (_showAnnualCsv && _error is not null)
     {
         <p class="ir-message ir-error" role="alert">@_error</p>
     }
-    @if (_view == ReviewView.CsvCollection && _largeStage is { } largeStage)
-    {
-        <section class="ir-panel ir-archive" aria-labelledby="ir-large-staged-title">
-            <header>
-                <h3 id="ir-large-staged-title">Staged CSV records</h3>
-                <p class="ir-filename" title="@largeStage.Name">@largeStage.Name</p>
-            </header>
-            <dl class="ir-summary" aria-label="Staged CSV collection details">
-                <div><dt>CSV records</dt><dd>@Count(largeStage.RowCount)</dd></div>
-                <div><dt>Total CSV size</dt><dd>@FileSize(largeStage.Bytes)</dd></div>
-                <div><dt>Annual CSV files</dt><dd>@Count(largeStage.SourceFileCount)</dd></div>
-            </dl>
-            <RadNetResults Query="@FullArchiveQuery" QueryUrl="@LargeCsvQueryUrl" QueryRevision="@_largeStageRevision"
-                           ShowObservationProvenance="true"
-                           AssistantGrid="AssistantSurface.WorkbenchArchiveObservations" />
-        </section>
-    }
-    @if (_view == ReviewView.AnnualCsv && _stage is { } stage)
+    @if (_showAnnualCsv && _stage is { } stage)
     {
         <section class="ir-panel ir-review" aria-labelledby="ir-staged-title">
             <header class="ir-stage-heading">

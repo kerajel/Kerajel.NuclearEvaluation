@@ -9,28 +9,6 @@ namespace NuclearEvaluation.Server.Tests;
 public sealed class RadNetSnapshotTests
 {
     [Fact]
-    public async Task PreparesMissingCollectionFromRadNetSnapshot()
-    {
-        using SnapshotFixture fixture = new();
-        string output = Path.Combine(Path.GetDirectoryName(fixture.SnapshotPath)!, "annual");
-        await using ImportReviewLargeSample collection = new(
-            output,
-            fixture.SnapshotPath,
-            minimumFallbackRows: 8
-        );
-
-        Assert.True(collection.IsAvailable);
-        Assert.False(Directory.Exists(output));
-        ImportReviewLargeStage stage = Assert.IsType<ImportReviewLargeStage>(
-            await collection.StageAsync(CancellationToken.None)
-        );
-
-        Assert.Equal(8, stage.RowCount);
-        Assert.Equal(5, stage.SourceFileCount);
-        Assert.Equal(5, Directory.GetFiles(output, "*.csv").Length);
-    }
-
-    [Fact]
     public async Task StationMatchesOneFileObservationAndChannel()
     {
         using SnapshotFixture fixture = new();
@@ -838,12 +816,12 @@ public sealed class RadNetSnapshotTests
 
         public SnapshotFixture()
         {
-            SnapshotPath = Path.Combine(_directory.FullName, "fixture.duckdb");
-            Snapshot = new(SnapshotPath);
+            string file = Path.Combine(_directory.FullName, "fixture.duckdb");
+            Snapshot = new(file);
             using DuckDBConnection connection = new(
                 new DuckDBConnectionStringBuilder
                 {
-                    DataSource = SnapshotPath,
+                    DataSource = file,
                     Threads = 1,
                 }.ConnectionString
             );
@@ -881,7 +859,6 @@ public sealed class RadNetSnapshotTests
         }
 
         public RadNetSnapshot Snapshot { get; }
-        public string SnapshotPath { get; }
 
         public void Dispose() => _directory.Delete(recursive: true);
     }

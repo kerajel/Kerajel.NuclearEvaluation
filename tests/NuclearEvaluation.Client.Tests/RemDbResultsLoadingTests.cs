@@ -9,6 +9,34 @@ namespace NuclearEvaluation.Client.Tests;
 public class RemDbResultsLoadingTests : TestBase
 {
     [Theory]
+    [InlineData(-1, -1, "Unknown", "Unknown")]
+    [InlineData(-1, 5.75, "-1", "5.75")]
+    [InlineData(60, -1, "60", "-1")]
+    public void DisplaysUnknownForTheMissingCoordinatePair(
+        double latitude,
+        double longitude,
+        string expectedLatitude,
+        string expectedLongitude
+    )
+    {
+        using ResultHandler handler = new();
+        using HttpClient http = new(handler) { BaseAddress = new Uri("https://localhost") };
+        TestContext.Services.AddSingleton(http);
+        handler.Initial.SetResult(Page(new() { Latitude = latitude, Longitude = longitude }));
+
+        IRenderedComponent<RemDbResults> grid = TestContext.Render<RemDbResults>(parameters =>
+            parameters.Add(component => component.Query, new(RemDbEntity.Site))
+        );
+
+        grid.WaitForAssertion(() =>
+            Assert.Equal(
+                new[] { expectedLatitude, expectedLongitude },
+                grid.FindAll("tbody td.rem-numeric").Select(cell => cell.TextContent.Trim())
+            )
+        );
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void PreservesRowsDuringScopeChangeAndOnlyCommitsSuccessfulResponse(bool fails)

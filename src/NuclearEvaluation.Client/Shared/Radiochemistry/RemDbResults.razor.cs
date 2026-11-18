@@ -252,6 +252,8 @@ public partial class RemDbResults : IDisposable
         {
             nameof(RemDbRow.Country) => Display(row.Country),
             nameof(RemDbRow.SiteName) => SiteLabel(row),
+            nameof(RemDbRow.Latitude)
+            or nameof(RemDbRow.Longitude) when row is { Latitude: -1, Longitude: -1 } => "Unknown",
             nameof(RemDbRow.Latitude) => Number(row.Latitude),
             nameof(RemDbRow.Longitude) => Number(row.Longitude),
             nameof(RemDbRow.Medium) => Display(row.Medium),

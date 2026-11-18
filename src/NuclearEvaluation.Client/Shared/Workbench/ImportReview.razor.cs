@@ -10,19 +10,23 @@ namespace NuclearEvaluation.Client.Shared.Workbench;
 public partial class ImportReview : IDisposable
 {
     const string ReviewUrl = "api/workbench/import-review";
+    const string LargeCsvUrl = $"{ReviewUrl}/large";
+    const string LargeCsvQueryUrl = $"{LargeCsvUrl}/query";
     static readonly RadNetQuery FullArchiveQuery = new(RadNetEntity.Observation);
     readonly CancellationTokenSource _lifetime = new();
     IReadOnlyList<WorkbenchProject> _projects = [];
     ImportReviewAvailability? _availability;
     ImportReviewStage? _stage;
+    ImportReviewLargeStage? _largeStage;
     ImportReviewSeriesLink? _seriesLink;
     IBrowserFile? _upload;
     string _projectChoice = "";
     string? _error;
     string? _progress;
     bool _busy;
-    bool _showArchive;
     bool _requestedAvailability;
+    int _largeStageRevision;
+    ReviewView _view;
 
     [Inject]
     HttpClient Http { get; set; } = null!;
@@ -37,6 +41,9 @@ public partial class ImportReview : IDisposable
     public bool Ready { get; set; } = true;
 
     static long UploadMegabytes => ImportReviewCatalog.MaxUploadBytes / 1_048_576;
+
+    static string FileSize(long bytes) =>
+        FormattableString.Invariant($"{bytes / 1_048_576d:N1} MiB");
 
     protected override Task OnParametersSetAsync()
     {
@@ -61,6 +68,18 @@ public partial class ImportReview : IDisposable
                 ct
             );
             await ShowStageAsync(await ReadAsync<ImportReviewStage>(response, ct), ct);
+        });
+
+    Task StageCsvCollectionAsync() =>
+        RunAsync("Preparing the CSV collection in DuckDB…", async ct =>
+        {
+            using HttpResponseMessage response = await Http.PostAsync(
+                $"{LargeCsvUrl}/stage",
+                null,
+                ct
+            );
+            _largeStage = await ReadAsync<ImportReviewLargeStage>(response, ct);
+            _largeStageRevision++;
         });
 
     void SelectUpload(InputFileChangeEventArgs change)
@@ -199,4 +218,11 @@ public partial class ImportReview : IDisposable
     sealed record ImportProblem(string? Title, string? Detail);
 
     sealed class ImportRequestException(string message) : Exception(message);
+
+    enum ReviewView
+    {
+        AnnualCsv,
+        CsvCollection,
+        FullArchive,
+    }
 }

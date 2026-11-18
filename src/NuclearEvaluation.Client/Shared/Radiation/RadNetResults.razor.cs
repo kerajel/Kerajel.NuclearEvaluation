@@ -54,6 +54,12 @@ public partial class RadNetResults : IDisposable
         new(nameof(RadNetRow.State), "State", 6),
         .. ObservationColumns[2..],
     ];
+    static readonly ResultColumn[] ObservationColumnsWithProvenance =
+    [
+        .. ObservationColumnsWithState[..^1],
+        new(nameof(RadNetRow.FileName), "Original CSV", 19),
+        ObservationColumnsWithState[^1],
+    ];
 
     CancellationTokenSource? _pendingRequest;
     readonly string _filterEditorId = $"radnet-filter-{Guid.NewGuid():N}";
@@ -101,6 +107,9 @@ public partial class RadNetResults : IDisposable
     public bool ShowObservationState { get; set; }
 
     [Parameter]
+    public bool ShowObservationProvenance { get; set; }
+
+    [Parameter]
     public AssistantSurface AssistantGrid { get; set; }
 
     [Parameter]
@@ -118,9 +127,13 @@ public partial class RadNetResults : IDisposable
     bool Busy => _loading || ScopeLoading;
     RadNetQuery DisplayedQuery => _displayed.Query;
     IReadOnlyList<ResultColumn> DisplayedColumns =>
-        ShowObservationState && DisplayedQuery.Entity == RadNetEntity.Observation
-            ? ObservationColumnsWithState
-            : Columns[DisplayedQuery.Entity];
+        DisplayedQuery.Entity switch
+        {
+            RadNetEntity.Observation when ShowObservationProvenance =>
+                ObservationColumnsWithProvenance,
+            RadNetEntity.Observation when ShowObservationState => ObservationColumnsWithState,
+            _ => Columns[DisplayedQuery.Entity],
+        };
     int MinimumTableWidth =>
         DisplayedColumns.Sum(column => column.Width) + (HasActions ? ActionColumnWidth : 0);
     bool ShowQuality => OnQuality.HasDelegate && DisplayedQuery.Entity != RadNetEntity.Station;

@@ -133,6 +133,26 @@ including duplicates, rejected rows, and differences from the archive. A complet
 saved as a Series and linked to a Project. Full archive opens the retained observations for
 server-side filtering, sorting, and paging across all stations.
 
+#### Stage the RadNet CSV collection
+
+**Import Review → CSV collection** stages 10,058,284 retained EPA RadNet observations from
+the 2016–2025 snapshot. The export writes one CSV per annual source file, for 1,386 files in
+total, and preserves the original CSV name and source row. Duplicates and rejected records
+are reviewed in Annual CSV mode.
+
+```bash
+"$radnet_dir/venv/bin/python" scripts/export-radnet-large-csv.py \
+  --snapshot "$radnet_dir/radnet.duckdb" --output "$radnet_dir/radnet-large-sample"
+export ImportReview__LargeSampleDirectory="$radnet_dir/radnet-large-sample"
+```
+
+Use `App_Data/radnet-large-sample` for the default host path. In Production, the first stage
+request prepares that directory from the installed RadNet snapshot if the directory is absent.
+DuckDB then scans the separate CSVs and writes a disk-backed database in the host's temporary
+directory. The process shares that stage and applies grid filters, sorting, and pagination in
+DuckDB. Allow space for the CSVs and the staged database. The browser sends query parameters
+and receives the requested page.
+
 ### Build the JRC REMdb snapshot
 
 Use Python 3.11 or later, DuckDB 1.5.6, and a workspace outside the repository with several GB free.

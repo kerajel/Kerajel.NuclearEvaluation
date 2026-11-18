@@ -2,7 +2,18 @@ using System.Text.Json.Serialization;
 
 namespace NuclearEvaluation.Shared.Contracts;
 
-public sealed record ImportReviewAvailability(ImportReviewSource? Sample, bool SampleAvailable);
+public sealed record ImportReviewAvailability(
+    ImportReviewSource? Sample,
+    bool SampleAvailable,
+    bool LargeCsvAvailable = false
+);
+
+public sealed record ImportReviewLargeStage(
+    string Name,
+    long Bytes,
+    long RowCount,
+    long SourceFileCount
+);
 
 public sealed record ImportReviewSource(
     int FileId,

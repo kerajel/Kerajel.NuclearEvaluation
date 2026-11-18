@@ -92,6 +92,7 @@ internal class Program
         builder.Services.AddSingleton<WorkbenchQueryEngine>();
         builder.Services.AddSingleton<ImportReviewStore>();
         builder.Services.AddSingleton<ImportReviewSample>();
+        builder.Services.AddSingleton<ImportReviewLargeSample>();
         if (useIsotopeFixtures)
             AddIsotopeFixtures(builder);
 

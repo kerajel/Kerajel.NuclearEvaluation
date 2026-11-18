@@ -92,7 +92,6 @@ internal class Program
         builder.Services.AddSingleton<WorkbenchQueryEngine>();
         builder.Services.AddSingleton<ImportReviewStore>();
         builder.Services.AddSingleton<ImportReviewSample>();
-        builder.Services.AddSingleton<ImportReviewLargeSample>();
         if (useIsotopeFixtures)
             AddIsotopeFixtures(builder);
 
@@ -113,6 +112,14 @@ internal class Program
         builder.Services.AddSingleton<ICaptchaService, CaptchaService>();
 
         WebApplication app = builder.Build();
+
+        if (
+            app.Environment.IsProduction()
+            && app.Configuration["ImportReview:LargeSampleDirectory"] is null
+        )
+        {
+            RetiredRadNetCsvCollection.Remove(app.Environment.ContentRootPath, app.Logger);
+        }
 
         if (useIsotopeFixtures && app.Configuration.GetValue("Sandbox:SeedOnStartup", true))
         {

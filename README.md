@@ -210,9 +210,13 @@ for legacy fixtures:
   sessions (closing their DuckDB connections and deleting their uploads), and resets SQL Server to seed once per
   interval (tracked in `DBO.SandboxState` so it survives app-pool recycling).
 
-Set a private `Captcha:Secret` on the production host. If no captcha
-secret is configured, the server generates a random key for that process, so verification cookies
-stop working when it restarts. Difficulty and cookie lifetime can also be set under `Captcha`.
+Successful human checks are remembered for 30 days, including across server restarts. Without a
+configured `Captcha:Secret`, the server persists private data protection keys in
+`App_Data/CaptchaKeys` under the app content root. The IIS worker needs write access to this
+directory; preserve it across deployments and restrict access to the application identity.
+`Captcha:KeyDirectory` overrides the location. An existing private `Captcha:Secret` remains
+supported and keeps its current cookies valid. Difficulty and cookie lifetime can also be set
+under `Captcha`.
 
 When the host blocks writes outside the site directory, set `Sandbox__StorageDirectory` to
 `App_Data/NuclearEvaluationStorage` on the host. Relative paths resolve against the app content
@@ -304,7 +308,7 @@ dotnet publish src/NuclearEvaluation.Server -c Release -r win-x64 --self-contain
 ```
 
 Deploy the contents of `./publish` and supply `ConnectionStrings:NuclearEvaluationServerDbConnection`
-and `Captcha:Secret` via the host's configuration.
+and, optionally, `Captcha:Secret` via the host's configuration.
 
 Publish the server and its bundled WASM client together. EF Core migrations manage the database
 schema; sandbox initialization and scheduled resets manage the example data.

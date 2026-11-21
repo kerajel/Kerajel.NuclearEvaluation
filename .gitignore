@@ -365,6 +365,7 @@ FodyWeavers.xsd
 # Local configuration & secrets (the committed appsettings.json holds only non-secret defaults)
 /src/NuclearEvaluation.Server/appsettings.Development.json
 /src/NuclearEvaluation.Server/appsettings.Production.json
+**/App_Data/CaptchaKeys/
 
 # Local file storage for uploads (EFS emulation)
 /NuclearEvaluationStorage/

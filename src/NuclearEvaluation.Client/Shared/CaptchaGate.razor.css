@@ -52,3 +52,8 @@
 .captcha-panel ::deep .rz-button-text {
     white-space: normal;
 }
+
+.captcha-panel .captcha-progress {
+    margin-top: .75rem;
+    font-size: .875rem;
+}

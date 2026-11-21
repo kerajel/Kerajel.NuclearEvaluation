@@ -1,13 +1,16 @@
 @using static RadNetPresentation
 
-<div class="radnet-builder">
-    <section class="radnet-editor" aria-labelledby="radnet-filter-title">
+<div class="radnet-builder @(_editorCollapsed ? "radnet-builder--collapsed" : null)">
+    <section id="radnet-query-editor" class="radnet-editor" aria-labelledby="radnet-filter-title" hidden="@_editorCollapsed">
         <header class="radnet-editor-heading">
             <div>
                 <h2 id="radnet-filter-title">Query Builder</h2>
                 <p>Join station, file, observation, and channel filters.</p>
             </div>
-            <button type="button" class="radnet-secondary" @onclick="RunExample">Run example</button>
+            <div class="radnet-builder-actions">
+                <button type="button" class="radnet-secondary" @onclick="RunExample">Run example</button>
+                <button type="button" class="radnet-secondary" @onclick="ResetFilters">Reset filters</button>
+            </div>
         </header>
 
         <div class="radnet-preset-tools">
@@ -125,11 +128,19 @@
 
     <section class="radnet-builder-results" aria-labelledby="radnet-result-title">
         <header>
-            <h2 id="radnet-result-title">@(_applied is null ? "Results" : EntityName(_applied.Entity))</h2>
-            @if (_applied is not null)
-            {
-                <p>Sort by a column header. Click a row action to inspect the next level.</p>
-            }
+            <div>
+                <h2 id="radnet-result-title">@(_applied is null ? "Results" : EntityName(_applied.Entity))</h2>
+                @if (_applied is not null)
+                {
+                    <p>Sort by a column header. Click a row action to inspect the next level.</p>
+                }
+            </div>
+            <button type="button" class="radnet-secondary" aria-controls="radnet-query-editor"
+                    aria-expanded="@(_editorCollapsed ? "false" : "true")"
+                    @onclick="() => _editorCollapsed = !_editorCollapsed">
+                <RadzenIcon Icon="@(_editorCollapsed ? "chevron_right" : "chevron_left")" aria-hidden="true" />
+                @(_editorCollapsed ? "Show query builder" : "Hide query builder")
+            </button>
         </header>
         @if (_applied is { } query)
         {

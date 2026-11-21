@@ -1,14 +1,17 @@
 @using static RemDbPresentation
 @using static NuclearEvaluation.Client.Shared.Radiation.RadNetPresentation
 
-<div class="rem-builder">
-    <section class="rem-panel rem-editor" aria-labelledby="rem-query-title">
+<div class="rem-builder @(_editorCollapsed ? "rem-builder--collapsed" : null)">
+    <section id="rem-query-editor" class="rem-panel rem-editor" aria-labelledby="rem-query-title" hidden="@_editorCollapsed">
         <header class="rem-panel-heading">
             <div>
                 <h2 id="rem-query-title">Query Builder</h2>
                 <p>Combine filters on the site, sampling window, and measurement.</p>
             </div>
-            <button type="button" class="rem-button" @onclick="RunExample">Run example</button>
+            <div class="rem-builder-actions">
+                <button type="button" class="rem-button" @onclick="RunExample">Run example</button>
+                <button type="button" class="rem-button" @onclick="ResetFilters">Reset filters</button>
+            </div>
         </header>
 
         <div class="rem-presets rem-editor-block">
@@ -128,6 +131,12 @@
                     <p>Compare reported activity within a common unit and medium.</p>
                 }
             </div>
+            <button type="button" class="rem-button" aria-controls="rem-query-editor"
+                    aria-expanded="@(_editorCollapsed ? "false" : "true")"
+                    @onclick="() => _editorCollapsed = !_editorCollapsed">
+                <RadzenIcon Icon="@(_editorCollapsed ? "chevron_right" : "chevron_left")" aria-hidden="true" />
+                @(_editorCollapsed ? "Show query builder" : "Hide query builder")
+            </button>
         </header>
         @if (_applied is { } applied)
         {

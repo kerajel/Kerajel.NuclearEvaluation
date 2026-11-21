@@ -31,11 +31,17 @@ else
                 </RadzenAlert>
             }
 
-            <RadzenButton Text="@(_solving ? "Verifying..." : "Accept & verify I'm human")"
+            <RadzenButton Text="Accept & verify I'm human"
+                          IsBusy="@_solving" BusyText="Verifying..."
                           Icon="verified_user"
+                          aria-busy="@(_solving ? "true" : "false")"
                           Disabled="@(_solving || !_cookiesAccepted)"
                           Click="@Solve"
                           Style="width:100%;" />
+            @if (_solving)
+            {
+                <p class="captcha-progress" role="status">Verifying your browser and saving your verification…</p>
+            }
         </main>
     </div>
 }

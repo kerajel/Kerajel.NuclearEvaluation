@@ -5,6 +5,16 @@
     align-items: start;
 }
 
+.radnet-builder--collapsed {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.radnet-builder-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+}
+
 .radnet-editor, .radnet-builder-results {
     min-width: 0;
     border: 1px solid var(--radiation-line);
@@ -38,6 +48,11 @@ header p, .radnet-group-tools p {
 }
 
 .radnet-builder-results > header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    flex-wrap: wrap;
+    gap: .55rem;
     padding: .85rem 1rem;
 }
 

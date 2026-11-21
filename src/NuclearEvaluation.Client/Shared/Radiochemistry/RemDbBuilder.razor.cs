@@ -26,6 +26,7 @@ public partial class RemDbBuilder
     int _pageSize = 50;
     bool _descending;
     bool _exampleLoaded;
+    bool _editorCollapsed;
 
     [Inject]
     IJSRuntime Js { get; set; } = null!;
@@ -76,6 +77,8 @@ public partial class RemDbBuilder
 
     void RunExample() =>
         LoadAndRun(RemDbExample.Query, RemDbExample.Title, $"Loaded {RemDbExample.Title}.");
+
+    void ResetFilters() => LoadAndRun(new(_entity), "", null);
 
     internal Task ApplyAssistantQueryAsync(RemDbQuery query)
     {

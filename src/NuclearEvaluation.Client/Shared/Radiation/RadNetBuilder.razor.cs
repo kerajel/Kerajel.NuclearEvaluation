@@ -25,6 +25,7 @@ public partial class RadNetBuilder
     string _selectedPreset = "";
     string _presetName = "";
     string? _notice;
+    bool _editorCollapsed;
 
     [Inject]
     IJSRuntime Js { get; set; } = null!;
@@ -74,6 +75,16 @@ public partial class RadNetBuilder
         _presetName = RadNetExample.Title;
         SetDraft(RadNetExample.Query);
         SetAppliedQuery(RadNetExample.Query);
+        _notice = null;
+    }
+
+    void ResetFilters()
+    {
+        RadNetQuery query = new(_entity);
+        _selectedPreset = "";
+        _presetName = "";
+        SetDraft(query);
+        SetAppliedQuery(query);
         _notice = null;
     }
 

@@ -397,6 +397,16 @@
     gap: .85rem;
 }
 
+.rem-workspace ::deep .rem-builder--collapsed {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.rem-workspace ::deep .rem-builder-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+
 .rem-workspace ::deep .rem-editor-block {
     padding: .7rem 1.08rem;
 }

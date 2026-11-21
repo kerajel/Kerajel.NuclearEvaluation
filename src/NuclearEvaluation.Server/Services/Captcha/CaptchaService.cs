@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 using NuclearEvaluation.Shared.Contracts;
 
@@ -8,8 +9,11 @@ namespace NuclearEvaluation.Server.Services.Captcha;
 
 public class CaptchaSettings
 {
-    /// <summary>HMAC secret for signing challenges and the verification cookie. Override in production.</summary>
+    /// <summary>Optional HMAC secret. Without one, use the persisted data protection keys.</summary>
     public string Secret { get; set; } = string.Empty;
+
+    /// <summary>Persistent key directory, resolved relative to the application content root.</summary>
+    public string KeyDirectory { get; set; } = "App_Data/CaptchaKeys";
 
     /// <summary>Upper bound of the proof-of-work search space (difficulty).</summary>
     public int MaxNumber { get; set; } = 500_000;
@@ -33,31 +37,37 @@ public interface ICaptchaService
 
 /// <summary>
 /// Self-hosted ALTCHA-style proof-of-work captcha. No third-party service: the server
-/// signs challenges with an HMAC secret and the browser solves a SHA-256 search.
+/// authenticates challenges and the browser solves a SHA-256 search.
 /// </summary>
 public class CaptchaService : ICaptchaService
 {
     readonly CaptchaSettings _settings;
-    readonly byte[] _secret;
+    readonly byte[]? _secret;
+    readonly IDataProtector _signatures;
+    readonly TimeProvider _clock;
 
-    public CaptchaService(IOptions<CaptchaSettings> settings)
+    public CaptchaService(
+        IOptions<CaptchaSettings> settings,
+        IDataProtectionProvider dataProtection,
+        TimeProvider clock
+    )
     {
         _settings = settings.Value;
-        // A shared development secret would let anyone mint a valid verification cookie.
-        // Without configuration, use a process-local key; cookies expire on restart.
         _secret = string.IsNullOrWhiteSpace(_settings.Secret)
-            ? RandomNumberGenerator.GetBytes(32)
+            ? null
             : Encoding.UTF8.GetBytes(_settings.Secret);
+        _signatures = dataProtection.CreateProtector("NuclearEvaluation.Captcha.Signatures.v1");
+        _clock = clock;
     }
 
     public CaptchaChallenge CreateChallenge()
     {
-        long issuedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        long issuedAt = _clock.GetUtcNow().ToUnixTimeSeconds();
         string salt = $"{RandomHex(16)}.{issuedAt}";
         int number = RandomNumberGenerator.GetInt32(0, _settings.MaxNumber + 1);
 
         string challenge = Sha256Hex(salt + number.ToString(CultureInfo.InvariantCulture));
-        string signature = HmacHex(challenge);
+        string signature = Sign(challenge);
 
         return new CaptchaChallenge
         {
@@ -86,7 +96,7 @@ public class CaptchaService : ICaptchaService
             return false;
         }
 
-        TimeSpan age = DateTimeOffset.UtcNow - issuedAt;
+        TimeSpan age = _clock.GetUtcNow() - issuedAt;
         if (age < TimeSpan.Zero || age > TimeSpan.FromMinutes(_settings.ChallengeTtlMinutes))
         {
             return false;
@@ -100,17 +110,14 @@ public class CaptchaService : ICaptchaService
             return false;
         }
 
-        string expectedSignature = HmacHex(expectedChallenge);
-        return FixedEquals(expectedSignature, solution.Signature);
+        return IsSignatureValid(expectedChallenge, solution.Signature);
     }
 
     public string IssueVerificationToken()
     {
-        long expiry = DateTimeOffset
-            .UtcNow.AddDays(_settings.VerificationTtlDays)
-            .ToUnixTimeSeconds();
+        long expiry = _clock.GetUtcNow().AddDays(_settings.VerificationTtlDays).ToUnixTimeSeconds();
         string payload = expiry.ToString(CultureInfo.InvariantCulture);
-        return $"{payload}.{HmacHex("pow." + payload)}";
+        return $"{payload}.{Sign("pow." + payload)}";
     }
 
     public bool IsVerificationTokenValid(string? token)
@@ -135,15 +142,14 @@ public class CaptchaService : ICaptchaService
         }
 
         if (
-            expiry <= DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+            expiry <= _clock.GetUtcNow().ToUnixTimeSeconds()
             || expiry > DateTimeOffset.MaxValue.ToUnixTimeSeconds()
         )
         {
             return false;
         }
 
-        string expectedSignature = HmacHex("pow." + parts[0]);
-        return FixedEquals(expectedSignature, parts[1]);
+        return IsSignatureValid("pow." + parts[0], parts[1]);
     }
 
     static bool TryGetSaltTimestamp(string salt, out DateTimeOffset issuedAt)
@@ -179,10 +185,30 @@ public class CaptchaService : ICaptchaService
     static string Sha256Hex(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
 
-    string HmacHex(string value)
+    string Sign(string value)
     {
+        if (_secret is null)
+            return _signatures.Protect(value);
+
         byte[] hash = HMACSHA256.HashData(_secret, Encoding.UTF8.GetBytes(value));
         return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    bool IsSignatureValid(string value, string? signature)
+    {
+        if (string.IsNullOrEmpty(signature))
+            return false;
+        if (_secret is not null)
+            return FixedEquals(Sign(value), signature);
+
+        try
+        {
+            return FixedEquals(value, _signatures.Unprotect(signature));
+        }
+        catch (CryptographicException)
+        {
+            return false;
+        }
     }
 
     static bool FixedEquals(string a, string? b) =>

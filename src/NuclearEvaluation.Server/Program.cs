@@ -95,21 +95,7 @@ internal class Program
         if (useIsotopeFixtures)
             AddIsotopeFixtures(builder);
 
-        builder
-            .Services.AddOptions<CaptchaSettings>()
-            .Bind(builder.Configuration.GetSection("Captcha"))
-            .Validate(
-                s => s.MaxNumber is >= 1 and <= 1_000_000,
-                "Captcha difficulty must be between 1 and 1,000,000."
-            )
-            .Validate(
-                s =>
-                    s.ChallengeTtlMinutes is >= 1 and <= 60
-                    && s.VerificationTtlDays is >= 1 and <= 365,
-                "Captcha lifetimes are outside the supported range."
-            )
-            .ValidateOnStart();
-        builder.Services.AddSingleton<ICaptchaService, CaptchaService>();
+        builder.Services.AddCaptcha(builder.Configuration, builder.Environment.ContentRootPath);
 
         WebApplication app = builder.Build();
 
